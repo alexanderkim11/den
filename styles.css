@@ -1,0 +1,384 @@
+@font-face {
+  font-family: 'Aleofont Sans';
+  src: url('src-tauri/resources/AleofontSans-Regular.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Inter Thin';
+  src: url('src-tauri/resources/Inter-VariableFont.otf') format('opentype');
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('src-tauri/resources/Inter.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Menlo Regular';
+  font-style: normal;
+  font-weight: normal;
+  src: url('src-tauri/resources/Menlo-Regular.woff') format('woff');
+  }
+
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #121212;
+    background-color: #121212;
+  }
+}
+
+
+
+
+
+.main {
+  display: flex;
+  flex-direction: row;
+  position:fixed;
+  width: 100%;
+  margin: 0px;
+  padding: 0;
+  border:0px;
+  top: 0;
+  left: 0;
+  height: 100%
+}
+
+#sidebar {
+  display:flex;
+  flex-direction: row;
+  height:100%;
+  order:0;
+  flex: 0 0 250px;
+}
+
+#sidebar-icons {
+  display:flex;
+  flex-direction: column;
+  order:0;
+  flex: 0 0 50px;
+  height: 100%;
+}
+
+#temp-buffer {
+  flex: 0 0 40px;
+  border-bottom:1px solid #494e64;
+  box-sizing: border-box;
+  order:0;
+}
+
+#sidebar-icons button {
+  flex: 0 0 50px;
+  box-sizing: border-box;
+  padding: 10px;
+  background:transparent;
+  border:0;
+  filter: invert(55%) sepia(0%) saturate(202%) hue-rotate(189deg) brightness(96%) contrast(83%);
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+}
+
+#sidebar-icons button:hover {
+  /* filter: invert(79%) sepia(0%) saturate(7221%) hue-rotate(353deg) brightness(156%) contrast(69%); */
+  filter: invert(90%) sepia(18%) saturate(584%) hue-rotate(61deg) brightness(104%) contrast(101%);
+  cursor: pointer;
+}
+#sidebar-icons button.selected {
+  filter: invert(90%) sepia(18%) saturate(584%) hue-rotate(61deg) brightness(104%) contrast(101%);
+}
+
+#sidebar-icons button img{
+  width: 100%;
+  height: 100%
+}
+
+#file-explorer-button {
+  order:1;
+}
+
+#account-button {
+  order:2;
+}
+
+#records-button {
+  order:3;
+}
+
+#rest-api-button {
+  order:4;
+}
+
+#execute-button {
+  order:5;
+}
+
+#deploy-button {
+  order:6;
+}
+
+#empty-space {
+  width:100%;
+  height:100%;
+  order:7;
+  box-sizing: border-box;
+}
+
+#settings-button {
+  order:8;
+}
+
+
+
+/* The side navigation menu */
+#sidebar-details {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: auto;
+  background-color: #121212;
+  display: flex;
+  flex-direction: column;
+  order:1;
+  border:1px solid #494e64;
+  border-right: 3px solid #494e64;
+  border-top:0;
+}
+
+#sidebar-details #details {
+  height: 25%; 
+  width: 100%; 
+  display: flex; 
+  justify-content: center;
+}
+
+#sidebar-details #details #open-folder {
+  height:fit-content; 
+  width: fit-content; 
+  align-self: center; 
+  border:0; 
+  color:#C4FFC2; 
+  font-family:'Inter'; 
+  font-size: 14px; 
+  font-weight: 400; 
+  border-radius: 5px;
+  border: 2px solid #C4FFC2; /* Green */
+  padding:10px; 
+  /* background-color: #026ec1; */
+  background-color: #121212;
+}
+#sidebar-details #details #open-folder:hover {
+  background-color:#C4FFC2;
+  color:#121212;  
+  cursor: pointer;
+}
+
+/* Sidebar links */
+#temp-button {
+  order :0;
+  color: #e3e3e3;
+  background-color: #121212;
+  padding: 10px;
+  width: 100%;
+  text-decoration: none;
+  font-family:'Inter';
+  text-align: left;
+  font-size: 14px;
+  font-weight: 400;
+  flex: 0 0 40px;
+  border:0;
+  border-bottom:1px solid #494e64;;
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+}
+
+
+.code-terminal-area {
+  order:2;
+  width: 100%;
+  
+}
+
+.outer-code-area {
+  display:flex;
+  flex-direction: column;
+  height:100%;
+  order:1;
+}
+
+.outer-code-area .tabs{
+  display:flex;
+  flex-direction: row;
+  flex: 0 0 40px;
+  margin:0;
+  border-bottom: 1px solid #494e64;
+  border-top: 0;
+  box-sizing: border-box;
+}
+.outer-code-area .ide{
+  display:flex;
+  flex-direction: row;
+  flex-basis:100%;
+  overflow:auto;
+  background-color: #12141d;
+}
+
+
+
+#line-numbers {
+  order:0;
+  flex: 0 0 40px;
+  border:0;
+  padding:0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: none;
+  position: relative;
+  overflow:auto;
+
+}
+
+#line-numbers button{
+  color: #878787;
+  background: transparent;
+  caret-color: transparent;                                                                                                                                              
+  font-size:large; /*WARNING: ANY CHANGES TO THIS VALUE MUST ALSO BE SET IN BELOW (#editing, #highlighting, #length-test)!  OTHERWISE SCROLLING WILL NOT WORK PROPERLY */
+  border:0;
+  padding:0;
+  font-family: monospace;
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+}
+
+.editor {
+  order:1;
+  width: 100%;
+  position: relative;
+}
+
+
+#length-test {
+  visibility:hidden;
+  position:absolute;
+  width:max-content;
+  font-size:large; /*WARNING: ANY CHANGES TO THIS VALUE MUST ALSO BE SET IN BELOW (#editing, #highlighting) AND ABOVE (#line-numbers button)!  OTHERWISE SCROLLING WILL NOT WORK PROPERLY */
+}
+
+
+
+
+#editing, #highlighting {
+  /* Both elements need the same text and space styling so they are directly on top of each other */
+  box-sizing: border-box;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right:0;
+  bottom:0;
+  overflow: auto;
+  white-space: pre; /* Allows textarea to scroll horizontally */
+  outline: none;
+  position: absolute;
+  scrollbar-color: gray #121212;
+  font-size:large; /*WARNING: ANY CHANGES TO THIS VALUE MUST ALSO BE SET ABOVE (#length-test, #line-numbers button) !  OTHERWISE SCROLLING WILL NOT WORK PROPERLY */
+  tab-size: 4;
+}
+
+#editing::selection {
+  background: rgba(27, 100, 199, 0.5);
+}
+#editing::-moz-selection { /* Code for Firefox */
+  background: rgba(27, 100, 199, 0.5);
+}
+
+
+/* Make textarea almost completely transparent */
+
+#editing {
+  color: transparent;
+  background: transparent;
+  caret-color: white; /* Or choose your favourite color */
+  resize: none;
+  z-index: 1;
+}
+
+#highlighting {
+  z-index: 0;
+}
+
+#highlighting-content{
+  width: max-content;
+  height: max-content;
+}
+
+
+#temp-fs {
+  overflow:hidden;
+}
+
+
+#temp-dir {
+  display: flex;
+  flex-direction: column;
+}
+
+
+.fs-title {
+  width: 100%; 
+  box-sizing: border-box;
+  display: flex;
+  height: max-content; 
+  background-color: transparent; 
+  border: 0; 
+  color: #e3e3e3;  
+  font-family:'Inter';
+  text-align: left;
+  font-size: 14px;
+  font-weight: 400;
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+
+
+.dir-title:hover {
+  background-color: #343746;
+  cursor: pointer;
+}
+
+.fs-title:hover {
+  background-color: #343746;
+  cursor: pointer;
+}
+
+.temp-dir img{
+  filter: invert(55%) sepia(0%) saturate(202%) hue-rotate(189deg) brightness(96%) contrast(83%);
+  order:0;
+  padding-left:3px
+}
+.temp-dir div{
+  padding-left:5px;
+}
+
+.dir-children {
+  display:none; 
+  flex-direction: column;
+}

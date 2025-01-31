@@ -1,0 +1,406 @@
+%YAML 1.2
+---
+# http://www.sublimetext.com/docs/syntax.html
+name: leo
+file_extensions:
+  - leo
+scope: source.leo
+contexts:
+  main:
+    - include: function_declaration
+    - include: import_file
+    - include: program_file
+    - include: program_keyword
+    - include: block_comment
+    - include: line_comment
+    - include: string_literal
+    - include: integer_literal
+    - include: built-in_core_assign
+    - include: boolean_constant
+    - include: import_keyword
+    - include: control_keyword
+    - include: storage_type_public
+    - include: storage_type_private
+    - include: storage_type_constant
+    - include: storage_type_const
+    - include: storage_type_record
+    - include: storage_type_let
+    - include: storage_type_mapping
+    - include: inside_braces
+    - include: function_parameters
+    - include: console_methods
+  address_literal:
+    - match: '\baleo1[A-z0-9]*'
+      comment: Address
+      scope: constant.other.address.leo
+  async_keyword:
+    - match: \b(async)\s+((\btransition\b)|(\bfunction\b)|(\binline\b))\b\s+\w+\s*\(
+      comment: Storage type async
+      captures:
+        1: storage.type.async.leo
+        3: storage.type.transition.leo
+        4: storage.type.function.leo
+        5: storage.type.inline.leo
+  block_comment:
+    - match: /\*
+      comment: Block comment
+      push:
+        - meta_scope: comment.block.leo
+        - match: \*/
+          pop: true
+  boolean_constant:
+    - match: \b(true|false)\b
+      comment: Boolean constant
+      scope: constant.language.boolean.leo
+  built-in_core_assign:
+    - match: '\b(([0-9][0-9_]*)(group|field|scalar))'
+      comment: Built-in/core assign
+      scope: storage.type.assign.leo
+  circuit_attribute:
+    - match: '\b(\w*)\b\s*:'
+      comment: Circuit Attribute
+      captures:
+        1: entity.other.attribute.name
+  circuit_call:
+    - match: '\b\w+\s*\{'
+      comment: Circuit call
+      push:
+        - match: '\}'
+          pop: true
+        - include: circuit_attribute
+        - include: inside_braces
+        - include: block_comment
+        - include: line_comment
+        - include: core_types
+        - include: integer_literal
+        - include: address_literal
+        - include: built-in_core_assign
+        - include: boolean_constant
+        - include: control_keyword
+        - include: storage_type_public
+        - include: storage_type_private
+        - include: storage_type_constant
+        - include: storage_type_record
+        - include: storage_type_let
+        - include: string_literal
+        - include: invoking_attribute
+        - include: console_methods
+        - include: future_type
+        - include: future_type_parameters
+  circuit_static_call:
+    - match: (\w+)(?:\s*::)
+      comment: Circuit staitc call
+      captures:
+        1: entity.name.struct.call.leo
+  console_methods:
+    - match: \b(assert|assert_eq|assert_neq)\b
+      comment: Console methods
+      captures:
+        1: support.function.console.leo
+  control_keyword:
+    - match: \b(else|if|in|for|as)\b
+      comment: Control keyword
+      scope: keyword.control.leo
+  core_types:
+    - match: \b(bool|field|scalar|u8|u16|u32|u64|u128|i8|i16|i32|i64|i128|string|address|signature|group|integer)\b
+      comment: Built-in/core type
+      scope: storage.type.core.leo
+  function_attribute:
+    - match: '\b(\w*)\b\s*:'
+      comment: Function Attribute
+      captures:
+        1: variable.parameter.leo
+  function_declaration:
+    - match: (?:(?<=\btransition\b)|(?<=\bfunction\b)|(?<=\binline\b))\s+(\w+)\s*\(
+      comment: Function declaration
+      scope: function.declaration.leo
+      captures:
+        1: entity.name.function.leo
+        2: entity.name.function.leo
+  function_keyword:
+    - match: \b(function)\b
+      comment: Storage type function
+      scope: storage.type.function.leo
+  function_parameters:
+    - match: (?:(async)\s*(function|transition|inline))\s+(\w+)\s*\(|(?:(function|transition|inline))\s+(\w+)\s*\(
+      comment: Function parameters
+      captures:
+        1: storage.type.async.leo
+        2: storage.type.function.leo
+        3: entity.name.function.leo
+        4: storage.type.function.leo
+        5: entity.name.function.leo
+      push:
+        - match: \)
+          pop: true
+        - include: function_attribute
+        - include: integer_literal
+        - include: boolean_constant
+        - include: core_types
+        - include: storage_type_public
+        - include: storage_type_private
+        - include: storage_type_constant
+        - include: storage_type_record
+        - include: line_comment
+        - include: block_comment
+        - include: future_type
+        - include: future_type_parameters
+  future_type:
+    - match: \b(Future)\b
+      comment: Storage type future
+      captures:
+        1: storage.type.future.leo
+  future_type_parameters:
+    - match: (?<=Future)\s*(\<)
+      comment: Parameters of future type
+      captures:
+        1: storage.type.future.angle.brackets.leo
+      push:
+        - match: (\>)
+          captures:
+            1: storage.type.future.angle.brackets.leo
+          pop: true
+        - match: (Fn)
+          captures:
+            1: storage.type.future.leo
+          push:
+            - match: (\))
+              captures:
+                1: storage.type.future.parantesis.leo
+              pop: true
+            - match: (\()
+              captures:
+                1: storage.type.future.parantesis.leo
+              push:
+                - match: (?=\))
+                  pop: true
+                - include: core_types
+                - include: integer_literal
+                - include: future_type
+                - include: future_type_parameters
+  import_file:
+    - match: (?<=\bimport\b)\s+\b\w+\b\s*\.\s*\b\w+\b\s*(?=;)
+      comment: Import file
+      scope: entity.name.type.import.leo
+  import_keyword:
+    - match: \b(import)\b
+      comment: Import keyword
+      scope: keyword.control.import.leo
+  inline_keyword:
+    - match: \b(inline)\b
+      comment: Storage type inline
+      scope: storage.type.inline.leo
+  inside_braces:
+    - match: '\{'
+      comment: Inside braces (sub-rule for use in function)
+      push:
+        - meta_scope: punctuation.braces.leo
+        - match: '\}'
+          pop: true
+        - include: circuit_attribute
+        - include: variable_declaration
+        - include: statement_for_iterator_type
+        - include: return_type
+        - include: statement_return
+        - include: mapping_declaration
+        - include: function_parameters
+        - include: function_declaration
+        - include: async_keyword
+        - include: function_keyword
+        - include: struct_keyword
+        - include: program_keyword
+        - include: transition_keyword
+        - include: inline_keyword
+        - include: record_strucut_definition
+        - include: storage_type_mapping
+        - include: import_file
+        - include: program_file
+        - include: inside_braces
+        - include: block_comment
+        - include: line_comment
+        - include: integer_literal
+        - include: core_types
+        - include: address_literal
+        - include: built-in_core_assign
+        - include: boolean_constant
+        - include: control_keyword
+        - include: storage_type_public
+        - include: storage_type_private
+        - include: storage_type_constant
+        - include: storage_type_const
+        - include: storage_type_record
+        - include: storage_type_let
+        - include: string_literal
+        - include: invoking_attribute
+        - include: console_methods
+        - include: circuit_static_call
+        - include: method_name_call
+        - include: console_methods
+        - include: future_type
+        - include: future_type_parameters
+        - match: '@[a-zA-Z][a-zA-Z0-9_]*'
+          comment: Context Annotation
+          scope: support.other.annotation.leo
+  integer_literal:
+    - match: '\b([0-9][0-9_]*|0b[0-1_]+|0o[0-7_]+|0x[0-9A-F_]+)([ui](8|16|32|64|128))?\b'
+      comment: Integer literal (decimal)
+      scope: constant.numeric.decimal.leo
+  invoking_attribute:
+    - match: (?<=\.)(?<!\.\.)(\w+(?=\.)|\b\w+\b(?!\())
+      comment: Invoking circuit attribute
+      captures:
+        1: entity.other.attribute.name
+  line_comment:
+    - match: //
+      comment: Single-line comment
+      push:
+        - meta_scope: comment.line.double-slash.leo
+        - match: $
+          pop: true
+  mapping_declaration:
+    - match: (?<=\bmapping\b)\s+\w+\:s*
+      comment: Mapping declaration
+      push:
+        - match: $
+          pop: true
+        - include: core_types
+        - include: integer_literal
+        - include: future_type
+        - include: future_type_parameters
+        - include: block_comment
+        - include: line_comment
+  method_name_call:
+    - match: '\w+\s*\.\s*([a-zA-Z][a-zA-Z0-9_]*)\s*'
+      comment: Method name call
+      captures:
+        1: entity.name.struct.attribute.leo
+  program_file:
+    - match: '(?<=\bprogram\b)\s+\b\w+\b\s*\.\s*\baleo\b\s*(?={)'
+      comment: Program file
+      scope: entity.name.type.program.leo
+  program_keyword:
+    - match: \b(program)\b
+      comment: Storage type program
+      scope: storage.type.program.leo
+  record_strucut_definition:
+    - match: '(?:(?<=\brecord\b)|(?<=\bstruct\b))\s+\b\w+\b\s*\{'
+      comment: Record definition
+      push:
+        - match: '\}'
+          pop: true
+        - include: circuit_attribute
+        - include: inside_braces
+        - include: core_types
+        - include: integer_literal
+        - include: built-in_core_assign
+        - include: boolean_constant
+        - include: control_keyword
+        - include: storage_type_public
+        - include: storage_type_private
+        - include: storage_type_constant
+        - include: storage_type_let
+        - include: string_literal
+        - include: block_comment
+        - include: line_comment
+        - include: invoking_attribute
+        - include: circuit_static_call
+        - include: function_parameters
+        - include: console_methods
+        - include: future_type
+        - include: future_type_parameters
+  return_type:
+    - match: '->'
+      comment: Return type
+      push:
+        - match: '(?={)'
+          pop: true
+        - include: core_types
+        - include: storage_type_public
+        - include: storage_type_private
+        - include: storage_type_constant
+        - include: integer_literal
+        - include: block_comment
+        - include: line_comment
+        - include: future_type
+        - include: future_type_parameters
+  statement_for_iterator_type:
+    - match: (?<=for)\s*\w+:\s*
+      comment: Statement for iterator type
+      push:
+        - match: (?=in)
+          pop: true
+        - include: core_types
+        - include: future_type
+        - include: future_type_parameters
+  statement_return:
+    - match: \b(return)\b
+      comment: Statement return
+      captures:
+        1: keyword.control.leo
+      push:
+        - match: ;
+          pop: true
+        - include: circuit_attribute
+        - include: integer_literal
+        - include: address_literal
+        - include: built-in_core_assign
+        - include: boolean_constant
+        - include: block_comment
+        - include: line_comment
+        - include: method_name_call
+        - include: invoking_attribute
+  storage_type_const:
+    - match: \b(const)\b
+      comment: Storage type const
+      scope: storage.type.const.leo
+  storage_type_constant:
+    - match: \b(constant)\b
+      comment: Storage type constant
+      scope: storage.type.constant.leo
+  storage_type_let:
+    - match: \b(let)\b
+      comment: Storage type let
+      scope: storage.type.let.leo
+  storage_type_mapping:
+    - match: \b(mapping)\b
+      comment: Storage type mapping
+      scope: storage.type.mapping.leo
+  storage_type_private:
+    - match: \b(private)\b
+      comment: Storage type private
+      scope: storage.type.private.leo
+  storage_type_public:
+    - match: \b(public)\b
+      comment: Storage type public
+      scope: storage.type.public.leo
+  storage_type_record:
+    - match: \b(record)\b
+      comment: Storage type record
+      scope: storage.type.record.leo
+  string_literal:
+    - match: '"'
+      comment: Double-quote string literal
+      push:
+        - meta_scope: string.quoted.double.leo
+        - match: '"'
+          pop: true
+  struct_keyword:
+    - match: \b(struct)\b
+      comment: Storage type struct
+      scope: storage.type.struct.leo
+  transition_keyword:
+    - match: \b(transition)\b
+      comment: Storage type transition
+      scope: storage.type.transition.leo
+  variable_declaration:
+    - match: (?:(?<=\blet\b))\s*\w+\s*\:\s*
+      comment: Variable declaration
+      push:
+        - match: \=
+          pop: true
+        - include: core_types
+        - include: integer_literal
+        - include: block_comment
+        - include: line_comment
+        - include: future_type
+        - include: future_type_parameters
