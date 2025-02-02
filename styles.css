@@ -44,13 +44,6 @@
   height: 100%
 }
 
-#sidebar {
-  display:flex;
-  flex-direction: row;
-  height:100%;
-  order:0;
-  flex: 0 0 250px;
-}
 
 #sidebar-icons {
   display:flex;
@@ -58,6 +51,7 @@
   order:0;
   flex: 0 0 50px;
   height: 100%;
+  border-right:1px solid #494e64;
 }
 
 #temp-buffer {
@@ -131,7 +125,6 @@
 }
 
 
-
 /* The side navigation menu */
 #sidebar-details {
   margin: 0;
@@ -142,19 +135,20 @@
   display: flex;
   flex-direction: column;
   order:1;
-  border:1px solid #494e64;
-  border-right: 3px solid #494e64;
   border-top:0;
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 200px;
 }
 
-#sidebar-details #details {
+#open-folder-wrapper {
   height: 25%; 
   width: 100%; 
   display: flex; 
   justify-content: center;
 }
 
-#sidebar-details #details #open-folder {
+#open-folder-wrapper #open-folder {
   height:fit-content; 
   width: fit-content; 
   align-self: center; 
@@ -168,20 +162,27 @@
   padding:10px; 
   /* background-color: #026ec1; */
   background-color: #121212;
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
 }
-#sidebar-details #details #open-folder:hover {
+#open-folder-wrapper #open-folder:hover {
   background-color:#C4FFC2;
   color:#121212;  
   cursor: pointer;
 }
 
-/* Sidebar links */
-#temp-button {
-  order :0;
+
+#sidebar-title {
+  order:0;
+  box-sizing: border-box;
   color: #e3e3e3;
   background-color: #121212;
-  padding: 10px;
   width: 100%;
+  padding-top:11px;
+  padding-left:10px;
   text-decoration: none;
   font-family:'Inter';
   text-align: left;
@@ -198,10 +199,19 @@
 }
 
 
+
+
+#resizer {
+  background-color: #494e64;
+  cursor: col-resize;
+  height:100%;
+  flex:0 0 5px;
+  order: 2;
+}
+
 .code-terminal-area {
-  order:2;
+  order:3;
   width: 100%;
-  
 }
 
 .outer-code-area {
@@ -298,10 +308,10 @@
 }
 
 #editing::selection {
-  background: rgba(27, 100, 199, 0.5);
+  background: rgba(0, 122, 204, 0.3);
 }
 #editing::-moz-selection { /* Code for Firefox */
-  background: rgba(27, 100, 199, 0.5);
+  background: rgba(0, 122, 204, 0.3);
 }
 
 
@@ -325,12 +335,14 @@
 }
 
 
-#temp-fs {
-  overflow:hidden;
+#fs {
+  overflow-x:hidden;
+  overflow-y: auto;
+  scrollbar-color: gray #121212;
 }
 
 
-#temp-dir {
+#dir {
   display: flex;
   flex-direction: column;
 }
@@ -358,31 +370,36 @@
 }
 
 
-
-.dir-title:hover {
-  background-color: #343746;
-  cursor: pointer;
-}
-
 .fs-title:hover {
   background-color: #343746;
   cursor: pointer;
 }
 
-.temp-dir img{
+.fs-title img{
+  filter: invert(55%) sepia(0%) saturate(202%) hue-rotate(189deg) brightness(96%) contrast(83%);
+  order:0;
+  padding-left:3px;
+  pointer-events:none;
+}
+
+.fs-title div{
+  pointer-events:none;
+}
+.dir div{
+  padding-left:5px;
+}
+
+.file div{
+  padding-left:5px;
+}
+
+.file img{
   filter: invert(55%) sepia(0%) saturate(202%) hue-rotate(189deg) brightness(96%) contrast(83%);
   order:0;
   padding-left:3px
-}
-.temp-dir div{
-  padding-left:5px;
 }
 
 .dir-children {
   display:none; 
   flex-direction: column;
-}
-
-#githubtest{
-  
 }
