@@ -1,17 +1,26 @@
 use leptos::ev::Event;
 use leptos::web_sys::{Element,HtmlElement, HtmlImageElement, HtmlTextAreaElement, HtmlButtonElement};
+use js_sys::Array;
 use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use syntect::{highlighting::Theme, parsing::SyntaxSet};
 use wasm_bindgen::prelude::*;
+use web_sys::css::escape;
 use std::cmp;
+use std::fs::File;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
 }
+
+/*
+==============================================================================
+STRUCTS
+==============================================================================
+*/
 
 #[derive(Serialize, Deserialize)]
 struct HighlightArgs<'a> {
@@ -39,6 +48,14 @@ struct RecursiveClosureWrapper<'s>  {
 }
 
 
+/*
+==============================================================================
+HELPER FUNCTIONS
+==============================================================================
+*/
+
+
+
 // Recursively generate file explorer html
 fn generate_file_explorer_html(mut dir_entry: Vec<CustomDirEntry>) -> String {
     let mut fs_html : String = "".to_string();
@@ -52,17 +69,133 @@ fn generate_file_explorer_html(mut dir_entry: Vec<CustomDirEntry>) -> String {
             fs_html = format!("{}{}{}{}{}", fs_html,"<div class=\"dir\">", fs_title, dir_children, "</div>");
 
         } else if entry_type == "File" {
-            fs_html = format!("{}{}{}{}",fs_html,"<div class=\"file\"><div class=\"fs-title\"><img src=\"public/file.svg\"/><div>", entry.name, "</div></div></div>");
+            fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/file.svg\"/><div>", entry.name, "</div></div></div>");
         }
     }
     return fs_html;
 
 }
 
+// Helper function to get number of lines currently typed in editor
+fn get_lines(code: &str) -> String{
+    let lines : Vec<&str>  = code.split("\n").collect();
+    let num_lines = lines.len();
+    let mut lines_html = "".to_string();
+    for i in 1..num_lines+1 {
+        lines_html = format!("{}{}{}{}", lines_html,"<button>",i.to_string(),"</button>");
+    }
+    return lines_html;
+}
+
+
+/*
+==============================================================================
+AUXILLARY COMPONENTS
+==============================================================================
+*/
+
+
+#[component]
+fn SidebarIcon(
+    #[prop(optional)]
+    selected: bool,
+    id : String,
+    img_src : String,
+    selected_activity_icon: ReadSignal<String>,
+    set_selected_activity_icon : WriteSignal<String>
+) -> impl IntoView {
+
+    let class : &str;
+    if selected{
+        class = "selected";
+    } else {
+        class = "";
+    }
+    view!{
+        <button id = id.clone() class=class
+        on:click=move |_|{
+            let currently_selected = selected_activity_icon.get();
+            let this_name = format!("{}{}","#", id);
+            if currently_selected == this_name {
+                let document = leptos::prelude::document();
+
+                let details = document.query_selector(".sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                let style = details.style();
+
+                if style.get_property_value("display").unwrap() == "flex"{
+                    let _ = style.set_property("display", "none");
+                } else if style.get_property_value("display").unwrap() == "none"{
+                    let _ = style.set_property("display", "flex");
+                }
+            } else {
+                let document = leptos::prelude::document();
+
+                let this = document.query_selector(&this_name).unwrap().unwrap();
+                let currently_selected_element = document.query_selector(&currently_selected).unwrap().unwrap();
+                set_selected_activity_icon.set(this_name);
+
+                this.set_class_name("selected");
+                currently_selected_element.set_class_name("");
+            }
+        }>
+            <img src=img_src/>
+        </button>
+    }
+}
+
+
+#[component]
+fn FileTab(
+    filepath: String,
+    filename: String,
+    selected_file: ReadSignal<String>,
+    set_selected_file : WriteSignal<String>
+) -> impl IntoView {
+    
+    view! {
+        <button id=filepath.clone() class="tab"
+        on:click:target = move|ev|{
+            let target = ev.target().dyn_into::<Element>().unwrap();
+            let new_val = Array::new();
+            new_val.push(&serde_wasm_bindgen::to_value("selected").unwrap());
+            let _ = target.class_list().add(&new_val);
+            set_selected_file.set(target.id());
+        }>
+            {filename}
+        </button>
+        {Effect::new(move |_| {
+            let document = leptos::prelude::document();
+            let target_string = format!("{}{}", "#", escape(&filepath));
+            let target2 = document.query_selector(&target_string).unwrap();
+            match target2 {
+                Some(e) => {
+                    let target = e;
+                    if selected_file.get() != target.id(){
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("selected").unwrap());
+                        let _ = target.class_list().remove(&new_val);
+                    }
+                }
+                None => {}
+
+            }
+        });
+        }
+
+    }
+}
+
+
+/*
+==============================================================================
+MAIN APP COMPONENT
+==============================================================================
+*/
+
+
 #[component]
 pub fn App() -> impl IntoView {
-    // let (test, set_test) = signal(String::new());
-    // let (test2, set_test2) = signal(String::new());
+    //let (test, set_test) = signal(String::new());
     let (highlighted_msg, set_highlighted_msg) = signal(String::new());
 
     let (syntax_set, set_syntax_set) = signal(SyntaxSet::load_defaults_nonewlines());
@@ -70,12 +203,18 @@ pub fn App() -> impl IntoView {
 
     let (sl, set_sl) = signal(0i32);
     let (st, set_st) = signal(0i32);
+
     let (sidebar_offset_x, set_sidebar_offset_x) = signal(0i32);
     let (sidebar_dragging, set_sidebar_dragging) = signal(false);
 
     let (lines_html, set_lines_html) = signal("<button>1</button>".to_string());
     let (fs_html, set_fs_html) = signal(String::new());
-    let (selected_activity_icon, set_selected_activity_icon) = signal("#file-explorer-button");
+
+    let (selected_activity_icon, set_selected_activity_icon) = signal("#file-explorer-button".to_string());
+    let (selected_file, set_selected_file) = signal(String::new());
+    let new_vec : Vec<(String,String)> = Vec::new();
+    // let new_vec : Vec<(String,String)> = vec![("test".to_string(), "test2".to_string())];
+    let (open_files, set_open_files) = signal(new_vec.clone());
 
     // Helper function to get width of current line of text in editor
     // Used for setting scroll_left
@@ -95,24 +234,13 @@ pub fn App() -> impl IntoView {
         let test = document.create_element("span").unwrap();
         let _ = test.set_attribute("id", "length-test");
         test.set_text_content(Some(&new_code));
-        let _ = document.query_selector("#highlighting").unwrap().unwrap().append_child(&test);
+        let _ = document.query_selector(".highlighting").unwrap().unwrap().append_child(&test);
 
         let width = test.scroll_width();
         test.remove();
         return width;
     }
 
-
-    // Helper function to get number of lines currently typed in editor
-    fn get_lines(code: &str) -> String{
-        let lines : Vec<&str>  = code.split("\n").collect();
-        let num_lines = lines.len();
-        let mut lines_html = "".to_string();
-        for i in 1..num_lines+1 {
-            lines_html = format!("{}{}{}{}", lines_html,"<button>",i.to_string(),"</button>");
-        }
-        return lines_html;
-    }
 
     //Used for switching the chevron icon next to directories in the file system tab
     let switch_chevron_closure = Closure::wrap(Box::new(move |ev: Event| {
@@ -143,7 +271,7 @@ pub fn App() -> impl IntoView {
         let index = button_num - 1;
 
         let document = leptos::prelude::document();
-        let result_element = document.query_selector("#editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+        let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
         let code = result_element.value();
         let lines : Vec<&str> = code.split("\n").collect();
 
@@ -158,6 +286,29 @@ pub fn App() -> impl IntoView {
 
     }) as Box<dyn FnMut(_)>);
 
+    //Used for opening files
+    let open_file_closure = Closure::wrap(Box::new(move |ev: Event| {
+        let title_element = ev.target().unwrap().dyn_into::<HtmlElement>().unwrap();
+        let dataset = title_element.dataset();
+        let filepath = dataset.get("filepath").unwrap();
+        let temp = filepath.clone();
+        let collection = temp.split("\\").collect::<Vec<&str>>();
+        let filename = collection[collection.len()-1].to_string();
+
+        set_selected_file.set(filepath.clone());
+        set_open_files.update(|vec| vec.push((filepath,filename)));
+        /*
+        TODO:
+            - Only update files list if file is not already open
+            - Add exit button to close file tab
+            - Actually read file content and put into editor
+            - Reset FS default directory
+            - Highlight current line of text with gray
+         */
+
+        
+    }) as Box<dyn FnMut(_)>);
+
 
     // Load Syntax and Color Scheme from file
     Effect::new(move |_| {
@@ -170,14 +321,15 @@ pub fn App() -> impl IntoView {
     });
 
 
+
     view! {
-        <div class="main" on:mousemove:target=move|ev|{
+        <div class="main" 
+        on:mousemove:target=move|ev|{
             if sidebar_dragging.get() {
                 ev.prevent_default();
-                //console_log(&ev.screen_x().to_string());
                 let document = leptos::prelude::document();
                 let x = ev.screen_x() - sidebar_offset_x.get();
-                let result_element = document.query_selector("#sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                let result_element = document.query_selector(".sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                 let style = result_element.style();
 
 
@@ -199,7 +351,7 @@ pub fn App() -> impl IntoView {
                 let children = target.children();
                 for i in 0..children.length(){
                     let child = children.get_with_index(i).unwrap();
-                    if child.class_name() != "resizer" {
+                    if child.class_name() != ".resizer" {
                         let _ = child.dyn_into::<HtmlElement>().unwrap().style().set_property("pointer-events","auto");
                     } 
                 }
@@ -213,7 +365,7 @@ pub fn App() -> impl IntoView {
                 let children = target.children();
                 for i in 0..children.length(){
                     let child = children.get_with_index(i).unwrap();
-                    if child.class_name() != "resizer" {
+                    if child.class_name() != ".resizer" {
                         let _ = child.dyn_into::<HtmlElement>().unwrap().style().set_property("pointer-events","auto");
                     } 
                 }
@@ -221,186 +373,54 @@ pub fn App() -> impl IntoView {
             }
         }
         >
-            <div id="sidebar-icons">
-                <div id ="temp-buffer"></div>
-                <button id="file-explorer-button" class="selected"
-                on:click=move |_|{
-                    let currently_selected = selected_activity_icon.get();
-                    let this_name = "#file-explorer-button";
-                    if currently_selected == this_name {
-                        let document = leptos::prelude::document();
+            <div class="sidebar-icons">
+                <div class ="temp-buffer"></div>
+                <SidebarIcon selected=true id="file-explorer-button".to_string() img_src="public/files.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
+                <SidebarIcon id="account-button".to_string()  img_src="public/account.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
+                <SidebarIcon id="records-button".to_string()  img_src="public/checklist.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
+                <SidebarIcon id="rest-api-button".to_string()  img_src="public/debug-disconnect.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
+                <SidebarIcon id="execute-button".to_string()  img_src="public/play-circle.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
+                <SidebarIcon id="deploy-button".to_string()  img_src="public/cloud-upload.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
 
-                        let details = document.query_selector("#sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let style = details.style();
+                // <button id ="deploy-button"
+                // on:click=move |_|{
+                //     let currently_selected = selected_activity_icon.get();
+                //     let this_name = "#deploy-button";
+                //     if currently_selected == this_name {
+                //         let document = leptos::prelude::document();
 
-                        if style.get_property_value("display").unwrap() == "flex"{
-                            let _ = style.set_property("display", "none");
-                        } else if style.get_property_value("display").unwrap() == "none"{
-                            let _ = style.set_property("display", "flex");
-                        }
-                    } else {
-                        let document = leptos::prelude::document();
-
-                        let this = document.query_selector(this_name).unwrap().unwrap();
-                        let currently_selected_element = document.query_selector(currently_selected).unwrap().unwrap();
-                        set_selected_activity_icon.set(this_name);
-
-                        this.set_class_name("selected");
-                        currently_selected_element.set_class_name("");
-                    }
-                }>
-                    <img src="public/files.svg"/>
-                </button>
-                <button id ="account-button"
-                on:click=move |_|{
-                    let currently_selected = selected_activity_icon.get();
-                    let this_name = "#account-button";
-                    if currently_selected == this_name {
-                        let document = leptos::prelude::document();
-
-                        let details = document.query_selector("#sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let style = details.style();
-
-                        if style.get_property_value("display").unwrap() == "flex"{
-                            let _ = style.set_property("display", "none");
-                        } else if style.get_property_value("display").unwrap() == "none"{
-                            let _ = style.set_property("display", "flex");
-                        }
-                    } else {
-                        let document = leptos::prelude::document();
-
-                        let this = document.query_selector(this_name).unwrap().unwrap();
-                        let currently_selected_element = document.query_selector(currently_selected).unwrap().unwrap();
-                        set_selected_activity_icon.set(this_name);
-
-                        this.set_class_name("selected");
-                        currently_selected_element.set_class_name("");
-                    }
-                }>
-                    <img src="public/account.svg"/>
-                </button>
-                <button id ="records-button"
-                on:click=move |_|{
-                    let currently_selected = selected_activity_icon.get();
-                    let this_name = "#records-button";
-                    if currently_selected == this_name {
-                        let document = leptos::prelude::document();
-
-                        let details = document.query_selector("#sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let style = details.style();
+                //         let details = document.query_selector("#sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                //         let style = details.style();
                         
-                        if style.get_property_value("display").unwrap() == "flex"{
-                            let _ = style.set_property("display", "none");
-                        } else if style.get_property_value("display").unwrap() == "none"{
-                            let _ = style.set_property("display", "flex");
-                        }
-                    } else {
-                        let document = leptos::prelude::document();
+                //         if style.get_property_value("display").unwrap() == "flex"{
+                //             let _ = style.set_property("display", "none");
+                //         } else if style.get_property_value("display").unwrap() == "none"{
+                //             let _ = style.set_property("display", "flex");
+                //         }              
+                //     } else {
+                //         let document = leptos::prelude::document();
 
-                        let this = document.query_selector(this_name).unwrap().unwrap();
-                        let currently_selected_element = document.query_selector(currently_selected).unwrap().unwrap();
-                        set_selected_activity_icon.set(this_name);
+                //         let this = document.query_selector(this_name).unwrap().unwrap();
+                //         let currently_selected_element = document.query_selector(currently_selected).unwrap().unwrap();
+                //         set_selected_activity_icon.set(this_name);
 
-                        this.set_class_name("selected");
-                        currently_selected_element.set_class_name("");
-                    }
-                }>
-                    <img src="public/checklist.svg"/>
-                </button>
-                <button id ="rest-api-button"
-                on:click=move |_|{
-                    let currently_selected = selected_activity_icon.get();
-                    let this_name = "#rest-api-button";
-                    if currently_selected == this_name {
-                        let document = leptos::prelude::document();
+                //         this.set_class_name("selected");
+                //         currently_selected_element.set_class_name("");
+                //     }
+                // }>
+                //     <img src="public/cloud-upload.svg"/>
+                // </button>
 
-                        let details = document.query_selector("#sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let style = details.style();
-                        
-                        if style.get_property_value("display").unwrap() == "flex"{
-                            let _ = style.set_property("display", "none");
-                        } else if style.get_property_value("display").unwrap() == "none"{
-                            let _ = style.set_property("display", "flex");
-                        }    
-                    } else {
-                        let document = leptos::prelude::document();
-
-                        let this = document.query_selector(this_name).unwrap().unwrap();
-                        let currently_selected_element = document.query_selector(currently_selected).unwrap().unwrap();
-                        set_selected_activity_icon.set(this_name);
-
-                        this.set_class_name("selected");
-                        currently_selected_element.set_class_name("");
-                    }
-                }>
-                    <img src="public/debug-disconnect.svg"/>
-                </button>
-                <button id ="execute-button"
-                on:click=move |_|{
-                    let currently_selected = selected_activity_icon.get();
-                    let this_name = "#execute-button";
-                    if currently_selected == this_name {
-                        let document = leptos::prelude::document();
-
-                        let details = document.query_selector("#sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let style = details.style();
-                        
-                        if style.get_property_value("display").unwrap() == "flex"{
-                            let _ = style.set_property("display", "none");
-                        } else if style.get_property_value("display").unwrap() == "none"{
-                            let _ = style.set_property("display", "flex");
-                        }
-                    } else {
-                        let document = leptos::prelude::document();
-
-                        let this = document.query_selector(this_name).unwrap().unwrap();
-                        let currently_selected_element = document.query_selector(currently_selected).unwrap().unwrap();
-                        set_selected_activity_icon.set(this_name);
-
-                        this.set_class_name("selected");
-                        currently_selected_element.set_class_name("");
-                    }
-                }>
-                    <img src="public/play-circle.svg"/>
-                </button>
-                <button id ="deploy-button"
-                on:click=move |_|{
-                    let currently_selected = selected_activity_icon.get();
-                    let this_name = "#deploy-button";
-                    if currently_selected == this_name {
-                        let document = leptos::prelude::document();
-
-                        let details = document.query_selector("#sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let style = details.style();
-                        
-                        if style.get_property_value("display").unwrap() == "flex"{
-                            let _ = style.set_property("display", "none");
-                        } else if style.get_property_value("display").unwrap() == "none"{
-                            let _ = style.set_property("display", "flex");
-                        }              
-                    } else {
-                        let document = leptos::prelude::document();
-
-                        let this = document.query_selector(this_name).unwrap().unwrap();
-                        let currently_selected_element = document.query_selector(currently_selected).unwrap().unwrap();
-                        set_selected_activity_icon.set(this_name);
-
-                        this.set_class_name("selected");
-                        currently_selected_element.set_class_name("");
-                    }
-                }>
-                    <img src="public/cloud-upload.svg"/>
-                </button>
                 <div id ="empty-space"></div>
                 <button id ="settings-button">
                     <img src="public/gear.svg"/>
                 </button>
 
             </div>
-            <div id="sidebar-details" style="display: flex; flex-basis: 200px;">
-                <div id="sidebar-title">File Explorer</div>
-                <div id="open-folder-wrapper" style="display:flex;">
-                    <button id="open-folder"
+            <div class="sidebar-details" style="display: flex; flex-basis: 200px;">
+                <div class="sidebar-title">File Explorer</div>
+                <div class="open-folder-wrapper" style="display:flex;">
+                    <button class="open-folder"
                     on:click:target=move|_| {
                         spawn_local(async move {
                             let args = serde_wasm_bindgen::to_value(&LoadArgs { code : "null"}).unwrap();
@@ -411,21 +431,21 @@ pub fn App() -> impl IntoView {
                                 let fs_html = generate_file_explorer_html(deserialized_return_val);
 
                                 let document = leptos::prelude::document();
-                                let element = document.query_selector("#open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 let _ = element.style().set_property("display", "none");
                                 set_fs_html.set(fs_html);
                             }
                         });
                     }
-                    >
-                        Open Folder
-                    </button>
+                    > Open Folder </button>
                 </div>
-                <div id="fs" inner_html={ move || fs_html.get() }></div>
+
+
+                <div class="fs" inner_html={ move || fs_html.get() }></div>
                 {Effect::new(move |_| {
                     let _signal = fs_html.get();
                     let document = leptos::prelude::document();
-                    let result_element = document.query_selector("#fs").unwrap().unwrap();
+                    let result_element = document.query_selector(".fs").unwrap().unwrap();
 
                     //Recursively add event listeners to file explorer items
                     let wrapper = RecursiveClosureWrapper {
@@ -440,19 +460,19 @@ pub fn App() -> impl IntoView {
                                     (closure.closure)(child.children().named_item("children").unwrap(), closure);
                                 } else if child.class_name() == "file" {
                                     // TODO: ADD EVENT LISTENER FOR OPENING FILES
+                                    let title_element = child.children().named_item("title").unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = title_element.add_event_listener_with_callback("dblclick", open_file_closure.as_ref().unchecked_ref());
                                 }
                             }
                         }
                     };
                     (wrapper.closure)(result_element,&wrapper);
                 });}
-
-
-
-
             </div>
 
-            <div id="resizer" 
+
+
+            <div class="resizer" 
             on:mousedown:target=move|ev|{
                 ev.prevent_default();
                 set_sidebar_dragging.set(true);
@@ -463,22 +483,32 @@ pub fn App() -> impl IntoView {
                 let children = result_element.children();
                 for i in 0..children.length(){
                     let child = children.get_with_index(i).unwrap();
-                    if child.class_name() != "resizer" {
+                    if child.class_name() != ".resizer" {
                         let _ = child.dyn_into::<HtmlElement>().unwrap().style().set_property("pointer-events","none");
                     } 
                 }
                 let _ =result_element.dyn_into::<HtmlElement>().unwrap().style().set_property("cursor", "col-resize");
             }
             ></div>
+
+
+
+
             <div class= "code-terminal-area">
                 <div class= "outer-code-area">
-                    <div class= "tabs"></div>
+                    <div class= "tabs">
+                        <For each=move || open_files.get() key=|tuple| tuple.0.clone() children=move |(filepath, filename)| {
+                            view! {
+                                <FileTab filepath=filepath filename=filename selected_file=selected_file set_selected_file=set_selected_file/>
+                            }
+                        }/>
+                    </div>
                     <div class= "ide">
-                        <div id="line-numbers" inner_html={ move || lines_html.get() }></div>
+                        <div class="line-numbers" inner_html={ move || lines_html.get() }></div>
                         {Effect::new(move |_| {
                             let _signal = lines_html.get();
                             let document = leptos::prelude::document();
-                            let result_element = document.query_selector("#line-numbers").unwrap().unwrap();
+                            let result_element = document.query_selector(".line-numbers").unwrap().unwrap();
                             let children = result_element.children();
                             for i in 0..children.length(){
                                 let child = children.get_with_index(i).unwrap();
@@ -486,7 +516,7 @@ pub fn App() -> impl IntoView {
                             }
                         });}
                         <div class="editor">
-                            <textarea id="editing" 
+                            <textarea class="editing" 
                             spellcheck="false"
                             autocomplete="off"
                             on:scroll:target=move |ev| {
@@ -494,7 +524,7 @@ pub fn App() -> impl IntoView {
                                 set_st.set(ev.target().scroll_top());
 
                                 let document = leptos::prelude::document();
-                                let result_element = document.query_selector("#line-numbers").unwrap().unwrap();
+                                let result_element = document.query_selector(".line-numbers").unwrap().unwrap();
                                 result_element.set_scroll_top(st.get());
                                 result_element.set_scroll_left(sl.get());
                             }
@@ -514,6 +544,7 @@ pub fn App() -> impl IntoView {
                                         let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &code, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
                                         let highlighted = invoke("highlight", args).await.as_string().unwrap();
                                         
+
                                         set_highlighted_msg.set(highlighted);
                                         set_sl.set(ev.target().scroll_left());
                                         set_st.set(ev.target().scroll_top());
@@ -562,23 +593,22 @@ pub fn App() -> impl IntoView {
                                 }
                             }
                             ></textarea>
-                            <pre id="highlighting" aria-hidden="true">
+                            
+                            <pre class="highlighting" aria-hidden="true">
                                 {Effect::new(move |_| {
                                     let document = leptos::prelude::document();
-                                    let result_element = document.query_selector("#highlighting").unwrap().unwrap();
+                                    let result_element = document.query_selector(".highlighting").unwrap().unwrap();
                                     result_element.set_scroll_top(st.get());
                                     result_element.set_scroll_left(sl.get());
                                 });}
             
-                                <div id="highlighting-content" inner_html={ move || highlighted_msg.get() }></div>
+                                <div class="highlighting-content" inner_html={ move || highlighted_msg.get() }></div>
                             </pre>
                         </div>
                     </div>
                 </div>
                 <div class = "terminal"></div>
             </div>
-
         </div>
-    
     }
 }
