@@ -29,5 +29,5 @@ This template should help get you started developing with Tauri and Leptos.
 - Highlight current line of text with gray?
 
 ## Terminal:
-    -Start work on this
+- Start work on this
 
