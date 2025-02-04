@@ -2,6 +2,32 @@
 
 This template should help get you started developing with Tauri and Leptos.
 
-## Recommended IDE Setup
+# TODO
+## General:
+- Work on Custom Titlebar with buttons
+- Add highlighting conditional on file type (.leo vs .aleo)
 
-[VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+## Sidebar:
+- General:
+    - Add Hover names for buttons
+- File System:
+    - Reset FS default directory
+    - Add way to open new file directory
+    - Add way to save files
+    - Add check if user tries to close file without it being saved
+- Account:
+    - Start work on this      
+- Records:
+    - Start work on this
+- Execute:
+    - Start work on this
+- Deploy:
+    - Start work on this
+
+## Editor
+- Dynamic error checking (red squiggle with error description)
+- Highlight current line of text with gray?
+
+## Terminal:
+    -Start work on this
+

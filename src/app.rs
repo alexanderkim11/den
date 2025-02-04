@@ -15,6 +15,8 @@ extern "C" {
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
 }
 
+
+
 /*
 ==============================================================================
 STRUCTS
@@ -104,7 +106,6 @@ AUXILLARY COMPONENTS
 ==============================================================================
 */
 
-
 #[component]
 fn SidebarIcon(
     #[prop(optional)]
@@ -152,6 +153,133 @@ fn SidebarIcon(
         </button>
     }
 }
+
+#[component]
+fn SidebarFileExplorer (
+    open_file_closure: Closure<dyn FnMut(Event)>,
+    switch_chevron_closure: Closure<dyn FnMut(Event)>,
+    fs_html: ReadSignal<String>,
+    set_fs_html : WriteSignal<String>,
+    selected_activity_icon: ReadSignal<String>
+) -> impl IntoView {
+    view! {
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#file-explorer-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+            <div class="sidebar-title">File Explorer</div>
+            <div class="open-folder-wrapper" style="display:flex;">
+                <button class="open-folder"
+                on:click:target=move|_| {
+                    spawn_local(async move {
+                        let args = serde_wasm_bindgen::to_value(&LoadThemeArgs { code : "null"}).unwrap();
+
+                        let return_val = invoke("open_explorer", args).await.as_string().unwrap();
+                        if return_val != ""{
+                            let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
+                            let fs_html = generate_file_explorer_html(deserialized_return_val);
+
+                            let document = leptos::prelude::document();
+                            let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = element.style().set_property("display", "none");
+                            set_fs_html.set(fs_html);
+                        }
+                    });
+                }
+                > Open Folder </button>
+            </div>
+
+
+            <div class="fs" inner_html={ move || fs_html.get() }></div>
+            {Effect::new(move |_| {
+                let _signal = fs_html.get();
+                let document = leptos::prelude::document();
+                let result_element = document.query_selector(".fs").unwrap().unwrap();
+
+                //Recursively add event listeners to file explorer items
+                let wrapper = RecursiveClosureWrapper {
+                    placeholder: result_element.clone(),
+                    closure : &|element, closure|{
+                        let children = element.children();
+                        for i in 0..children.length(){
+                            let child = children.get_with_index(i).unwrap();
+                            if child.class_name() == "dir" {
+                                let title_element = child.children().named_item("title").unwrap();
+                                let _ = title_element.add_event_listener_with_callback("click", switch_chevron_closure.as_ref().unchecked_ref());
+                                (closure.closure)(child.children().named_item("children").unwrap(), closure);
+                            } else if child.class_name() == "file" {
+                                let title_element = child.children().named_item("title").unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = title_element.add_event_listener_with_callback("dblclick", open_file_closure.as_ref().unchecked_ref());
+                            }
+                        }
+                    }
+                };
+                (wrapper.closure)(result_element,&wrapper);
+            });}
+        </div>
+    }
+}
+
+
+#[component]
+fn SidebarAccount (
+    selected_activity_icon: ReadSignal<String>
+) -> impl IntoView {
+    view! {
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#account-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+            <div class="sidebar-title">Account</div>
+        </div>
+    
+    }
+}
+
+#[component]
+fn SidebarRecords (
+    selected_activity_icon: ReadSignal<String>
+) -> impl IntoView {
+    view! {
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#records-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+            <div class="sidebar-title">Records</div>
+        </div>
+    
+    }
+}
+
+#[component]
+fn SidebarRestApi (
+    selected_activity_icon: ReadSignal<String>
+) -> impl IntoView {
+    view! {
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#rest-api-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+            <div class="sidebar-title">REST API</div>
+        </div>
+    
+    }
+}
+
+#[component]
+fn SidebarExecute (
+    selected_activity_icon: ReadSignal<String>
+) -> impl IntoView {
+    view! {
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#execute-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+            <div class="sidebar-title">Execute</div>
+        </div>
+    
+    }
+}
+
+#[component]
+fn SidebarDeploy (
+    selected_activity_icon: ReadSignal<String>
+) -> impl IntoView {
+    view! {
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#deploy-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+            <div class="sidebar-title">Deploy</div>
+        </div>
+    
+    }
+}
+
+
+
 
 
 #[component]
@@ -231,31 +359,6 @@ fn FileTab(
 ==============================================================================
 MAIN APP COMPONENT
 ==============================================================================
-*/
-
-
-
-/*
-TODO:
-    General:
-        Work on Custom Titlebar with buttons
-
-    Sidebar:
-        General:
-            -Add Hover names for buttons
-        File System:
-            - Reset FS default directory
-            - Add way to open new file directory
-            - Add way to save files
-                -Add check if user tries to close file without it being saved
-        Records:
-
-    Editor
-        -Highlight current line of text with gray?
-
-    Terminal:
-        -Start work on this
-
 */
 
 
@@ -483,55 +586,13 @@ pub fn App() -> impl IntoView {
 
             </div>
             <div class="sidebar-details" style="display: flex; flex-basis: 200px;">
-                <div class="sidebar-title">File Explorer</div>
-                <div class="open-folder-wrapper" style="display:flex;">
-                    <button class="open-folder"
-                    on:click:target=move|_| {
-                        spawn_local(async move {
-                            let args = serde_wasm_bindgen::to_value(&LoadThemeArgs { code : "null"}).unwrap();
+              <SidebarFileExplorer open_file_closure=open_file_closure switch_chevron_closure=switch_chevron_closure fs_html=fs_html set_fs_html=set_fs_html selected_activity_icon=selected_activity_icon />
+              <SidebarAccount selected_activity_icon=selected_activity_icon/>
+              <SidebarRecords selected_activity_icon=selected_activity_icon/>
+              <SidebarRestApi selected_activity_icon=selected_activity_icon/>
+              <SidebarExecute selected_activity_icon=selected_activity_icon/>
+              <SidebarDeploy selected_activity_icon=selected_activity_icon/>
 
-                            let return_val = invoke("open_explorer", args).await.as_string().unwrap();
-                            if return_val != ""{
-                                let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
-                                let fs_html = generate_file_explorer_html(deserialized_return_val);
-
-                                let document = leptos::prelude::document();
-                                let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                let _ = element.style().set_property("display", "none");
-                                set_fs_html.set(fs_html);
-                            }
-                        });
-                    }
-                    > Open Folder </button>
-                </div>
-
-
-                <div class="fs" inner_html={ move || fs_html.get() }></div>
-                {Effect::new(move |_| {
-                    let _signal = fs_html.get();
-                    let document = leptos::prelude::document();
-                    let result_element = document.query_selector(".fs").unwrap().unwrap();
-
-                    //Recursively add event listeners to file explorer items
-                    let wrapper = RecursiveClosureWrapper {
-                        placeholder: result_element.clone(),
-                        closure : &|element, closure|{
-                            let children = element.children();
-                            for i in 0..children.length(){
-                                let child = children.get_with_index(i).unwrap();
-                                if child.class_name() == "dir" {
-                                    let title_element = child.children().named_item("title").unwrap();
-                                    let _ = title_element.add_event_listener_with_callback("click", switch_chevron_closure.as_ref().unchecked_ref());
-                                    (closure.closure)(child.children().named_item("children").unwrap(), closure);
-                                } else if child.class_name() == "file" {
-                                    let title_element = child.children().named_item("title").unwrap().dyn_into::<HtmlElement>().unwrap();
-                                    let _ = title_element.add_event_listener_with_callback("dblclick", open_file_closure.as_ref().unchecked_ref());
-                                }
-                            }
-                        }
-                    };
-                    (wrapper.closure)(result_element,&wrapper);
-                });}
             </div>
 
 
