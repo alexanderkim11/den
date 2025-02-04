@@ -50,7 +50,7 @@ pub fn recurse_walk_dir(folder_path : &Path) -> Vec<CustomDirEntry>{
 pub fn open_explorer(handle: tauri::AppHandle, _code: String) -> String {
     // TODO: figure out default path
 
-    let default_path = Path::new("C:\\Users\\r0ami\\Home\\aleo\\projects\\test\\src");
+    let default_path = Path::new("C:\\Users\\r0ami\\Home\\aleo\\projects\\test");
     let folder_path_option = handle.dialog().file().set_directory(default_path).blocking_pick_folder();
 
     let mut return_val : String = String::new();

@@ -8,7 +8,6 @@ use syntect::{highlighting::Theme, parsing::SyntaxSet};
 use wasm_bindgen::prelude::*;
 use web_sys::css::escape;
 use std::cmp;
-use std::fs::File;
 
 #[wasm_bindgen]
 extern "C" {
@@ -30,7 +29,12 @@ struct HighlightArgs<'a> {
 }
 
 #[derive(Serialize, Deserialize)]
-struct LoadArgs<'a> {
+struct LoadFileArgs<> {
+    filepath: String
+}
+
+#[derive(Serialize, Deserialize)]
+struct LoadThemeArgs<'a> {
     code: &'a str,
 }
 
@@ -77,7 +81,13 @@ fn generate_file_explorer_html(mut dir_entry: Vec<CustomDirEntry>) -> String {
 }
 
 // Helper function to get number of lines currently typed in editor
-fn get_lines(code: &str) -> String{
+fn get_lines(code2: String) -> String{
+    let mut code = code2;
+    let previous_index = cmp::max(0, (code.len() as isize)-1) as usize;
+    let last_char = &code[previous_index..code.len()];
+    if last_char == "\n" {
+        code = format!("{}{}", code, "\u{00A0}");   
+    }
     let lines : Vec<&str>  = code.split("\n").collect();
     let num_lines = lines.len();
     let mut lines_html = "".to_string();
@@ -149,11 +159,12 @@ fn FileTab(
     filepath: String,
     filename: String,
     selected_file: ReadSignal<String>,
-    set_selected_file : WriteSignal<String>
+    set_selected_file : WriteSignal<String>,
+    open_files : ReadSignal<Vec<(String,String)>>,
+    set_open_files : WriteSignal<Vec<(String,String)>>
 ) -> impl IntoView {
-    
     view! {
-        <button id=filepath.clone() class="tab"
+        <div class = "tab" id=filepath.clone()
         on:click:target = move|ev|{
             let target = ev.target().dyn_into::<Element>().unwrap();
             let new_val = Array::new();
@@ -161,8 +172,36 @@ fn FileTab(
             let _ = target.class_list().add(&new_val);
             set_selected_file.set(target.id());
         }>
-            {filename}
-        </button>
+            {filename.clone()}
+            <button class="exit-button"
+            on:click:target = {
+                let filepath_clone = filepath.clone();
+                let filename_clone = filename.clone();
+                move|ev|{
+                ev.stop_propagation();
+                for index in 0..open_files.get().len(){
+                    let mut vec = open_files.get();
+                    if vec[index] == ((&filepath_clone).to_string(),(&filename_clone).to_string()){
+                        vec.remove(index);
+                        if vec.len() > 0 {
+                            if index == vec.len(){
+                                set_selected_file.set(vec[index-1].0.clone());
+                            } else if index < vec.len() {
+                                set_selected_file.set(vec[index].0.clone());
+                            }
+                        } else if vec.len() == 0 {
+                            set_selected_file.set(String::new());
+                        }
+                        set_open_files.set(vec);
+                        break;
+                    }
+                }
+                }
+            }>
+                <img src="public/close.svg"/>
+            </button>
+        </div>
+
         {Effect::new(move |_| {
             let document = leptos::prelude::document();
             let target_string = format!("{}{}", "#", escape(&filepath));
@@ -170,10 +209,12 @@ fn FileTab(
             match target2 {
                 Some(e) => {
                     let target = e;
+                    let new_val = Array::new();
+                    new_val.push(&serde_wasm_bindgen::to_value("selected").unwrap());
                     if selected_file.get() != target.id(){
-                        let new_val = Array::new();
-                        new_val.push(&serde_wasm_bindgen::to_value("selected").unwrap());
                         let _ = target.class_list().remove(&new_val);
+                    } else if selected_file.get() == target.id(){
+                        let _ = target.class_list().add(&new_val);
                     }
                 }
                 None => {}
@@ -193,8 +234,40 @@ MAIN APP COMPONENT
 */
 
 
+
+/*
+TODO:
+    General:
+        Work on Custom Titlebar with buttons
+
+    Sidebar:
+        General:
+            -Add Hover names for buttons
+        File System:
+            - Reset FS default directory
+            - Add way to open new file directory
+            - Add way to save files
+                -Add check if user tries to close file without it being saved
+        Records:
+
+    Editor
+        -Highlight current line of text with gray?
+
+    Terminal:
+        -Start work on this
+
+*/
+
+
 #[component]
 pub fn App() -> impl IntoView {
+
+    /*
+    ==============================================================================
+    REACTIVE SIGNALS
+    ==============================================================================
+    */
+
     //let (test, set_test) = signal(String::new());
     let (highlighted_msg, set_highlighted_msg) = signal(String::new());
 
@@ -213,8 +286,14 @@ pub fn App() -> impl IntoView {
     let (selected_activity_icon, set_selected_activity_icon) = signal("#file-explorer-button".to_string());
     let (selected_file, set_selected_file) = signal(String::new());
     let new_vec : Vec<(String,String)> = Vec::new();
-    // let new_vec : Vec<(String,String)> = vec![("test".to_string(), "test2".to_string())];
     let (open_files, set_open_files) = signal(new_vec.clone());
+
+
+    /*
+    ==============================================================================
+    HELPER FUNCTIONS
+    ==============================================================================
+    */
 
     // Helper function to get width of current line of text in editor
     // Used for setting scroll_left
@@ -240,6 +319,15 @@ pub fn App() -> impl IntoView {
         test.remove();
         return width;
     }
+
+
+
+
+    /*
+    ==============================================================================
+    EVENT LISTENERS
+    ==============================================================================
+    */
 
 
     //Used for switching the chevron icon next to directories in the file system tab
@@ -286,6 +374,8 @@ pub fn App() -> impl IntoView {
 
     }) as Box<dyn FnMut(_)>);
 
+
+
     //Used for opening files
     let open_file_closure = Closure::wrap(Box::new(move |ev: Event| {
         let title_element = ev.target().unwrap().dyn_into::<HtmlElement>().unwrap();
@@ -296,31 +386,35 @@ pub fn App() -> impl IntoView {
         let filename = collection[collection.len()-1].to_string();
 
         set_selected_file.set(filepath.clone());
-        set_open_files.update(|vec| vec.push((filepath,filename)));
-        /*
-        TODO:
-            - Only update files list if file is not already open
-            - Add exit button to close file tab
-            - Actually read file content and put into editor
-            - Reset FS default directory
-            - Highlight current line of text with gray
-         */
-
+        set_open_files.update(|vec| if !vec.contains(&(filepath.clone(),filename.clone())){vec.push((filepath.clone(),filename.clone()))});
         
     }) as Box<dyn FnMut(_)>);
+
+
+
+    /*
+    ==============================================================================
+    STARTUP EFFECTS
+    ==============================================================================
+    */
 
 
     // Load Syntax and Color Scheme from file
     Effect::new(move |_| {
         spawn_local(async move {
-            let args = serde_wasm_bindgen::to_value(&LoadArgs { code : "null"}).unwrap();
+            let args = serde_wasm_bindgen::to_value(&LoadThemeArgs { code : "null"}).unwrap();
             let return_tuple: (SyntaxSet, Theme) = serde_wasm_bindgen::from_value(invoke("load", args).await).unwrap();
             set_syntax_set.set(return_tuple.0);
             set_theme.set(return_tuple.1);
         });
     });
 
-
+    
+    /*
+    ==============================================================================
+    MAIN VIEW
+    ==============================================================================
+    */
 
     view! {
         <div class="main" 
@@ -382,35 +476,6 @@ pub fn App() -> impl IntoView {
                 <SidebarIcon id="execute-button".to_string()  img_src="public/play-circle.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="deploy-button".to_string()  img_src="public/cloud-upload.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
 
-                // <button id ="deploy-button"
-                // on:click=move |_|{
-                //     let currently_selected = selected_activity_icon.get();
-                //     let this_name = "#deploy-button";
-                //     if currently_selected == this_name {
-                //         let document = leptos::prelude::document();
-
-                //         let details = document.query_selector("#sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                //         let style = details.style();
-                        
-                //         if style.get_property_value("display").unwrap() == "flex"{
-                //             let _ = style.set_property("display", "none");
-                //         } else if style.get_property_value("display").unwrap() == "none"{
-                //             let _ = style.set_property("display", "flex");
-                //         }              
-                //     } else {
-                //         let document = leptos::prelude::document();
-
-                //         let this = document.query_selector(this_name).unwrap().unwrap();
-                //         let currently_selected_element = document.query_selector(currently_selected).unwrap().unwrap();
-                //         set_selected_activity_icon.set(this_name);
-
-                //         this.set_class_name("selected");
-                //         currently_selected_element.set_class_name("");
-                //     }
-                // }>
-                //     <img src="public/cloud-upload.svg"/>
-                // </button>
-
                 <div id ="empty-space"></div>
                 <button id ="settings-button">
                     <img src="public/gear.svg"/>
@@ -423,7 +488,7 @@ pub fn App() -> impl IntoView {
                     <button class="open-folder"
                     on:click:target=move|_| {
                         spawn_local(async move {
-                            let args = serde_wasm_bindgen::to_value(&LoadArgs { code : "null"}).unwrap();
+                            let args = serde_wasm_bindgen::to_value(&LoadThemeArgs { code : "null"}).unwrap();
 
                             let return_val = invoke("open_explorer", args).await.as_string().unwrap();
                             if return_val != ""{
@@ -459,7 +524,6 @@ pub fn App() -> impl IntoView {
                                     let _ = title_element.add_event_listener_with_callback("click", switch_chevron_closure.as_ref().unchecked_ref());
                                     (closure.closure)(child.children().named_item("children").unwrap(), closure);
                                 } else if child.class_name() == "file" {
-                                    // TODO: ADD EVENT LISTENER FOR OPENING FILES
                                     let title_element = child.children().named_item("title").unwrap().dyn_into::<HtmlElement>().unwrap();
                                     let _ = title_element.add_event_listener_with_callback("dblclick", open_file_closure.as_ref().unchecked_ref());
                                 }
@@ -499,7 +563,7 @@ pub fn App() -> impl IntoView {
                     <div class= "tabs">
                         <For each=move || open_files.get() key=|tuple| tuple.0.clone() children=move |(filepath, filename)| {
                             view! {
-                                <FileTab filepath=filepath filename=filename selected_file=selected_file set_selected_file=set_selected_file/>
+                                <FileTab filepath=filepath filename=filename selected_file=selected_file set_selected_file=set_selected_file open_files=open_files set_open_files=set_open_files/>
                             }
                         }/>
                     </div>
@@ -529,19 +593,12 @@ pub fn App() -> impl IntoView {
                                 result_element.set_scroll_left(sl.get());
                             }
                             on:input:target=move |ev| {
-                                let mut code = ev.target().value();
-                                let previous_index = cmp::max(0, (code.len() as isize)-1) as usize;
-                                let last_char = &code[previous_index..code.len()];
-                                if last_char == "\n" {
-                                    code = format!("{}{}", code, "\u{00A0}");   
-                                }
-                                let lines_html = get_lines(&code);
+                                let lines_html = get_lines(ev.target().value());
                                 set_lines_html.set(lines_html);
-
 
                                 spawn_local(
                                     async move {
-                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &code, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
+                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
                                         let highlighted = invoke("highlight", args).await.as_string().unwrap();
                                         
 
@@ -593,7 +650,39 @@ pub fn App() -> impl IntoView {
                                 }
                             }
                             ></textarea>
-                            
+
+
+                            {Effect::new(move |_| {
+                                let selected = selected_file.get();
+                                if selected != String::new(){
+                                    spawn_local(
+                                        async move {
+                                            let args = serde_wasm_bindgen::to_value(&LoadFileArgs{filepath: selected}).unwrap();
+                                            let contents = invoke("read_file", args).await.as_string().unwrap();
+                                            
+                                            let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
+                                            let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                            set_highlighted_msg.set(highlighted);
+
+                                            let document = leptos::prelude::document();
+                                            let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                            result_element.set_value(&contents);
+
+                                            let lines_html = get_lines(contents);
+                                            set_lines_html.set(lines_html);
+
+                                            let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element.style().remove_property("display");
+                                        }
+                                    );
+                                } else {
+                                    let document = leptos::prelude::document();
+                                    let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = result_element.style().set_property("display","none");
+                                }
+                            });}
+
+
                             <pre class="highlighting" aria-hidden="true">
                                 {Effect::new(move |_| {
                                     let document = leptos::prelude::document();

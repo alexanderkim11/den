@@ -238,17 +238,23 @@
   align-items: center;
   cursor: pointer;
   display: flex;
+  align-items: center;
   font-family: "Inter";
   font-size: 14px;
   font-weight:400;
   height: 100%;
 
   padding-left: 10px;
-  padding-right: 28px;
+  padding-right: 10px;
   border-top: 1px solid transparent;
-  background-color: #343746;
+  background-color: #1f212a;
   color: #e3e3e3;
   box-sizing: border-box;
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
 }
 
 
@@ -256,6 +262,32 @@
   background-color: #12141d;
   /* border-top-color: #931cff; */
   border-top-color: #C4FFC2;
+}
+
+.outer-code-area .tabs .tab .exit-button {
+  background-color: transparent;
+  border:0;
+  padding:0;
+  cursor:pointer;
+
+  border-radius: 5px;
+  box-sizing: content-box;
+  color: #e3e3e3;
+  display: flex;
+  justify-content: center;
+  margin-left: 5px;
+}
+
+.outer-code-area .tabs .tab .exit-button img{
+  height: 18px;
+  width: 18px;
+}
+
+.outer-code-area .tabs .tab .exit-button:hover {
+  background-color: #343746;
+  border:0;
+  padding:0;
+
 }
 
 .outer-code-area .ide{

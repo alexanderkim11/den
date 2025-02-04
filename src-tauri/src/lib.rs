@@ -2,6 +2,7 @@
 mod highlight;
 mod load_theme_syntax;
 mod open_explorer;
+mod read_file;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -11,7 +12,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             load_theme_syntax::load,
             highlight::highlight,
-            open_explorer::open_explorer
+            open_explorer::open_explorer,
+            read_file::read_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
