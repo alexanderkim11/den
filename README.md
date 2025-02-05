@@ -10,6 +10,7 @@ This template should help get you started developing with Tauri and Leptos.
 ## Sidebar:
 - General:
     - Add Hover names for buttons
+    - Change default selected button back to file explorer
 - File System:
     - Reset FS default directory
     - Add way to open new file directory

@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "TBD",
+        "title": "Den",
         "width": 1400,
         "height": 850,
         "theme": "Dark",

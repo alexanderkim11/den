@@ -1,5 +1,5 @@
 use leptos::ev::Event;
-use leptos::web_sys::{Element,HtmlElement, HtmlImageElement, HtmlTextAreaElement, HtmlButtonElement};
+use leptos::web_sys::{Element,HtmlElement, HtmlImageElement, HtmlTextAreaElement, HtmlButtonElement, HtmlInputElement};
 use js_sys::Array;
 use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
@@ -222,11 +222,303 @@ fn SidebarFileExplorer (
 fn SidebarAccount (
     selected_activity_icon: ReadSignal<String>
 ) -> impl IntoView {
+
+    let (dropdown_active, set_dropdown_active) = signal(false);
+    let (current_dropdown_item, set_current_dropdown_item) = signal("create-new-account-button".to_string());
+    let (current_dropdown_text, set_current_dropdown_text) = signal("Create a New Account".to_string());
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#account-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
             <div class="sidebar-title">Account</div>
+            <div id="account-card" class="card">
+                <div id="account-card-head" class="card-head" >
+                    <div id="account-dropdown-custom" class="dropdown-custom">
+                        <div id="account-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                        {
+                            let this = ev.target().dyn_into::<Element>().unwrap();
+                            let new_val = Array::new();
+                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                            if this.class_list().contains("show"){
+                                let _ = this.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            } else {
+                                let _ = this.class_list().add(&new_val);
+                                set_dropdown_active.set(true);
+                            }
+                        }> 
+                            <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
+                            <img src="public/chevron-down.svg"/>
+                        </div>
+                        <div id="account-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
+                            <div id="create-new-account-button" class={move || if current_dropdown_item.get() == "create-new-account-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Create a New Account
+                            </div>
+                            <div id="load-account-from-pk-button" class={move || if current_dropdown_item.get() == "load_account-from-pk-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Load Account from Private Key
+                            </div>
+                            <div id="load-address-from-vk-button" class={move || if current_dropdown_item.get() == "load-address-from-vk-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+                                    
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Load Address from View Key
+                            </div>
+                            <div id="sign-message-button" class={move || if current_dropdown_item.get() == "sign-message-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Sign a Message
+                            </div>
+                            <div id="verify-message-button" class={move || if current_dropdown_item.get() == "verify-message-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Verify a Message
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "create-new-account-button" {"display: flex"} else {"display: none"}}>
+                    <div id="create-account-card-body" class="card-body">
+                        <div class="input-field">
+                            <div class="field-title">Name</div>
+                            <input id="create-account-name-input" placeholder="Account Name" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="output-field">
+                            <div class="field-title">Private Key</div>
+                            <div class="output-input-wrapper">
+                                <input id="create-account-name-output-pk" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <img src="public/files.svg"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="output-field">
+                            <div class="field-title">View Key</div>
+                            <div class="output-input-wrapper">
+                                <input id="create-account-name-output-vk" placeholder="View Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <img src="public/files.svg"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="output-field">
+                            <div class="field-title">Address</div>
+                            <div class="output-input-wrapper">
+                                <input id="create-account-name-output-address" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <img src="public/files.svg"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <button id="generate-button" class="card-button"
+                    on:click:target=move|_ev| {
+                        let document = leptos::prelude::document();
+                        let current_input = document.query_selector("#create-account-name-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let value = current_input.value().clone();
+                        let target = current_input.dyn_into::<HtmlElement>().unwrap();
+                        let style = target.style();
+                        if &value == "" {
+                            let _ = style.set_property("border", "1px solid red");   
+                        } else {
+                            let _ = style.set_property("border", "1px solid #494e64");   
+                        }
+                    }
+                    >
+                        Generate
+                    </button>
+                </div>
+
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "load-account-from-pk-button" {"display: flex"} else {"display: none"}}>
+                    <div id="load-account-from-pk-card-body" class="card-body">
+                        <div class="input-field">
+                            <div class="field-title">Private Key</div>
+                            <input id="load-account-from-pk-input" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <button id="load-button" class="card-button"
+                    on:click:target=move|_ev| {
+                        // let document = leptos::prelude::document();
+                        // let current_input = document.query_selector("#create-account-name-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        // let value = current_input.value().clone();
+                        // let target = current_input.dyn_into::<HtmlElement>().unwrap();
+                        // let style = target.style();
+                        // if &value == "" {
+                        //     let _ = style.set_property("border", "1px solid red");   
+                        // } else {
+                        //     let _ = style.set_property("border", "1px solid #494e64");   
+                        // }
+                    }
+                    >
+                        Load
+                    </button>
+                </div>
+
+
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "load-address-from-vk-button" {"display: flex"} else {"display: none"}}>
+                    <div id="load-address-from-vk-card-body" class="card-body">
+                        <div class="input-field">
+                            <div class="field-title">View Key</div>
+                            <input id="load-address-from-vk-input" placeholder="View Key" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <button id="load-button" class="card-button"
+                    on:click:target=move|_ev| {
+                        // let document = leptos::prelude::document();
+                        // let current_input = document.query_selector("#create-account-name-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        // let value = current_input.value().clone();
+                        // let target = current_input.dyn_into::<HtmlElement>().unwrap();
+                        // let style = target.style();
+                        // if &value == "" {
+                        //     let _ = style.set_property("border", "1px solid red");   
+                        // } else {
+                        //     let _ = style.set_property("border", "1px solid #494e64");   
+                        // }
+                    }
+                    >
+                        Load
+                    </button>
+                </div>
+
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "sign-message-button" {"display: flex"} else {"display: none"}}>
+                    <div id="sign-message-card-body" class="card-body">
+                        <div class="input-field">
+                            <div class="field-title">Private Key</div>
+                            <input id="sign-message-input-pk" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="input-field">
+                            <div class="field-title">Message</div>
+                            <input id="sign-message-input-message" placeholder="Message" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="output-field">
+                            <div class="field-title">Signature</div>
+                            <div class="output-input-wrapper">
+                                <input id="sign-message-output" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <img src="public/files.svg"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <div class="double-button-wrapper" style="order:3; display:flex; justify-content:center">
+                        <button id="sign-button" class="card-button" style="margin-right:10px;"
+                        on:click:target=move|_ev| {
+
+                        }
+                        >
+                            Sign
+                        </button>
+                        <button id="signature-clear-button" class="card-button-clear" style="margin-left:10px;"
+                        on:click:target=move|_ev| {
+
+                        }
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "verify-message-button" {"display: flex"} else {"display: none"}}>
+                <div id="verify-message-card-body" class="card-body">
+                    <div class="input-field">
+                        <div class="field-title">Address</div>
+                        <input id="verify-message-input-address" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                    </div>
+                    <div class="input-field">
+                        <div class="field-title">Message</div>
+                        <input id="verify-message-input-message" placeholder="Message" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                    </div>
+                    <div class="input-field">
+                        <div class="field-title">Signature</div>
+                        <input id="verify-message-input-signature" placeholder="Signature" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                    </div>
+                </div>
+                <div class="card-divider"/>
+                    <div class="double-button-wrapper" style="order:3; display:flex; justify-content:center">
+                        <button id="verify-button" class="card-button" style="margin-right:10px;"
+                        on:click:target=move|_ev| {
+
+                        }
+                        >
+                            Verify
+                        </button>
+                        <button id="signature-clear-button" class="card-button-clear" style="margin-left:10px;"
+                        on:click:target=move|_ev| {
+
+                        }
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+
+            </div>
         </div>
-    
     }
 }
 
@@ -234,11 +526,125 @@ fn SidebarAccount (
 fn SidebarRecords (
     selected_activity_icon: ReadSignal<String>
 ) -> impl IntoView {
+
+    let (dropdown_active, set_dropdown_active) = signal(false);
+    let (current_dropdown_item, set_current_dropdown_item) = signal("decrypt-record-button".to_string());
+    let (current_dropdown_text, set_current_dropdown_text) = signal("Decrypt Record".to_string());
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#records-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
             <div class="sidebar-title">Records</div>
+            <div id="records-card" style="height: 100%;" class="card">
+                <div id="records-card-head" class="card-head" >
+                    <div id="records-dropdown-custom" class="dropdown-custom">
+                        <div id="records-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                        {
+                            let this = ev.target().dyn_into::<Element>().unwrap();
+                            let new_val = Array::new();
+                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                            if this.class_list().contains("show"){
+                                let _ = this.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            } else {
+                                let _ = this.class_list().add(&new_val);
+                                set_dropdown_active.set(true);
+                            }
+                        }> 
+                            <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
+                            <img src="public/chevron-down.svg"/>
+                        </div>
+                        <div id="records-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
+                            <div id="decrypt-record-button" class={move || if current_dropdown_item.get() == "decrypt-record-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#records-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Decrypt Record
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "decrypt-record-button" {"display: flex"} else {"display: none"}}>
+                    <div id="records-card-body" style="display:flex; flex-direction:column;" class="card-body">
+                        <div class="input-field" style="order:0;">
+                            <div class="field-title">Name</div>
+                            <input id="decrypt-record-input-name" placeholder="Record Name" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="input-field" style="order:1;">
+                            <div class="field-title">Ciphertext</div>
+                            <input id="decrypt-record-input-ciphertext" placeholder="Ciphertext" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="input-field" style="order:2;">
+                            <div class="field-title">View Key</div>
+                            <input id="decrypt-record-input-vk" placeholder="View Key" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="output-field" style="display:flex; flex-direction:column; box-sizing:border-box; height:100%; order:3;">
+                            <div style="order:0" class="field-title">Decrypted Record</div>
+
+                            <div class="output-textarea-wrapper">
+                                <textarea style="order:0" id="decrypt-record-output" placeholder="Decrypted Record" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-textarea-img-wrapper" style="order:1">
+                                    <img src="public/files.svg"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <button id="decrypt-button" class="card-button"
+                    on:click:target=move|_ev| {
+                        //TODO: Use SnarkVM to decrypt records using fields
+                        let document = leptos::prelude::document();
+                        let current_title_input = document.query_selector("#decrypt-record-input-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let current_ciphertext_input = document.query_selector("#decrypt-record-input-ciphertext").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let current_vk_input = document.query_selector("#decrypt-record-input-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+
+                        let title = current_title_input.value().clone();
+                        let ciphertext = current_ciphertext_input.value().clone();
+                        let vk = current_vk_input.value().clone();
+
+
+                        let target1 = current_title_input.dyn_into::<HtmlElement>().unwrap();
+                        let target2 = current_ciphertext_input.dyn_into::<HtmlElement>().unwrap();
+                        let target3 = current_vk_input.dyn_into::<HtmlElement>().unwrap();
+
+
+                        let style1 = target1.style();
+                        let style2 = target2.style();
+                        let style3 = target3.style();
+
+                        if &title == "" {
+                            let _ = style1.set_property("border", "1px solid red");   
+                        } else {
+                            let _ = style1.set_property("border", "1px solid #494e64");   
+                        }
+
+                        if &ciphertext == "" {
+                            let _ = style2.set_property("border", "1px solid red");   
+                        } else {
+                            let _ = style2.set_property("border", "1px solid #494e64");   
+                        }
+
+                        if &vk == "" {
+                            let _ = style3.set_property("border", "1px solid red");   
+                        } else {
+                            let _ = style3.set_property("border", "1px solid #494e64");   
+                        }
+                    }
+                    >
+                        Decrypt
+                    </button>
+                </div>
+            </div>
         </div>
-    
     }
 }
 
@@ -533,7 +939,7 @@ pub fn App() -> impl IntoView {
                 let raw_val = style.get_property_value("flex-basis").unwrap();
                 let val = raw_val[0..(raw_val.len()-2)].parse::<i32>().unwrap();
 
-                let new_width = cmp::min(cmp::max(200, x + val),500);
+                let new_width = cmp::min(cmp::max(300, x + val),500);
                 let new_val = format!("{}{}", new_width.to_string(), "px");
                 let _ = style.set_property("flex-basis", &new_val);
                 set_sidebar_offset_x.set(ev.screen_x());
@@ -585,7 +991,7 @@ pub fn App() -> impl IntoView {
                 </button>
 
             </div>
-            <div class="sidebar-details" style="display: flex; flex-basis: 200px;">
+            <div class="sidebar-details" style="display: flex; flex-basis: 300px;">
               <SidebarFileExplorer open_file_closure=open_file_closure switch_chevron_closure=switch_chevron_closure fs_html=fs_html set_fs_html=set_fs_html selected_activity_icon=selected_activity_icon />
               <SidebarAccount selected_activity_icon=selected_activity_icon/>
               <SidebarRecords selected_activity_icon=selected_activity_icon/>
