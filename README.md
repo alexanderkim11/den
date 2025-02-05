@@ -11,23 +11,27 @@ This template should help get you started developing with Tauri and Leptos.
 
 ## Sidebar:
 - General:
-    - Add Hover names for buttons
+    - Add hover names for sidebar icon buttons
 - File System:
     - Reset FS default directory
     - Add way to open new file directory
     - Add way to save files
     - Add check if user tries to close file without it being saved
+    - Add hover filepaths for file buttons
 - Account:
     - Add button functionality
+    - Add conditional output section to card body
 - Records:
     - Add button functionality
+    - Add conditional output section to card body
 - REST API:
     - Add button functionality
     - Add conditional output section to card body
 - Execute:
     - Want to rework this
 - Deploy:
-    - Start work on this
+    - Add button functionality
+    - Add conditional output section to card body
 
 ## Editor
 - Dynamic error checking (red squiggle with error description)
@@ -35,4 +39,5 @@ This template should help get you started developing with Tauri and Leptos.
 
 ## Terminal:
 - Start work on this
+
 
