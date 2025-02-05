@@ -22,9 +22,10 @@ This template should help get you started developing with Tauri and Leptos.
 - Records:
     - Add button functionality
 - REST API:
-    - Start work on this
+    - Add button functionality
+    - Add conditional output section to card body
 - Execute:
-    - Start work on this
+    - Want to rework this
 - Deploy:
     - Start work on this
 

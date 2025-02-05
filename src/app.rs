@@ -652,11 +652,190 @@ fn SidebarRecords (
 fn SidebarRestApi (
     selected_activity_icon: ReadSignal<String>
 ) -> impl IntoView {
+
+    let (dropdown_active, set_dropdown_active) = signal(false);
+    let (current_dropdown_item, set_current_dropdown_item) = signal("get-latest-block-button".to_string());
+    let (current_dropdown_text, set_current_dropdown_text) = signal("Get Latest Block".to_string());
+
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#rest-api-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
             <div class="sidebar-title">REST API</div>
+            <div id="rest-api-card" class="card">
+                <div id="rest-api-card-head" class="card-head" >
+                    <div id="rest-api-dropdown-custom" class="dropdown-custom">
+                        <div id="rest-api-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                        {
+                            let this = ev.target().dyn_into::<Element>().unwrap();
+                            let new_val = Array::new();
+                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                            if this.class_list().contains("show"){
+                                let _ = this.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            } else {
+                                let _ = this.class_list().add(&new_val);
+                                set_dropdown_active.set(true);
+                            }
+                        }> 
+                            <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
+                            <img src="public/chevron-down.svg"/>
+                        </div>
+                        <div id="rest-api-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
+                            <div id="get-latest-block-button" class={move || if current_dropdown_item.get() == "get-latest-block-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Get Latest Block
+                            </div>
+                            <div id="get-block-by-height-button" class={move || if current_dropdown_item.get() == "get-block-by-height-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Get Block By Height
+                            </div>
+                            <div id="get-program-button" class={move || if current_dropdown_item.get() == "get-program-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+                                    
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Get Program
+                            </div>
+                            <div id="get-transaction-button" class={move || if current_dropdown_item.get() == "get-transaction-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Get Transaction
+                            </div>
+                            <div id="get-account-balance-button" class={move || if current_dropdown_item.get() == "get-account-balance-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Get Account Balance
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-latest-block-button" {"display: flex"} else {"display: none"}}>
+                    <div id="get-latest-block-body" class="card-body"></div>
+                    <button id="get-button" class="card-button"
+                    on:click:target=move|_ev| {
+                    }
+                    >
+                        Get
+                    </button>
+                </div>
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-block-by-height-button" {"display: flex"} else {"display: none"}}>
+                    <div id="get-block-by-height-body" class="card-body">
+                        <div class="input-field">
+                            <input id="get-block-by-height-input" placeholder="Block Height" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <button id="get-button" class="card-button"
+                    on:click:target=move|_ev| {
+                    }
+                    >
+                        Get
+                    </button>
+                </div>  
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-program-button" {"display: flex"} else {"display: none"}}>
+                    <div id="get-program-body" class="card-body">
+                        <div class="input-field">
+                            <input id="get-program-input" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <button id="get-button" class="card-button"
+                    on:click:target=move|_ev| {
+                    }
+                    >
+                        Get
+                    </button>
+                </div>
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-transaction-button" {"display: flex"} else {"display: none"}}>
+                    <div id="get-transaction-body" class="card-body">
+                        <div class="input-field">
+                            <input id="get-transaction-input" placeholder="Transaction ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <button id="get-button" class="card-button"
+                    on:click:target=move|_ev| {
+                    }
+                    >
+                        Get
+                    </button>
+                </div>
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-account-balance-button" {"display: flex"} else {"display: none"}}>
+                    <div id="get-account-balance-body" class="card-body">
+                        <div class="input-field">
+                            <input id="get-account-balance-input" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <button id="get-button" class="card-button"
+                    on:click:target=move|_ev| {
+                    }
+                    >
+                        Get
+                    </button>
+                </div>                           
+            </div>
         </div>
-    
     }
 }
 
@@ -676,11 +855,61 @@ fn SidebarExecute (
 fn SidebarDeploy (
     selected_activity_icon: ReadSignal<String>
 ) -> impl IntoView {
+    let (dropdown_active, set_dropdown_active) = signal(false);
+    let (current_dropdown_item, set_current_dropdown_item) = signal("deploy-button".to_string());
+    let (current_dropdown_text, set_current_dropdown_text) = signal("Deploy Program".to_string());
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#deploy-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
-            <div class="sidebar-title">Deploy</div>
+            <div class="sidebar-title">Account</div>
+            <div id="deploy-card" class="card">
+                <div id="deploy-card-head" class="card-head" >
+                    <div class="title">
+                        Deploy Program
+                    </div>
+                </div>
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "deploy-button" {"display: flex"} else {"display: none"}}>
+                    <div id="deploy-card-body" class="card-body">
+                        <div class="input-field">
+                            <div class="field-title">Program ID</div>
+                            <input id="deploy-input-program-id" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="input-field">
+                            <div class="field-title">Private Key</div>
+                            <input id="deploy-input-pk" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="input-field">
+                            <div class="field-title">Fee</div>
+                            <input id="deploy-input-fee" placeholder="Fee" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+
+
+                        <div class="input-field">
+                            <div class="field-title">Fee</div>
+                            <div class="output-input-wrapper">
+                                <input id="deploy-input-fee" style=" border-top-right-radius: 0px; border-bottom-right-radius: 0px;" placeholder="Fee" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                <div class="card-button-estimate-fee">Estimate Fee</div>
+                            </div>
+                        </div>
+
+                        <div class="switch-wrapper">
+                        <div class="field-title" style="order:0; padding:0; margin-right:15px; padding-top:2.5px; padding-bottom:2.5px;">Private Fee</div>
+                            <label class="switch" style="order:1;">
+                                <input type="checkbox"/>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <button id="deploy-button" class="card-button"
+                    on:click:target=move|_ev| {
+
+                    }
+                    >
+                        Deploy
+                    </button>
+                </div>
+            </div>
         </div>
-    
     }
 }
 

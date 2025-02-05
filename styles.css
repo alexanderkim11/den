@@ -221,9 +221,6 @@
   border-bottom: 1px solid #494e64;
   border-radius: 8px 8px 0 0;
   color: #e3e3e3;
-  font-size: 14px;
-  font-weight: 400;
-  justify-content: center;
   margin-bottom: -1px;
   min-height: 40px;
   padding-left: 10px;
@@ -231,6 +228,13 @@
   padding-bottom: 3px;
   padding-top:3px;
   box-sizing:border-box;
+}
+
+.card-head .title{
+  font-family: 'Inter';
+  font-size: 14px;
+  font-weight: 400;
+  margin-top:6.5px;
 }
 
 .dropdown-custom{
@@ -472,7 +476,6 @@
   height:fit-content; 
   width: fit-content; 
   align-self: center; 
-  border:0; 
   color:#C4FFC2; 
   font-family:'Inter'; 
   font-size: 14px; 
@@ -531,6 +534,46 @@
   transition:all .3s ease;
 }
 
+.card-button-estimate-fee {
+
+  width: fit-content; 
+  align-self: center; 
+  border:0; 
+  color:#C4FFC2;
+  box-sizing: border-box;
+  height:34px;
+
+  font-family:'Inter'; 
+  font-size: 14px; 
+  font-weight: 400; 
+
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+  border: 2px solid #C4FFC2; /* Green */
+  padding:7px;
+
+  background-color: #121212;
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+
+  flex: 0 0 75px;
+  transition:all .3s ease;
+  margin:0; 
+  white-space: nowrap; 
+  align-items: center;
+  vertical-align:middle;
+}
+
+.card-button-estimate-fee:hover {
+  background-color:#C4FFC2;
+  color:#121212;  
+  cursor: pointer;
+  transition:all .3s ease;
+}
+
 
 #decrypt-record-output{
   border: 1px solid #494e64;
@@ -549,6 +592,76 @@
 #decrypt-record-output:focus{
   outline-width: 0;
 }
+
+
+
+
+.switch-wrapper {
+  display: flex;
+}
+
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 54px;
+  height: 22px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #343746;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 2px;
+  bottom: 2px;
+  background-color: #191b21;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #C4FFC2;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(32px);
+  -ms-transform: translateX(32px);
+  transform: translateX(32px);
+  background-color: #59b456;
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 22px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+
+
 
 
 
@@ -810,3 +923,4 @@
   display:none; 
   flex-direction: column;
 }
+
