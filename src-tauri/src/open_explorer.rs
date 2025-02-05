@@ -19,7 +19,6 @@ pub fn recurse_walk_dir(folder_path : &Path) -> Vec<CustomDirEntry>{
 
     let paths = fs::read_dir(folder_path).unwrap();
     for entry in paths {
-        //Note: first entry is always the starting directory (i.e. `folder_path`)
         let dir_entry = entry.unwrap();
         let path = dir_entry.path();
         let entry_name = (&path).file_name().unwrap().to_str().unwrap().to_string();
@@ -48,8 +47,6 @@ pub fn recurse_walk_dir(folder_path : &Path) -> Vec<CustomDirEntry>{
 
 #[tauri::command]
 pub fn open_explorer(handle: tauri::AppHandle, _code: String) -> String {
-    // TODO: figure out default path
-
     let default_path = Path::new("C:\\Users\\r0ami\\Home\\aleo\\projects\\den-test\\test");
     let folder_path_option = handle.dialog().file().set_directory(default_path).blocking_pick_folder();
 
