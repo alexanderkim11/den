@@ -1,4 +1,10 @@
-# Tauri + Leptos
+<p align="center"> 
+    <img alt="den" width="300" src="./src-tauri/icons/den.png">
+</p>
+
+# Den
+
+Built with Tauri + Leptos
 
 This template should help get you started developing with Tauri and Leptos.
 
@@ -7,7 +13,6 @@ This template should help get you started developing with Tauri and Leptos.
 - Integrate SnarkVM
 - Integrate Devnet support
 - Work on Custom Titlebar with buttons
-- Add highlighting conditional on file type (.leo vs .aleo)
 
 ## Sidebar:
 - General:
@@ -36,6 +41,7 @@ This template should help get you started developing with Tauri and Leptos.
 ## Editor
 - Dynamic error checking (red squiggle with error description)
 - Highlight current line of text with gray?
+- Add highlighting conditional on file type (.leo vs .aleo)
 
 ## Terminal:
 - Start work on this

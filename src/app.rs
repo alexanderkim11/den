@@ -75,7 +75,15 @@ fn generate_file_explorer_html(mut dir_entry: Vec<CustomDirEntry>) -> String {
             fs_html = format!("{}{}{}{}{}", fs_html,"<div class=\"dir\">", fs_title, dir_children, "</div>");
 
         } else if entry_type == "File" {
-            fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/file.svg\"/><div>", entry.name, "</div></div></div>");
+            let extension = entry.path.split(".").collect::<Vec<&str>>();
+            if extension[extension.len()-1] == "leo"{
+                fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/leo.svg\" style=\" padding-left:2px; padding-top:2px;  padding-bottom:2px;  width:16px; height:15px;\"/><div style=\"padding-left:3.5px\">", entry.name, "</div></div></div>");
+            } else if extension[extension.len()-1] == "aleo"{
+                fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/aleo2.svg\" style=\"width:12px; height:13px; padding-top:2px; padding-left:5px; padding-bottom:2px; padding-right:2px;\"/><div>", entry.name, "</div></div></div>");
+            } else {
+                fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/file.svg\"/><div>", entry.name, "</div></div></div>");
+
+            }
         }
     }
     return fs_html;
@@ -140,6 +148,7 @@ fn SidebarIcon(
                 }
             } else {
                 let document = leptos::prelude::document();
+                
 
                 let this = document.query_selector(&this_name).unwrap().unwrap();
                 let currently_selected_element = document.query_selector(&currently_selected).unwrap().unwrap();
@@ -147,6 +156,12 @@ fn SidebarIcon(
 
                 this.set_class_name("selected");
                 currently_selected_element.set_class_name("");
+
+                let details = document.query_selector(".sidebar-details").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                let style = details.style();
+                if style.get_property_value("display").unwrap() == "none"{
+                    let _ = style.set_property("display", "flex");
+                }
             }
         }>
             <img src=img_src/>
@@ -855,19 +870,19 @@ fn SidebarExecute (
 fn SidebarDeploy (
     selected_activity_icon: ReadSignal<String>
 ) -> impl IntoView {
-    let (dropdown_active, set_dropdown_active) = signal(false);
-    let (current_dropdown_item, set_current_dropdown_item) = signal("deploy-button".to_string());
-    let (current_dropdown_text, set_current_dropdown_text) = signal("Deploy Program".to_string());
+    // let (dropdown_active, set_dropdown_active) = signal(false);
+    // let (current_dropdown_item, set_current_dropdown_item) = signal("deploy-button".to_string());
+    // let (current_dropdown_text, set_current_dropdown_text) = signal("Deploy Program".to_string());
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#deploy-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
-            <div class="sidebar-title">Account</div>
+            <div class="sidebar-title">Deploy</div>
             <div id="deploy-card" class="card">
                 <div id="deploy-card-head" class="card-head" >
                     <div class="title">
                         Deploy Program
                     </div>
                 </div>
-                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "deploy-button" {"display: flex"} else {"display: none"}}>
+                <div class="card-body-wrapper">
                     <div id="deploy-card-body" class="card-body">
                         <div class="input-field">
                             <div class="field-title">Program ID</div>
@@ -877,11 +892,6 @@ fn SidebarDeploy (
                             <div class="field-title">Private Key</div>
                             <input id="deploy-input-pk" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off"/>
                         </div>
-                        <div class="input-field">
-                            <div class="field-title">Fee</div>
-                            <input id="deploy-input-fee" placeholder="Fee" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                        </div>
-
 
                         <div class="input-field">
                             <div class="field-title">Fee</div>
