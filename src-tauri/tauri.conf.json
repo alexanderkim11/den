@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "den",
+  "productName": "Den",
   "version": "0.1.0",
   "identifier": "com.den.app",
   "build": {
@@ -35,7 +35,8 @@
       "icons/icon.ico"
     ],
     "resources":[
-      "resources/*"
+      "resources/*",
+      ".aleo/"
     ]
   }
 }

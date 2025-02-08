@@ -8,7 +8,7 @@ Built with Tauri + Leptos
 
 This template should help get you started developing with Tauri and Leptos.
 
-# TODO
+# TODO:
 ## General:
 - Integrate SnarkVM
 - Integrate Devnet support
@@ -23,6 +23,7 @@ This template should help get you started developing with Tauri and Leptos.
     - Add way to save files
     - Add check if user tries to close file without it being saved
     - Add hover filepaths for file buttons
+    - Add way to delete files
 - Account:
     - Add button functionality
     - Add conditional output section to card body
@@ -32,16 +33,15 @@ This template should help get you started developing with Tauri and Leptos.
 - REST API:
     - Add button functionality
     - Add conditional output section to card body
-- Execute:
-    - Want to rework this
+- Deploy and Execute:
+    - Add deployed program interaction
 - Deploy:
-    - Add button functionality
-    - Add conditional output section to card body
+    - Remove this
 
 ## Editor
 - Dynamic error checking (red squiggle with error description)
 - Highlight current line of text with gray?
-- Add highlighting conditional on file type (.leo vs .aleo)
+- Add highlighting conditional on file type (.leo vs .aleo vs. everything else)
 
 ## Terminal:
 - Start work on this

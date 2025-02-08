@@ -9,6 +9,8 @@ use wasm_bindgen::prelude::*;
 use web_sys::css::escape;
 use std::cmp;
 
+
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
@@ -41,6 +43,12 @@ struct LoadThemeArgs<'a> {
 }
 
 #[derive(Serialize, Deserialize)]
+struct WatcherArgs<'a> {
+    path: &'a str,
+}
+
+
+#[derive(Serialize, Deserialize)]
 struct CustomDirEntry<> {
     path: String,
     name: String,
@@ -60,8 +68,6 @@ HELPER FUNCTIONS
 ==============================================================================
 */
 
-
-
 // Recursively generate file explorer html
 fn generate_file_explorer_html(mut dir_entry: Vec<CustomDirEntry>) -> String {
     let mut fs_html : String = "".to_string();
@@ -77,7 +83,7 @@ fn generate_file_explorer_html(mut dir_entry: Vec<CustomDirEntry>) -> String {
         } else if entry_type == "File" {
             let extension = entry.path.split(".").collect::<Vec<&str>>();
             if extension[extension.len()-1] == "leo"{
-                fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/leo.svg\" style=\" padding-left:2px; padding-top:2px;  padding-bottom:2px;  width:16px; height:15px;\"/><div style=\"padding-left:3.5px\">", entry.name, "</div></div></div>");
+                fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/leo.svg\" style=\" padding-left:2px; padding-top:1px;  padding-bottom:1px;  width:16px; height:15px;\"/><div style=\"padding-left:3.5px\">", entry.name, "</div></div></div>");
             } else if extension[extension.len()-1] == "aleo"{
                 fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/aleo2.svg\" style=\"width:12px; height:13px; padding-top:2px; padding-left:5px; padding-bottom:2px; padding-right:2px;\"/><div>", entry.name, "</div></div></div>");
             } else {
@@ -106,7 +112,6 @@ fn get_lines(code2: String) -> String{
     }
     return lines_html;
 }
-
 
 /*
 ==============================================================================
@@ -245,114 +250,114 @@ fn SidebarAccount (
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#account-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
             <div class="sidebar-title">Account</div>
             <div id="account-card" class="card">
-                <div id="account-card-head" class="card-head" >
-                    <div id="account-dropdown-custom" class="dropdown-custom">
-                        <div id="account-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
-                        {
-                            let this = ev.target().dyn_into::<Element>().unwrap();
-                            let new_val = Array::new();
-                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                            if this.class_list().contains("show"){
-                                let _ = this.class_list().remove(&new_val);
-                                set_dropdown_active.set(false);
-                            } else {
-                                let _ = this.class_list().add(&new_val);
-                                set_dropdown_active.set(true);
-                            }
-                        }> 
-                            <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
-                            <img src="public/chevron-down.svg"/>
-                        </div>
-                        <div id="account-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
-                            <div id="create-new-account-button" class={move || if current_dropdown_item.get() == "create-new-account-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
 
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
-                            }
-                            >
-                                Create a New Account
-                            </div>
-                            <div id="load-account-from-pk-button" class={move || if current_dropdown_item.get() == "load_account-from-pk-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
-
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
-                            }
-                            >
-                                Load Account from Private Key
-                            </div>
-                            <div id="load-address-from-vk-button" class={move || if current_dropdown_item.get() == "load-address-from-vk-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
-                                    
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
-                            }
-                            >
-                                Load Address from View Key
-                            </div>
-                            <div id="sign-message-button" class={move || if current_dropdown_item.get() == "sign-message-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
-
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
-                            }
-                            >
-                                Sign a Message
-                            </div>
-                            <div id="verify-message-button" class={move || if current_dropdown_item.get() == "verify-message-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
-
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
-                            }
-                            >
-                                Verify a Message
-                            </div>
-                        </div>
-
+                <div id="account-dropdown-custom" class="dropdown-custom-head">
+                    <div id="account-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                    {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                        if this.class_list().contains("show"){
+                            let _ = this.class_list().remove(&new_val);
+                            set_dropdown_active.set(false);
+                        } else {
+                            let _ = this.class_list().add(&new_val);
+                            set_dropdown_active.set(true);
+                        }
+                    }> 
+                        <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
+                        <img src="public/chevron-down-dark.svg"/>
                     </div>
+                    <div id="account-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
+                        <div id="create-new-account-button" class={move || if current_dropdown_item.get() == "create-new-account-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Create a New Account
+                        </div>
+                        <div id="load-account-from-pk-button" class={move || if current_dropdown_item.get() == "load-account-from-pk-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Load Account from Private Key
+                        </div>
+                        <div id="load-address-from-vk-button" class={move || if current_dropdown_item.get() == "load-address-from-vk-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+                                
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Load Address from View Key
+                        </div>
+                        <div id="sign-message-button" class={move || if current_dropdown_item.get() == "sign-message-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Sign a Message
+                        </div>
+                        <div id="verify-message-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if current_dropdown_item.get() == "verify-message-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Verify a Message
+                        </div>
+                    </div>
+
                 </div>
+
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "create-new-account-button" {"display: flex"} else {"display: none"}}>
                     <div id="create-account-card-body" class="card-body">
                         <div class="input-field">
@@ -549,42 +554,40 @@ fn SidebarRecords (
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#records-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
             <div class="sidebar-title">Records</div>
             <div id="records-card" style="height: 100%;" class="card">
-                <div id="records-card-head" class="card-head" >
-                    <div id="records-dropdown-custom" class="dropdown-custom">
-                        <div id="records-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
-                        {
-                            let this = ev.target().dyn_into::<Element>().unwrap();
-                            let new_val = Array::new();
-                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                            if this.class_list().contains("show"){
-                                let _ = this.class_list().remove(&new_val);
-                                set_dropdown_active.set(false);
-                            } else {
-                                let _ = this.class_list().add(&new_val);
-                                set_dropdown_active.set(true);
-                            }
-                        }> 
-                            <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
-                            <img src="public/chevron-down.svg"/>
-                        </div>
-                        <div id="records-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
-                            <div id="decrypt-record-button" class={move || if current_dropdown_item.get() == "decrypt-record-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
+                <div id="records-dropdown-custom" class="dropdown-custom-head">
+                    <div id="records-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                    {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                        if this.class_list().contains("show"){
+                            let _ = this.class_list().remove(&new_val);
+                            set_dropdown_active.set(false);
+                        } else {
+                            let _ = this.class_list().add(&new_val);
+                            set_dropdown_active.set(true);
+                        }
+                    }> 
+                        <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
+                        <img src="public/chevron-down-dark.svg"/>
+                    </div>
+                    <div id="records-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
+                        <div id="decrypt-record-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if current_dropdown_item.get() == "decrypt-record-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
 
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#records-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#records-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
                             }
-                            >
-                                Decrypt Record
-                            </div>
+                        }
+                        >
+                            Decrypt Record
                         </div>
                     </div>
                 </div>
@@ -676,113 +679,111 @@ fn SidebarRestApi (
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#rest-api-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
             <div class="sidebar-title">REST API</div>
             <div id="rest-api-card" class="card">
-                <div id="rest-api-card-head" class="card-head" >
-                    <div id="rest-api-dropdown-custom" class="dropdown-custom">
-                        <div id="rest-api-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
-                        {
-                            let this = ev.target().dyn_into::<Element>().unwrap();
-                            let new_val = Array::new();
-                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                            if this.class_list().contains("show"){
-                                let _ = this.class_list().remove(&new_val);
-                                set_dropdown_active.set(false);
-                            } else {
-                                let _ = this.class_list().add(&new_val);
-                                set_dropdown_active.set(true);
-                            }
-                        }> 
-                            <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
-                            <img src="public/chevron-down.svg"/>
-                        </div>
-                        <div id="rest-api-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
-                            <div id="get-latest-block-button" class={move || if current_dropdown_item.get() == "get-latest-block-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
-
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
-                            }
-                            >
-                                Get Latest Block
-                            </div>
-                            <div id="get-block-by-height-button" class={move || if current_dropdown_item.get() == "get-block-by-height-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
-
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
-                            }
-                            >
-                                Get Block By Height
-                            </div>
-                            <div id="get-program-button" class={move || if current_dropdown_item.get() == "get-program-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
-                                    
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
-                            }
-                            >
-                                Get Program
-                            </div>
-                            <div id="get-transaction-button" class={move || if current_dropdown_item.get() == "get-transaction-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
-
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
-                            }
-                            >
-                                Get Transaction
-                            </div>
-                            <div id="get-account-balance-button" class={move || if current_dropdown_item.get() == "get-account-balance-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                            on:click:target = move|ev| {
-                                if current_dropdown_item.get() != ev.target().id(){
-                                    set_current_dropdown_item.set(ev.target().id());
-                                    set_current_dropdown_text.set(ev.target().inner_html());
-
-                                    let document = leptos::prelude::document();
-                                    let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    let _ = target.class_list().remove(&new_val);
-                                    set_dropdown_active.set(false);
-                                }
-                            }
-                            >
-                                Get Account Balance
-                            </div>
-                        </div>
-
+                <div id="rest-api-dropdown-custom" class="dropdown-custom-head">
+                    <div id="rest-api-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                    {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                        if this.class_list().contains("show"){
+                            let _ = this.class_list().remove(&new_val);
+                            set_dropdown_active.set(false);
+                        } else {
+                            let _ = this.class_list().add(&new_val);
+                            set_dropdown_active.set(true);
+                        }
+                    }> 
+                        <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
+                        <img src="public/chevron-down-dark.svg"/>
                     </div>
+                    <div id="rest-api-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
+                        <div id="get-latest-block-button" class={move || if current_dropdown_item.get() == "get-latest-block-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Get Latest Block
+                        </div>
+                        <div id="get-block-by-height-button" class={move || if current_dropdown_item.get() == "get-block-by-height-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Get Block By Height
+                        </div>
+                        <div id="get-program-button" class={move || if current_dropdown_item.get() == "get-program-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+                                
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Get Program
+                        </div>
+                        <div id="get-transaction-button" class={move || if current_dropdown_item.get() == "get-transaction-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Get Transaction
+                        </div>
+                        <div id="get-account-balance-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if current_dropdown_item.get() == "get-account-balance-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Get Account Balance
+                        </div>
+                    </div>
+
                 </div>
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-latest-block-button" {"display: flex"} else {"display: none"}}>
                     <div id="get-latest-block-body" class="card-body"></div>
@@ -796,6 +797,7 @@ fn SidebarRestApi (
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-block-by-height-button" {"display: flex"} else {"display: none"}}>
                     <div id="get-block-by-height-body" class="card-body">
                         <div class="input-field">
+                            <div class="field-title">Block Height</div>
                             <input id="get-block-by-height-input" placeholder="Block Height" spellcheck="false" autocomplete="off" autocapitalize="off"/>
                         </div>
                     </div>
@@ -810,6 +812,7 @@ fn SidebarRestApi (
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-program-button" {"display: flex"} else {"display: none"}}>
                     <div id="get-program-body" class="card-body">
                         <div class="input-field">
+                            <div class="field-title">Program ID</div>
                             <input id="get-program-input" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
                         </div>
                     </div>
@@ -824,6 +827,7 @@ fn SidebarRestApi (
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-transaction-button" {"display: flex"} else {"display: none"}}>
                     <div id="get-transaction-body" class="card-body">
                         <div class="input-field">
+                            <div class="field-title">Transaction ID</div>
                             <input id="get-transaction-input" placeholder="Transaction ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
                         </div>
                     </div>
@@ -838,6 +842,7 @@ fn SidebarRestApi (
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-account-balance-button" {"display: flex"} else {"display: none"}}>
                     <div id="get-account-balance-body" class="card-body">
                         <div class="input-field">
+                            <div class="field-title">Address</div>
                             <input id="get-account-balance-input" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
                         </div>
                     </div>
@@ -858,32 +863,170 @@ fn SidebarRestApi (
 fn SidebarExecute (
     selected_activity_icon: ReadSignal<String>
 ) -> impl IntoView {
+    let (dropdown_active, set_dropdown_active) = signal(false);
+    let (current_dropdown_item, set_current_dropdown_item) = signal("deploy-new-program-button".to_string());
+    let (current_dropdown_text, set_current_dropdown_text) = signal("Deploy a New Program".to_string());
+
+    let (network_dropdown_active, set_network_dropdown_active) = signal(false);
+    let (current_network_dropdown_item, set_current_network_dropdown_item) = signal("devnet-button".to_string());
+    let (current_network_dropdown_text, set_current_network_dropdown_text) = signal("Local Devnet".to_string());
+
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#execute-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
-            <div class="sidebar-title">Execute</div>
-        </div>
-    
-    }
-}
+            <div class="sidebar-title">
+                Deploy and Execute
+            </div>
 
-#[component]
-fn SidebarDeploy (
-    selected_activity_icon: ReadSignal<String>
-) -> impl IntoView {
-    // let (dropdown_active, set_dropdown_active) = signal(false);
-    // let (current_dropdown_item, set_current_dropdown_item) = signal("deploy-button".to_string());
-    // let (current_dropdown_text, set_current_dropdown_text) = signal("Deploy Program".to_string());
-    view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#deploy-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
-            <div class="sidebar-title">Deploy</div>
-            <div id="deploy-card" class="card">
-                <div id="deploy-card-head" class="card-head" >
-                    <div class="title">
-                        Deploy Program
+            <div id="network-card" style="color:#e3e3e3;" class="card">
+                <div id="network-card-head" class="card-head" >
+                    <div class="title" style="-webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;">
+                        Network
                     </div>
                 </div>
                 <div class="card-body-wrapper">
                     <div id="deploy-card-body" class="card-body">
+                        <div class="input-field">
+                            <div id="network-dropdown-custom" class="dropdown-custom">
+                                <div id="network-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                                {
+                                    let this = ev.target().dyn_into::<Element>().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    if this.class_list().contains("show"){
+                                        let _ = this.class_list().remove(&new_val);
+                                        set_network_dropdown_active.set(false);
+                                    } else {
+                                        let _ = this.class_list().add(&new_val);
+                                        set_network_dropdown_active.set(true);
+                                    }
+                                }> 
+                                    <div class="buffer" inner_html={move || current_network_dropdown_text.get()}></div>
+                                    <img src="public/chevron-down.svg"/>
+                                </div>
+                                <div id="network-dropdown-content" class="dropdown-content" style={move || if network_dropdown_active.get() {"display: block"} else {"display: none"}}>
+                                    <div id="devnet-button" class={move || if current_network_dropdown_item.get() == "devnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                                    on:click:target = move|ev| {
+                                        if current_network_dropdown_item.get() != ev.target().id(){
+                                            set_current_network_dropdown_item.set(ev.target().id());
+                                            set_current_network_dropdown_text.set(ev.target().inner_html());
+
+                                            let document = leptos::prelude::document();
+                                            let target = document.query_selector("#network-dropdown-button").unwrap().unwrap();
+                                            let new_val = Array::new();
+                                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                            let _ = target.class_list().remove(&new_val);
+                                            set_network_dropdown_active.set(false);
+                                        }
+                                    }
+                                    >
+                                        Local Devnet
+                                    </div>
+                                    <div id="testnet-button" class={move || if current_network_dropdown_item.get() == "testnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                                    on:click:target = move|ev| {
+                                        if current_network_dropdown_item.get() != ev.target().id(){
+                                            set_current_network_dropdown_item.set(ev.target().id());
+                                            set_current_network_dropdown_text.set(ev.target().inner_html());
+
+                                            let document = leptos::prelude::document();
+                                            let target = document.query_selector("#network-dropdown-button").unwrap().unwrap();
+                                            let new_val = Array::new();
+                                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                            let _ = target.class_list().remove(&new_val);
+                                            set_network_dropdown_active.set(false);
+                                        }
+                                    }
+                                    >
+                                        Testnet
+                                    </div>
+
+                                    <div id="mainnet-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if current_network_dropdown_item.get() == "mainnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                                    on:click:target = move|ev| {
+                                        if current_network_dropdown_item.get() != ev.target().id(){
+                                            set_current_network_dropdown_item.set(ev.target().id());
+                                            set_current_network_dropdown_text.set(ev.target().inner_html());
+
+                                            let document = leptos::prelude::document();
+                                            let target = document.query_selector("#network-dropdown-button").unwrap().unwrap();
+                                            let new_val = Array::new();
+                                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                            let _ = target.class_list().remove(&new_val);
+                                            set_network_dropdown_active.set(false);
+                                        }
+                                    }
+                                    >
+                                        Mainnet
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            // <div class="panel-divider"/>
+            
+            <div id="deploy-and-execute-card" class="card">
+                <div id="deploy-and-execute-dropdown-custom" class="dropdown-custom-head">
+                    <div id="deploy-and-execute-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                    {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                        if this.class_list().contains("show"){
+                            let _ = this.class_list().remove(&new_val);
+                            set_dropdown_active.set(false);
+                        } else {
+                            let _ = this.class_list().add(&new_val);
+                            set_dropdown_active.set(true);
+                        }
+                    }> 
+                        <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
+                        <img src="public/chevron-down-dark.svg"/>
+                    </div>
+                    <div id="deploy-and-execute-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
+                        <div id="deploy-new-program-button" class={move || if current_dropdown_item.get() == "deploy-new-program-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#deploy-and-execute-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Deploy a New Program
+                        </div>
+                        <div id="load-program-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if current_dropdown_item.get() == "load-program-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#deploy-and-execute-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Load Existing Program
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "deploy-new-program-button" {"display: flex"} else {"display: none"}}>
+                    <div id="deploy-program-card-body" class="card-body">
                         <div class="input-field">
                             <div class="field-title">Program ID</div>
                             <input id="deploy-input-program-id" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
@@ -912,13 +1055,66 @@ fn SidebarDeploy (
                     <div class="card-divider"/>
                     <button id="deploy-button" class="card-button"
                     on:click:target=move|_ev| {
-
+                        let document = leptos::prelude::document();
+                        let current_input = document.query_selector("#load-program-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let value = current_input.value().clone();
+                        let target = current_input.dyn_into::<HtmlElement>().unwrap();
+                        let style = target.style();
+                        if &value == "" {
+                            let _ = style.set_property("border", "1px solid red");   
+                        } else {
+                            let _ = style.set_property("border", "1px solid #494e64");   
+                        }
                     }
                     >
                         Deploy
                     </button>
                 </div>
+
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "load-program-button" {"display: flex"} else {"display: none"}}>
+                    <div id="load-program-card-body" class="card-body">
+                        <div class="input-field">
+                            <div class="field-title">Program ID</div>
+                            <input id="load-program-input" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                    </div>
+                    <div class="card-divider"/>
+                    <button id="load-program-button" class="card-button"
+                    on:click:target=move|_ev| {
+                        let document = leptos::prelude::document();
+                        let current_input = document.query_selector("#load-program-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let value = current_input.value().clone();
+                        let target = current_input.dyn_into::<HtmlElement>().unwrap();
+                        let style = target.style();
+                        if &value == "" {
+                            let _ = style.set_property("border", "1px solid red");   
+                        } else {
+                            let _ = style.set_property("border", "1px solid #494e64");   
+                        }
+                    }
+                    >
+                        Load
+                    </button>
+                </div>
             </div>
+
+            <div class="panel-divider"/>
+
+
+
+
+
+        </div>
+    }
+}
+
+#[component]
+fn SidebarDeploy (
+    selected_activity_icon: ReadSignal<String>
+) -> impl IntoView {
+    view! {
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#deploy-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+            <div class="sidebar-title"> Deploy </div>
         </div>
     }
 }
@@ -1016,7 +1212,9 @@ pub fn App() -> impl IntoView {
     ==============================================================================
     */
 
-    //let (test, set_test) = signal(String::new());
+    // let (test, set_test) = signal(String::new());
+
+
     let (highlighted_msg, set_highlighted_msg) = signal(String::new());
 
     let (syntax_set, set_syntax_set) = signal(SyntaxSet::load_defaults_nonewlines());
@@ -1067,8 +1265,6 @@ pub fn App() -> impl IntoView {
         test.remove();
         return width;
     }
-
-
 
 
     /*
@@ -1231,13 +1427,14 @@ pub fn App() -> impl IntoView {
 
             </div>
             <div class="sidebar-details" style="display: flex; flex-basis: 300px;">
-              <SidebarFileExplorer open_file_closure=open_file_closure switch_chevron_closure=switch_chevron_closure fs_html=fs_html set_fs_html=set_fs_html selected_activity_icon=selected_activity_icon />
-              <SidebarAccount selected_activity_icon=selected_activity_icon/>
-              <SidebarRecords selected_activity_icon=selected_activity_icon/>
-              <SidebarRestApi selected_activity_icon=selected_activity_icon/>
-              <SidebarExecute selected_activity_icon=selected_activity_icon/>
-              <SidebarDeploy selected_activity_icon=selected_activity_icon/>
-
+                // <div style="color:red" inner_html={ move || test.get() }/>
+                <SidebarFileExplorer open_file_closure=open_file_closure switch_chevron_closure=switch_chevron_closure fs_html=fs_html set_fs_html=set_fs_html selected_activity_icon=selected_activity_icon />
+                <SidebarAccount selected_activity_icon=selected_activity_icon/>
+                <SidebarRecords selected_activity_icon=selected_activity_icon/>
+                <SidebarRestApi selected_activity_icon=selected_activity_icon/>
+                <SidebarExecute selected_activity_icon=selected_activity_icon/>
+                <SidebarDeploy selected_activity_icon=selected_activity_icon/>
+                
             </div>
 
 
@@ -1364,21 +1561,30 @@ pub fn App() -> impl IntoView {
                                     spawn_local(
                                         async move {
                                             let args = serde_wasm_bindgen::to_value(&LoadFileArgs{filepath: selected}).unwrap();
-                                            let contents = invoke("read_file", args).await.as_string().unwrap();
+                                            match invoke("read_file", args).await.as_string(){
+                                                Some(contents) => {
+                                                    let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
+                                                    let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                    set_highlighted_msg.set(highlighted);
+        
+                                                    let document = leptos::prelude::document();
+                                                    let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                                    result_element.set_value(&contents);
+        
+                                                    let lines_html = get_lines(contents);
+                                                    set_lines_html.set(lines_html);
+        
+                                                    let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                                    let _ = result_element.style().remove_property("display");
+                                                },
+                                                None => {
+                                                    console_log("Error: File does not exist");
+                                                }
+                                            }
                                             
-                                            let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
-                                            let highlighted = invoke("highlight", args).await.as_string().unwrap();
-                                            set_highlighted_msg.set(highlighted);
+                                            //.as_string().unwrap();
+                                            
 
-                                            let document = leptos::prelude::document();
-                                            let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
-                                            result_element.set_value(&contents);
-
-                                            let lines_html = get_lines(contents);
-                                            set_lines_html.set(lines_html);
-
-                                            let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                            let _ = result_element.style().remove_property("display");
                                         }
                                     );
                                 } else {
