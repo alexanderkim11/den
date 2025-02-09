@@ -183,7 +183,7 @@ fn SidebarFileExplorer (
     selected_activity_icon: ReadSignal<String>
 ) -> impl IntoView {
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#file-explorer-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#file-explorer-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">File Explorer</div>
             <div class="open-folder-wrapper" style="display:flex;">
                 <button class="open-folder"
@@ -247,7 +247,7 @@ fn SidebarAccount (
     let (current_dropdown_item, set_current_dropdown_item) = signal("create-new-account-button".to_string());
     let (current_dropdown_text, set_current_dropdown_text) = signal("Create a New Account".to_string());
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#account-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#account-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">Account</div>
             <div id="account-card" class="card">
 
@@ -551,7 +551,7 @@ fn SidebarRecords (
     let (current_dropdown_item, set_current_dropdown_item) = signal("decrypt-record-button".to_string());
     let (current_dropdown_text, set_current_dropdown_text) = signal("Decrypt Record".to_string());
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#records-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#records-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">Records</div>
             <div id="records-card" style="height: 100%;" class="card">
                 <div id="records-dropdown-custom" class="dropdown-custom-head">
@@ -676,7 +676,7 @@ fn SidebarRestApi (
     let (current_dropdown_text, set_current_dropdown_text) = signal("Get Latest Block".to_string());
 
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#rest-api-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#rest-api-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">REST API</div>
             <div id="rest-api-card" class="card">
                 <div id="rest-api-dropdown-custom" class="dropdown-custom-head">
@@ -860,97 +860,103 @@ fn SidebarRestApi (
 }
 
 #[component]
-fn SidebarExecute (
-    selected_activity_icon: ReadSignal<String>
+fn SidebarDeployExecute (
+    selected_activity_icon: ReadSignal<String>,
+    // accounts: ReadSignal<Vec<String>>
 ) -> impl IntoView {
     let (dropdown_active, set_dropdown_active) = signal(false);
     let (current_dropdown_item, set_current_dropdown_item) = signal("deploy-new-program-button".to_string());
     let (current_dropdown_text, set_current_dropdown_text) = signal("Deploy a New Program".to_string());
 
-    let (network_dropdown_active, set_network_dropdown_active) = signal(false);
-    let (current_network_dropdown_item, set_current_network_dropdown_item) = signal("devnet-button".to_string());
-    let (current_network_dropdown_text, set_current_network_dropdown_text) = signal("Local Devnet".to_string());
+    let (environment_dropdown_active, set_environment_dropdown_active) = signal(false);
+    let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("devnet-button".to_string());
+    let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Local Devnet".to_string());
+
+    let (environment_dropdown_active2, set_environment_dropdown_active2) = signal(false);
+    let (current_environment_dropdown_item2, set_current_environment_dropdown_item2) = signal("".to_string());
+    let (current_environment_dropdown_text2, set_current_environment_dropdown_text2) = signal("--".to_string());
 
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#execute-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#execute-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">
                 Deploy and Execute
             </div>
 
-            <div id="network-card" style="color:#e3e3e3;" class="card">
-                <div id="network-card-head" class="card-head" >
+            <div id="environment-card" style="color:#e3e3e3;" class="card">
+                <div id="environment-card-head" class="card-head" >
                     <div class="title" style="-webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;">
-                        Network
+                        Environment
                     </div>
                 </div>
                 <div class="card-body-wrapper">
                     <div id="deploy-card-body" class="card-body">
                         <div class="input-field">
-                            <div id="network-dropdown-custom" class="dropdown-custom">
-                                <div id="network-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                            <div class="field-title">Network</div>
+                            <div id="environment-dropdown-custom" class="dropdown-custom">
+                                <div id="environment-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
                                 {
                                     let this = ev.target().dyn_into::<Element>().unwrap();
                                     let new_val = Array::new();
                                     new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
                                     if this.class_list().contains("show"){
                                         let _ = this.class_list().remove(&new_val);
-                                        set_network_dropdown_active.set(false);
+                                        set_environment_dropdown_active.set(false);
                                     } else {
                                         let _ = this.class_list().add(&new_val);
-                                        set_network_dropdown_active.set(true);
+                                        set_environment_dropdown_active.set(true);
                                     }
                                 }> 
-                                    <div class="buffer" inner_html={move || current_network_dropdown_text.get()}></div>
+                                    <div class="buffer" inner_html={move || current_environment_dropdown_text.get()}></div>
                                     <img src="public/chevron-down.svg"/>
                                 </div>
-                                <div id="network-dropdown-content" class="dropdown-content" style={move || if network_dropdown_active.get() {"display: block"} else {"display: none"}}>
-                                    <div id="devnet-button" class={move || if current_network_dropdown_item.get() == "devnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                                <div id="environment-dropdown-content" class="dropdown-content" style={move || if environment_dropdown_active.get() {"display: block"} else {"display: none"}}>
+                                    <div id="devnet-button" class={move || if current_environment_dropdown_item.get() == "devnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
                                     on:click:target = move|ev| {
-                                        if current_network_dropdown_item.get() != ev.target().id(){
-                                            set_current_network_dropdown_item.set(ev.target().id());
-                                            set_current_network_dropdown_text.set(ev.target().inner_html());
+                                        if current_environment_dropdown_item.get() != ev.target().id(){
+                                            set_current_environment_dropdown_item.set(ev.target().id());
+                                            set_current_environment_dropdown_text.set(ev.target().inner_html());
 
                                             let document = leptos::prelude::document();
-                                            let target = document.query_selector("#network-dropdown-button").unwrap().unwrap();
+                                            let target = document.query_selector("#environment-dropdown-button").unwrap().unwrap();
                                             let new_val = Array::new();
                                             new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
                                             let _ = target.class_list().remove(&new_val);
-                                            set_network_dropdown_active.set(false);
+                                            set_environment_dropdown_active.set(false);
                                         }
                                     }
                                     >
                                         Local Devnet
                                     </div>
-                                    <div id="testnet-button" class={move || if current_network_dropdown_item.get() == "testnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                                    <div id="testnet-button" class={move || if current_environment_dropdown_item.get() == "testnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
                                     on:click:target = move|ev| {
-                                        if current_network_dropdown_item.get() != ev.target().id(){
-                                            set_current_network_dropdown_item.set(ev.target().id());
-                                            set_current_network_dropdown_text.set(ev.target().inner_html());
+                                        if current_environment_dropdown_item.get() != ev.target().id(){
+                                            set_current_environment_dropdown_item.set(ev.target().id());
+                                            set_current_environment_dropdown_text.set(ev.target().inner_html());
 
                                             let document = leptos::prelude::document();
-                                            let target = document.query_selector("#network-dropdown-button").unwrap().unwrap();
+                                            let target = document.query_selector("#environment-dropdown-button").unwrap().unwrap();
                                             let new_val = Array::new();
                                             new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
                                             let _ = target.class_list().remove(&new_val);
-                                            set_network_dropdown_active.set(false);
+                                            set_environment_dropdown_active.set(false);
                                         }
                                     }
                                     >
                                         Testnet
                                     </div>
 
-                                    <div id="mainnet-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if current_network_dropdown_item.get() == "mainnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                                    <div id="mainnet-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if current_environment_dropdown_item.get() == "mainnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
                                     on:click:target = move|ev| {
-                                        if current_network_dropdown_item.get() != ev.target().id(){
-                                            set_current_network_dropdown_item.set(ev.target().id());
-                                            set_current_network_dropdown_text.set(ev.target().inner_html());
+                                        if current_environment_dropdown_item.get() != ev.target().id(){
+                                            set_current_environment_dropdown_item.set(ev.target().id());
+                                            set_current_environment_dropdown_text.set(ev.target().inner_html());
 
                                             let document = leptos::prelude::document();
-                                            let target = document.query_selector("#network-dropdown-button").unwrap().unwrap();
+                                            let target = document.query_selector("#environment-dropdown-button").unwrap().unwrap();
                                             let new_val = Array::new();
                                             new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
                                             let _ = target.class_list().remove(&new_val);
-                                            set_network_dropdown_active.set(false);
+                                            set_environment_dropdown_active.set(false);
                                         }
                                     }
                                     >
@@ -959,11 +965,38 @@ fn SidebarExecute (
                                 </div>
                             </div>
                         </div>
+                        <div class="input-field">
+                            <div class="field-title">Account</div>
+                            <div id="environment-dropdown-custom2" class="dropdown-custom">
+                                <div id="environment-dropdown-button2" class="dropdown-button" on:click:target=move|ev| 
+                                {
+                                    let this = ev.target().dyn_into::<Element>().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    if this.class_list().contains("show"){
+                                        let _ = this.class_list().remove(&new_val);
+                                        set_environment_dropdown_active2.set(false);
+                                    } else {
+                                        let _ = this.class_list().add(&new_val);
+                                        set_environment_dropdown_active2.set(true);
+                                    }
+                                }> 
+                                    <div class="buffer" inner_html={move || current_environment_dropdown_text2.get()}></div>
+                                    <img src="public/chevron-down.svg"/>
+                                </div>
+                                <div id="environment-dropdown-content2" class="dropdown-content" style={move || if environment_dropdown_active2.get() {"display: block"} else {"display: none"}}>
+                                    <div id="placeholder-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if false {"dropdown-item-placeholder selected"} else {"dropdown-item-placeholder"}}
+                                    >
+                                        Please load an account first!
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            // <div class="panel-divider"/>
+            <div class="panel-divider"/>
             
             <div id="deploy-and-execute-card" class="card">
                 <div id="deploy-and-execute-dropdown-custom" class="dropdown-custom-head">
@@ -1100,24 +1133,20 @@ fn SidebarExecute (
 
             <div class="panel-divider"/>
 
-
-
-
-
         </div>
     }
 }
 
-#[component]
-fn SidebarDeploy (
-    selected_activity_icon: ReadSignal<String>
-) -> impl IntoView {
-    view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#deploy-button" {"height: 100%; display: flex; flex-direction:column;"} else {"height: 100%; display: none; flex-direction:column;"}}>
-            <div class="sidebar-title"> Deploy </div>
-        </div>
-    }
-}
+// #[component]
+// fn SidebarDeploy (
+//     selected_activity_icon: ReadSignal<String>
+// ) -> impl IntoView {
+//     view! {
+//         <div class="wrapper" style={move || if selected_activity_icon.get() == "#deploy-button" {"display: flex;"} else {"display: none;"}}>
+//             <div class="sidebar-title"> Deploy </div>
+//         </div>
+//     }
+// }
 
 
 
@@ -1418,7 +1447,7 @@ pub fn App() -> impl IntoView {
                 <SidebarIcon id="records-button".to_string()  img_src="public/checklist.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="rest-api-button".to_string()  img_src="public/debug-disconnect.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="execute-button".to_string()  img_src="public/play-circle.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
-                <SidebarIcon id="deploy-button".to_string()  img_src="public/cloud-upload.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
+                // <SidebarIcon id="deploy-button".to_string()  img_src="public/cloud-upload.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
 
                 <div id ="empty-space"></div>
                 <button id ="settings-button">
@@ -1432,8 +1461,8 @@ pub fn App() -> impl IntoView {
                 <SidebarAccount selected_activity_icon=selected_activity_icon/>
                 <SidebarRecords selected_activity_icon=selected_activity_icon/>
                 <SidebarRestApi selected_activity_icon=selected_activity_icon/>
-                <SidebarExecute selected_activity_icon=selected_activity_icon/>
-                <SidebarDeploy selected_activity_icon=selected_activity_icon/>
+                <SidebarDeployExecute selected_activity_icon=selected_activity_icon/>
+                // <SidebarDeploy selected_activity_icon=selected_activity_icon/>
                 
             </div>
 

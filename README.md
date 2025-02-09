@@ -24,6 +24,7 @@ This template should help get you started developing with Tauri and Leptos.
     - Add check if user tries to close file without it being saved
     - Add hover filepaths for file buttons
     - Add way to delete files
+    - Add screen if file cannot be found
 - Account:
     - Add button functionality
     - Add conditional output section to card body

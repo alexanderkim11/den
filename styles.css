@@ -144,6 +144,12 @@
   flex-grow: 0;
   flex-shrink: 0;
   flex-basis: 200px;
+  scrollbar-color: gray #121212;
+}
+
+.wrapper {
+  height: 100%; 
+  flex-direction:column;
 }
 
 .open-folder-wrapper {
@@ -208,8 +214,6 @@
 
 
 .card {
-  border: 1px solid #494e64;
-  border-radius: 8px;
   margin:10px;
   display:flex;
   flex-direction:column;
@@ -217,10 +221,9 @@
 
 .card-head{
   order:0;
-  background: #C4FFC2;
-  border-bottom: 1px solid #494e64;
+  color: #C4FFC2;
+  border: 1px solid #C4FFC2;;
   border-radius: 8px 8px 0 0;
-  color: #121212;
   margin-bottom: -1px;
   min-height: 40px;
   padding-left: 10px;
@@ -330,14 +333,31 @@
 }
 
 
+.dropdown-custom .dropdown-content .dropdown-item-placeholder {
+  box-sizing: border-box;
+  padding:7.5px;
+  padding-left: 10px;
+  font-family:'Inter'; 
+  font-size: 14px;
+  font-weight: 400;
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+  background: rgba(39,41,53,.7);
+}
+
+
+
 .dropdown-custom-head{
   position:relative;
-  
+  width: 100%;
 }
 
 .dropdown-custom-head .dropdown-button {
   box-sizing: border-box;
-  border-bottom: 1px solid #494e64;
+  border: 1px solid #C4FFC2;
   padding:7.5px;
   padding-left: 10px;
   border-radius: 0;
@@ -357,7 +377,8 @@
   order: 0;
   display:flex;
   
-  background-color: #C4FFC2;
+  color:#C4FFC2;
+  /* background-color: #C4FFC2; */
 }
 
 .dropdown-custom-head .dropdown-button.show {
@@ -370,7 +391,8 @@
   float:right;
   pointer-events:none;
   order:2;
-  filter: invert(0%) sepia(41%) saturate(270%) hue-rotate(347deg) brightness(95%) contrast(86%);
+  /* filter: invert(0%) sepia(41%) saturate(270%) hue-rotate(347deg) brightness(95%) contrast(86%); */
+  filter: invert(87%) sepia(28%) saturate(377%) hue-rotate(64deg) brightness(105%) contrast(103%);
 }
 .dropdown-custom-head .dropdown-button .buffer{
   padding-top:3px;
@@ -437,6 +459,11 @@
   flex-direction:column; 
   order:1; 
   height:100%;
+  box-sizing: border-box;
+  border: 1px solid #494e64;
+  border-top:0;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 .card-body {
