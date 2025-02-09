@@ -36,8 +36,7 @@ This template should help get you started developing with Tauri and Leptos.
     - Add conditional output section to card body
 - Deploy and Execute:
     - Add deployed program interaction
-- Deploy:
-    - Remove this
+
 
 ## Editor
 - Dynamic error checking (red squiggle with error description)
