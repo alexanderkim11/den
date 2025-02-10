@@ -36,3 +36,4 @@ indexmap = "2.6"
 notify = { version = "8.0.0", features = ["serde"] }
 futures = "0.3.31"
 notify-debouncer-mini = "0.6.0"
+tauri-plugin-shell = "2"

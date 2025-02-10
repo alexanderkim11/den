@@ -36,7 +36,8 @@
     ],
     "resources":[
       "resources/*",
-      ".aleo/"
+      ".aleo/",
+      ".leo/"
     ]
   }
 }

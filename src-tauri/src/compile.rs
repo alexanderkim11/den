@@ -13,14 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with the Leo library. If not, see <https://www.gnu.org/licenses/>.
 
-
 use leo_ast::Stub;
 use leo_compiler::Compiler;
-use leo_errors::{emitter::Handler, CliError, UtilError, Result};
+use leo_errors::{emitter::Handler, CliError, Result, UtilError};
+use leo_lang::cli::{context::Context, BuildOptions};
 use leo_package::{build::BuildDirectory, outputs::OutputsDirectory, source::SourceDirectory};
 use leo_retriever::{Manifest, NetworkName, Retriever};
-use leo_span::{Symbol, symbol::create_session_if_not_set_then};
-use leo_lang::cli::{BuildOptions, context::Context};
+use leo_span::{symbol::create_session_if_not_set_then, Symbol};
 
 use snarkvm::{
     package::Package,
@@ -30,14 +29,14 @@ use snarkvm::{
 use indexmap::IndexMap;
 use snarkvm::prelude::CanaryV0;
 use std::{
+    env::current_dir,
     io::Write,
     path::{Path, PathBuf},
-    str::FromStr,
     process::exit,
-    env::current_dir,
+    str::FromStr,
 };
 
-fn apply(context: Context) -> Result<()>{
+fn apply(context: Context) -> Result<()> {
     // Parse the network.
     //let network = NetworkName::try_from(context.get_network(options.network)?)?;
     let network = NetworkName::try_from("testnet").unwrap();
@@ -49,7 +48,7 @@ fn apply(context: Context) -> Result<()>{
 }
 
 // A helper function to handle the build command.
-fn handle_build<N: Network>(context: Context) -> Result<()>{
+fn handle_build<N: Network>(context: Context) -> Result<()> {
     // Get the package path.
     let package_path = context.dir()?;
     let home_path = context.home()?;
@@ -77,8 +76,9 @@ fn handle_build<N: Network>(context: Context) -> Result<()>{
         "https://api.explorer.provable.com/v1".to_string(), // context.get_endpoint(&command.options.endpoint)?.to_string(),
     )
     .map_err(|err| UtilError::failed_to_retrieve_dependencies(err, Default::default()))?;
-    let mut local_dependencies =
-        retriever.retrieve().map_err(|err| UtilError::failed_to_retrieve_dependencies(err, Default::default()))?;
+    let mut local_dependencies = retriever
+        .retrieve()
+        .map_err(|err| UtilError::failed_to_retrieve_dependencies(err, Default::default()))?;
 
     // Push the main program at the end of the list to be compiled after all of its dependencies have been processed
     local_dependencies.push(main_sym);
@@ -108,8 +108,9 @@ fn handle_build<N: Network>(context: Context) -> Result<()>{
             for file_path in local_source_files {
                 compile_leo_file(
                     file_path,
-                    &ProgramID::<N>::try_from(format!("{}.aleo", dependency))
-                        .map_err(|_| UtilError::snarkvm_error_building_program_id(Default::default()))?,
+                    &ProgramID::<N>::try_from(format!("{}.aleo", dependency)).map_err(|_| {
+                        UtilError::snarkvm_error_building_program_id(Default::default())
+                    })?,
                     &local_outputs_directory,
                     &local_build_directory,
                     &handler,
@@ -182,9 +183,8 @@ pub fn handle_error<T>(res: Result<T>) -> T {
     }
 }
 
-
 #[tauri::command]
-pub fn compile(filepath: String){
+pub fn compile(filepath: String) {
     let filepath_buf = PathBuf::from(&filepath);
     let mut aleo_path = current_dir().unwrap();
     aleo_path.push(".aleo");
@@ -193,4 +193,3 @@ pub fn compile(filepath: String){
         let _ = apply(context).unwrap();
     });
 }
-

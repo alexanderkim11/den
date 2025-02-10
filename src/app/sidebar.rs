@@ -1,5 +1,5 @@
 use leptos::ev::Event;
-use leptos::web_sys::{Element,HtmlElement,HtmlInputElement, HtmlImageElement};
+use leptos::web_sys::{Element,HtmlElement,HtmlInputElement, HtmlImageElement, HtmlTextAreaElement};
 use js_sys::Array;
 use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
@@ -29,6 +29,11 @@ pub struct PlaceholderArgs<'a> {
     pub code: &'a str,
 }
 
+
+#[derive(Serialize, Deserialize)]
+pub struct Command<> {
+    pub command : Vec<String>
+}
 
 
 #[derive(Serialize, Deserialize)]
@@ -1108,7 +1113,7 @@ pub fn SidebarRestApi (
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#rest-api-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">REST API</div>
-            <div id="rest-api-card" class="card">
+            <div id="rest-api-card" class="card" style="">
                 <div id="rest-api-dropdown-custom" class="dropdown-custom-head">
                     <div id="rest-api-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
                     {
@@ -1134,6 +1139,18 @@ pub fn SidebarRestApi (
                                 set_current_dropdown_text.set(ev.target().inner_html());
 
                                 let document = leptos::prelude::document();
+
+
+                                // let output_field = document.query_selector("#get-latest-block-output").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                // if output_field.inner_html() != "".to_string() {
+                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                //     let _ = card_element.style().set_property("height", "100%");
+                                // } else {
+                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                //     let _ = card_element.style().remove_property("height");
+                                // }
+
+
                                 let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
                                 let new_val = Array::new();
                                 new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
@@ -1151,6 +1168,18 @@ pub fn SidebarRestApi (
                                 set_current_dropdown_text.set(ev.target().inner_html());
 
                                 let document = leptos::prelude::document();
+
+                                
+                                // let output_field = document.query_selector("#get-block-by-height-output").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                // if output_field.inner_html() != "".to_string() {
+                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                //     let _ = card_element.style().set_property("height", "100%");
+                                // } else {
+                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                //     let _ = card_element.style().remove_property("height");
+                                // }
+
+                        
                                 let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
                                 let new_val = Array::new();
                                 new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
@@ -1168,6 +1197,16 @@ pub fn SidebarRestApi (
                                 set_current_dropdown_text.set(ev.target().inner_html());
                                 
                                 let document = leptos::prelude::document();
+
+                                let output_field = document.query_selector("#get-program-output").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                if output_field.inner_html() != "".to_string() {
+                                    let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = card_element.style().set_property("height", "100%");
+                                } else {
+                                    let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = card_element.style().remove_property("height");
+                                }
+
                                 let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
                                 let new_val = Array::new();
                                 new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
@@ -1185,6 +1224,16 @@ pub fn SidebarRestApi (
                                 set_current_dropdown_text.set(ev.target().inner_html());
 
                                 let document = leptos::prelude::document();
+
+                                // let output_field = document.query_selector("#get-transaction-output").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                // if output_field.inner_html() != "".to_string() {
+                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                //     let _ = card_element.style().set_property("height", "100%");
+                                // } else {
+                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                //     let _ = card_element.style().remove_property("height");
+                                // }
+
                                 let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
                                 let new_val = Array::new();
                                 new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
@@ -1202,6 +1251,16 @@ pub fn SidebarRestApi (
                                 set_current_dropdown_text.set(ev.target().inner_html());
 
                                 let document = leptos::prelude::document();
+
+                                // let output_field = document.query_selector("#get-account-balance-output").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                // if output_field.inner_html() != "".to_string() {
+                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                //     let _ = card_element.style().set_property("height", "100%");
+                                // } else {
+                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                //     let _ = card_element.style().remove_property("height");
+                                // }
+
                                 let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
                                 let new_val = Array::new();
                                 new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
@@ -1219,6 +1278,7 @@ pub fn SidebarRestApi (
                     <div id="get-latest-block-body" class="card-body"></div>
                     <button id="get-button" class="card-button"
                     on:click:target=move|_ev| {
+
                     }
                     >
                         Get
@@ -1250,10 +1310,21 @@ pub fn SidebarRestApi (
                     </button>
                 </div>  
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-program-button" {"display: flex"} else {"display: none"}}>
-                    <div id="get-program-body" class="card-body">
-                        <div class="input-field">
+                    <div id="get-program-body" style="display:flex; flex-direction:column;" class="card-body">
+                        <div class="input-field" style="order:1;">
                             <div class="field-title">Program ID</div>
                             <input id="get-program-input" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div id="get-program-input-error" class="error-title" style="display:none;"></div>
+                        </div>
+                        <div id="get-program-output-field" class="output-field" style="display:none; flex-direction:column; box-sizing:border-box; order:2; height:100%;">
+                            <div style="order:0" class="field-title">Program</div>
+
+                            <div class="output-textarea-wrapper">
+                                <textarea style="order:0" id="get-program-output" placeholder="Program" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-textarea-img-wrapper" style="order:1">
+                                    <img src="public/files.svg"/>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="card-divider"/>
@@ -1267,7 +1338,38 @@ pub fn SidebarRestApi (
                         if &value == "" {
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
-                            let _ = style.set_property("border", "1px solid #494e64");   
+                            let _ = style.set_property("border", "1px solid #494e64");
+                            let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
+                            
+                            spawn_local(async move {
+                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),"mainnet".to_string(),"--endpoint".to_string(),"https://api.explorer.provable.com/v1".to_string(),"program".to_string(), value]}).unwrap();
+        
+                                let output: (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                if output.0 {
+                                    let mut formatted_output = String::new();
+                                    let split = output.1.split("\n\n").collect::<Vec<&str>>();
+                                    for item in &(split)[2..split.len()]{
+                                        if *item == "" {
+                                            formatted_output = format!("{}{}", formatted_output, "\n");
+                                        } else {
+                                            formatted_output = format!("{}{}{}", formatted_output, item, "\n");
+                                        }
+                                    }
+    
+                                    let output_element = document.query_selector("#get-program-output").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                    output_element.set_inner_html(&formatted_output); 
+                                    let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let output_field = document.query_selector("#get-program-output-field").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = card_element.style().set_property("height", "100%");
+                                    let _ = output_field.style().set_property("display","inline-block");    
+                                } else {
+                                    let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    error.set_inner_html("Error: The program with this ID does not exist.");
+                                    let _ = error.style().set_property("display", "block");
+                                }
+                            });
+                            
                         }
                     }
                     >

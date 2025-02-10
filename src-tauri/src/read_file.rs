@@ -1,7 +1,6 @@
 use std::fs::File;
 use std::io::prelude::*;
 
-
 #[tauri::command]
 pub fn read_file(_handle: tauri::AppHandle, filepath: String) -> Option<String> {
     let mut contents = String::new();
@@ -10,9 +9,7 @@ pub fn read_file(_handle: tauri::AppHandle, filepath: String) -> Option<String> 
         Ok(mut f) => {
             f.read_to_string(&mut contents).unwrap();
             Some(contents)
-        },
-        Err(_e) => {
-            None
         }
+        Err(_e) => None,
     }
 }
