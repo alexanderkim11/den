@@ -6,17 +6,19 @@
 
 Built with Tauri + Leptos
 
-This template should help get you started developing with Tauri and Leptos.
 
 # TODO:
 ## General:
-- Integrate SnarkVM
 - Integrate Devnet support
 - Work on Custom Titlebar with buttons
+- Need to figure out way to integrate LSP server for document-wide error checking
+- Migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
+- Disable button clicking when backend/API requests are pending
 
 ## Sidebar:
 - General:
     - Add hover names for sidebar icon buttons
+    - Persistant state between closing and reopening the app
 - File System:
     - Reset FS default directory
     - Add way to open new file directory
@@ -26,16 +28,30 @@ This template should help get you started developing with Tauri and Leptos.
     - Add way to delete files
     - Add screen if file cannot be found
 - Account:
-    - Add button functionality
-    - Add conditional output section to card body
+    - Create New Account
+        - Add way to save accounts once generated
+    - Load Account from PK
+        - Add way to save accounts once loaded
+    - Sign a Message
+        - Add button functionality
+        - Add conditional output section to card body
+    - Verify a Message
+        - Add button functionality
+        - Add conditional output section to card body
 - Records:
-    - Add button functionality
-    - Add conditional output section to card body
-- REST API:
-    - Add button functionality
-    - Add conditional output section to card body
+    - Add way to save records?
+- Compile
+    - Add this
 - Deploy and Execute:
+    - Add way to use private fees for deployment
     - Add deployed program interaction
+- REST API:
+    - Get Latest Block:
+        - Add buttons to clear and open latest block once retrieved
+    - Get Program:
+        - Add buttons to clear and open program once retrieved
+    - Else
+        - Add functionality and output
 
 
 ## Editor
@@ -45,5 +61,7 @@ This template should help get you started developing with Tauri and Leptos.
 
 ## Terminal:
 - Start work on this
+
+
 
 

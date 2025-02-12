@@ -35,6 +35,25 @@ pub struct Command<> {
     pub command : Vec<String>
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct CopyArgs<> {
+    pub value : String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DecryptRecordArgs<> {
+    pub network : String,
+    pub ciphertext: String,
+    pub viewkey : String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AddressFromViewKeyArgs<> {
+    pub network : String,
+    pub viewkey : String
+}
+
+
 
 #[derive(Serialize, Deserialize)]
 pub struct CustomDirEntry<> {
@@ -96,7 +115,37 @@ pub fn generate_file_explorer_html(mut dir_entry: Vec<CustomDirEntry>) -> String
 COMPONENTS
 ==============================================================================
 */
-
+#[component]
+pub fn CopyButton(
+    target_field : String,
+    element_type : String
+) -> impl IntoView {
+    view!{
+        <img src="public/files.svg" 
+        on:click:target= move |_| {
+            let document = leptos::prelude::document();
+            if element_type == "Input".to_string(){
+                let current_input = document.query_selector(&target_field).unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                let value = current_input.value().clone();
+                if &value != "" {
+                    spawn_local(async move {
+                        let args = serde_wasm_bindgen::to_value(&CopyArgs{value: value}).unwrap();
+                        invoke("copy",args).await;
+                    });
+                }
+            } else if element_type == "TextArea" {
+                let current_input = document.query_selector(&target_field).unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                let value = current_input.value().clone();
+                if &value != "" {
+                    spawn_local(async move {
+                        let args = serde_wasm_bindgen::to_value(&CopyArgs{value: value}).unwrap();
+                        invoke("copy",args).await;
+                    });
+                }
+            }
+        }/>
+    }
+}
 
 
 #[component]
@@ -406,107 +455,395 @@ pub fn SidebarAccount (
                     <div id="create-account-card-body" class="card-body">
                         <div class="input-field">
                             <div class="field-title">Name</div>
-                            <input id="create-account-name-input" placeholder="Account Name" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <input id="create-new-account-input-name" placeholder="Account Name" spellcheck="false" autocomplete="off" autocapitalize="off"/>
                         </div>
                         <div class="output-field">
                             <div class="field-title">Private Key</div>
                             <div class="output-input-wrapper">
-                                <input id="create-account-name-output-pk" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <input id="create-new-account-output-pk" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                                 <div class="output-img-wrapper">
-                                    <img src="public/files.svg"/>
+                                    <CopyButton target_field="#create-new-account-output-pk".to_string() element_type="Input".to_string()/>
                                 </div>
                             </div>
                         </div>
                         <div class="output-field">
                             <div class="field-title">View Key</div>
                             <div class="output-input-wrapper">
-                                <input id="create-account-name-output-vk" placeholder="View Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <input id="create-new-account-output-vk" placeholder="View Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                                 <div class="output-img-wrapper">
-                                    <img src="public/files.svg"/>
+                                    <CopyButton target_field="#create-new-account-output-vk".to_string() element_type="Input".to_string()/>
                                 </div>
                             </div>
                         </div>
                         <div class="output-field">
                             <div class="field-title">Address</div>
                             <div class="output-input-wrapper">
-                                <input id="create-account-name-output-address" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <input id="create-new-account-output-address" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                                 <div class="output-img-wrapper">
-                                    <img src="public/files.svg"/>
+                                    <CopyButton target_field="#create-new-account-output-address".to_string() element_type="Input".to_string()/>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="card-divider"/>
-                    <button id="generate-button" class="card-button"
+                    <button id="create-new-account-generate-button" class="card-button"
                     on:click:target=move|_ev| {
                         let document = leptos::prelude::document();
-                        let current_input = document.query_selector("#create-account-name-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        let value = current_input.value().clone();
-                        let target = current_input.dyn_into::<HtmlElement>().unwrap();
-                        let style = target.style();
-                        if &value == "" {
-                            let _ = style.set_property("border", "1px solid var(--grapefruit)");   
-                        } else {
-                            let _ = style.set_property("border", "1px solid #494e64");   
-                        }
+
+                        spawn_local(async move {
+                            let args = serde_wasm_bindgen::to_value(&Command { command : vec!["account".to_string(),"new".to_string()]}).unwrap();
+    
+                            let output: (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                            let mut results : [&str; 3] = [""; 3];
+                            if output.0 {
+                                let split = output.1.split("\n\n").collect::<Vec<&str>>();
+                                let trimmed_split = &(split[1..split.len()-2]);
+                                for i in 0..trimmed_split.len(){
+                                    let split2 = trimmed_split[i].trim_start().split("  ").collect::<Vec<&str>>();
+                                    results[i] = split2[1]
+                                }
+                                let pk = results[0];
+                                let vk = results[1];
+                                let address = results[2];
+
+                                let pk_output_element = document.query_selector("#create-new-account-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                let vk_output_element = document.query_selector("#create-new-account-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                let address_output_element = document.query_selector("#create-new-account-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+
+                                pk_output_element.set_value(pk);
+                                vk_output_element.set_value(vk);
+                                address_output_element.set_value(address);
+
+                                let old_button = document.query_selector("#create-new-account-generate-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let new_button = document.query_selector("#create-new-account-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                
+                                let _ = old_button.style().set_property("display", "none");
+                                let _ = new_button.style().set_property("display", "flex");    
+
+                            } else {
+
+                            }
+                        });
                     }
                     >
                         Generate
                     </button>
+                    <div id="create-new-account-double-button" class="double-button-wrapper" style="order:3; display:none; justify-content:center">
+                        <button id="create-new-account-save-button" class="card-button" style="margin-right:10px;"
+                        on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+                            let current_input = document.query_selector("#create-new-account-input-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let value = current_input.value().clone();
+                            let target = current_input.dyn_into::<HtmlElement>().unwrap();
+                            let style = target.style();
+                            if &value == "" {
+                                let _ = style.set_property("border", "1px solid var(--grapefruit)");   
+                            } else {
+                                let _ = style.set_property("border", "1px solid #494e64"); 
+                                let pk_output_element = document.query_selector("#create-new-account-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                let vk_output_element = document.query_selector("#create-new-account-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                let address_output_element = document.query_selector("#create-new-account-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+        
+                                // let pk = current_address_output.value();
+                                // let message = current_message_output.value();
+                                // let signature = current_signature_output.value();
+                            }
+                        }
+                        >
+                            Save
+                        </button>
+                        <button id="create-new-account-clear-button" class="card-button-clear" style="margin-left:10px;"
+                        on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+
+                            let input_style = document.query_selector("#create-new-account-input-name").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap().style();
+                            let _ = input_style.set_property("border", "1px solid #494e64"); 
+
+                            let new_button = document.query_selector("#create-new-account-generate-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let old_button = document.query_selector("#create-new-account-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            
+                            let _ = old_button.style().set_property("display", "none");
+                            let _ = new_button.style().set_property("display", "inline-block");    
+
+                            let pk_output_element = document.query_selector("#create-new-account-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let vk_output_element = document.query_selector("#create-new-account-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let address_output_element = document.query_selector("#create-new-account-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            
+                            pk_output_element.set_value("");
+                            vk_output_element.set_value("");
+                            address_output_element.set_value("");
+                        }
+                        >
+                            Clear
+                        </button>
+                    </div>
                 </div>
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "load-account-from-pk-button" {"display: flex"} else {"display: none"}}>
-                    <div id="load-account-from-pk-card-body" class="card-body">
+                    <div id="load-account-from-pk-input-card-body" class="card-body">
                         <div class="input-field">
                             <div class="field-title">Private Key</div>
                             <input id="load-account-from-pk-input" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div id="load-account-from-pk-input-error" class="error-title" style="display:none;"></div>
+                        </div>
+                    </div>
+                    <div id="load-account-from-pk-output-card-body" class="card-body" style="display:none;">
+                        <div class="input-field">
+                            <div class="field-title">Name</div>
+                            <input id="load-account-from-pk-output-name" placeholder="Account Name" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="output-field">
+                            <div class="field-title">Private Key</div>
+                            <div class="output-input-wrapper">
+                                <input id="load-account-from-pk-output-pk" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#load-account-from-pk-output-pk".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="output-field">
+                            <div class="field-title">View Key</div>
+                            <div class="output-input-wrapper">
+                                <input id="load-account-from-pk-output-vk" placeholder="View Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#load-account-from-pk-output-vk".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="output-field">
+                            <div class="field-title">Address</div>
+                            <div class="output-input-wrapper">
+                                <input id="load-account-from-pk-output-address" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#load-account-from-pk-output-address".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="card-divider"/>
-                    <button id="load-button" class="card-button"
+                    <button id="load-account-from-pk-load-button" class="card-button"
                     on:click:target=move|_ev| {
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#load-account-from-pk-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        let value = current_input.value().clone();
+                        let value = (&current_input).value();
                         let target = current_input.dyn_into::<HtmlElement>().unwrap();
                         let style = target.style();
                         if &value == "" {
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
-                            let _ = style.set_property("border", "1px solid #494e64");   
+                            let _ = style.set_property("border", "1px solid #494e64");
+                            let error = document.query_selector("#load-account-from-pk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
+
+                            spawn_local(async move {
+                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["account".to_string(),"import".to_string(), value]}).unwrap();
+
+                                //Reset pk input so it doesn't get remain
+                                let current_input = document.query_selector("#load-account-from-pk-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                current_input.set_value("");
+
+                                let output: (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                let mut results : [&str; 3] = [""; 3];
+                                if output.0 {
+                                    let split = output.1.split("\n\n").collect::<Vec<&str>>();
+                                    let trimmed_split = &(split[1..split.len()-2]);
+                                    for i in 0..trimmed_split.len(){
+                                        let split2 = trimmed_split[i].trim_start().split("  ").collect::<Vec<&str>>();
+                                        results[i] = split2[1]
+                                    }
+                                    let pk = results[0];
+                                    let vk = results[1];
+                                    let address = results[2];
+    
+                                    let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                    let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                    let address_output_element = document.query_selector("#load-account-from-pk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+    
+                                    pk_output_element.set_value(pk);
+                                    vk_output_element.set_value(vk);
+                                    address_output_element.set_value(address);
+
+                                    let old_body = document.query_selector("#load-account-from-pk-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_body = document.query_selector("#load-account-from-pk-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let old_button = document.query_selector("#load-account-from-pk-load-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_button = document.query_selector("#load-account-from-pk-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    
+                                    let _ = old_body.style().set_property("display", "none");
+                                    let _ = old_button.style().set_property("display", "none");
+                                    let _ = new_body.style().set_property("display", "block");
+                                    let _ = new_button.style().set_property("display", "flex");          
+    
+                                } else {
+                                    let error = document.query_selector("#load-account-from-pk-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    error.set_inner_html("Error: Invalid private key");
+                                    let _ = error.style().set_property("display", "block");
+                                }
+                            });   
                         }
                     }
                     >
                         Load
                     </button>
+                    <div id="load-account-from-pk-double-button" class="double-button-wrapper" style="order:3; display:none; justify-content:center">
+                        <button id="load-account-from-pk-save-button" class="card-button" style="margin-right:10px;"
+                        on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+                            let current_name_input = document.query_selector("#load-account-from-pk-output-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let name = current_name_input.value();
+                            let target = current_name_input.dyn_into::<HtmlElement>().unwrap();
+                            if name == "".to_string() {
+                                let _ = target.style().set_property("border", "1px solid var(--grapefruit)");   
+                            } else {
+                                let _ = target.style().set_property("border", "1px solid #494e64");;   
+                                let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                let address_output_element = document.query_selector("#load-account-from-pk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+        
+                                // let pk = current_address_output.value();
+                                // let message = current_message_output.value();
+                                // let signature = current_signature_output.value();
+                            }
+                        }
+                        >
+                            Save
+                        </button>
+                        <button id="load-account-from-pk-clear-button" class="card-button-clear" style="margin-left:10px;"
+                        on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+
+                            let new_body = document.query_selector("#load-account-from-pk-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let old_body = document.query_selector("#load-account-from-pk-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let new_button = document.query_selector("#load-account-from-pk-load-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let old_button = document.query_selector("#load-account-from-pk-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            
+                            let _ = old_body.style().set_property("display", "none");
+                            let _ = old_button.style().set_property("display", "none");
+                            let _ = new_body.style().set_property("display", "block");
+                            let _ = new_button.style().set_property("display", "inline-block");    
+
+                            let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let address_output_element = document.query_selector("#load-account-from-pk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            
+                            pk_output_element.set_value("");
+                            vk_output_element.set_value("");
+                            address_output_element.set_value("");
+                        }
+                        >
+                            Clear
+                        </button>
+                    </div>
                 </div>
 
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "load-address-from-vk-button" {"display: flex"} else {"display: none"}}>
-                    <div id="load-address-from-vk-card-body" class="card-body">
+                    <div id="load-address-from-vk-input-card-body" class="card-body">
                         <div class="input-field">
                             <div class="field-title">View Key</div>
                             <input id="load-address-from-vk-input" placeholder="View Key" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div id="load-address-from-vk-input-error" class="error-title" style="display:none;"></div>
+                        </div>
+                    </div>
+
+                    <div id="load-address-from-vk-output-card-body" class="card-body" style="display:none;">
+                        <div class="output-field">
+                            <div class="field-title">View Key</div>
+                            <div class="output-input-wrapper">
+                                <input id="load-address-from-vk-output-vk" placeholder="View Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#load-address-from-vk-output-vk".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="output-field">
+                            <div class="field-title">Address</div>
+                            <div class="output-input-wrapper">
+                                <input id="load-address-from-vk-output-address" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#load-address-from-vk-output-address".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="card-divider"/>
-                    <button id="load-button" class="card-button"
+                    <button id="load-address-from-vk-load-button" class="card-button"
                     on:click:target=move|_ev| {
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#load-address-from-vk-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        let value = current_input.value().clone();
+                        let value = (&current_input).value();
                         let target = current_input.dyn_into::<HtmlElement>().unwrap();
                         let style = target.style();
                         if &value == "" {
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
-                            let _ = style.set_property("border", "1px solid #494e64");   
+                            let _ = style.set_property("border", "1px solid #494e64");
+                            let error = document.query_selector("#load-address-from-vk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
+    
+                            spawn_local(async move {
+                                let args = serde_wasm_bindgen::to_value(&AddressFromViewKeyArgs {network : "Mainnet".to_string(), viewkey : value.clone()}).unwrap();
+                                let (error, address): (bool, String) = serde_wasm_bindgen::from_value(invoke("address_from_vk", args).await).unwrap();
+                                
+                                if !error{
+                                    //Reset vk input so it doesn't get remain
+                                    let current_input = document.query_selector("#load-address-from-vk-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                    current_input.set_value("");
+
+                                    let vk_output_element = document.query_selector("#load-address-from-vk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                    let address_output_element = document.query_selector("#load-address-from-vk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+    
+                                    vk_output_element.set_value(&value);
+                                    address_output_element.set_value(&address);
+
+                                    let old_body = document.query_selector("#load-address-from-vk-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_body = document.query_selector("#load-address-from-vk-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let old_button = document.query_selector("#load-address-from-vk-load-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_button = document.query_selector("#load-address-from-vk-cancel-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    
+                                    let _ = old_body.style().set_property("display", "none");
+                                    let _ = old_button.style().set_property("display", "none");
+                                    let _ = new_body.style().set_property("display", "block");
+                                    let _ = new_button.style().set_property("display", "inline-block");          
+    
+                                } else {
+                                    let error = document.query_selector("#load-address-from-vk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    error.set_inner_html("Error: Invalid private key");
+                                    let _ = error.style().set_property("display", "block");
+                                }
+                            });   
                         }
                     }
                     >
                         Load
                     </button>
+                    <button id="load-address-from-vk-cancel-button" class="card-button-clear" style="display:none;"
+                    on:click:target=move|_ev| {
+                        let document = leptos::prelude::document();
+    
+                        let new_body = document.query_selector("#load-address-from-vk-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        let old_body = document.query_selector("#load-address-from-vk-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        let new_button = document.query_selector("#load-address-from-vk-load-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        let old_button = document.query_selector("#load-address-from-vk-cancel-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        
+                        let _ = old_body.style().set_property("display", "none");
+                        let _ = old_button.style().set_property("display", "none");
+                        let _ = new_body.style().set_property("display", "block");
+                        let _ = new_button.style().set_property("display", "inline-block");    
+    
+                        let vk_output_element = document.query_selector("#load-address-from-vk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let address_output_element = document.query_selector("#load-address-from-vk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        
+                        vk_output_element.set_value("");
+                        address_output_element.set_value("");
+                    }
+                    >
+                        Cancel
+                    </button>
                 </div>
+
+
+
+
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "sign-message-button" {"display: flex"} else {"display: none"}}>
                     <div id="sign-message-card-body" class="card-body">
@@ -523,7 +860,7 @@ pub fn SidebarAccount (
                             <div class="output-input-wrapper">
                                 <input id="sign-message-output" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                                 <div class="output-img-wrapper">
-                                    <img src="public/files.svg"/>
+                                    <CopyButton target_field="#sign-message-output".to_string() element_type="Input".to_string()/>
                                 </div>
                             </div>
                         </div>
@@ -572,21 +909,21 @@ pub fn SidebarAccount (
                 </div>
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "verify-message-button" {"display: flex"} else {"display: none"}}>
-                <div id="verify-message-card-body" class="card-body">
-                    <div class="input-field">
-                        <div class="field-title">Address</div>
-                        <input id="verify-message-input-address" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                    <div id="verify-message-card-body" class="card-body">
+                        <div class="input-field">
+                            <div class="field-title">Address</div>
+                            <input id="verify-message-input-address" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="input-field">
+                            <div class="field-title">Message</div>
+                            <input id="verify-message-input-message" placeholder="Message" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
+                        <div class="input-field">
+                            <div class="field-title">Signature</div>
+                            <input id="verify-message-input-signature" placeholder="Signature" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        </div>
                     </div>
-                    <div class="input-field">
-                        <div class="field-title">Message</div>
-                        <input id="verify-message-input-message" placeholder="Message" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                    </div>
-                    <div class="input-field">
-                        <div class="field-title">Signature</div>
-                        <input id="verify-message-input-signature" placeholder="Signature" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                    </div>
-                </div>
-                <div class="card-divider"/>
+                    <div class="card-divider"/>
                     <div class="double-button-wrapper" style="order:3; display:flex; justify-content:center">
                         <button id="verify-button" class="card-button" style="margin-right:10px;"
                         on:click:target=move|_ev| {
@@ -640,7 +977,6 @@ pub fn SidebarAccount (
                         </button>
                     </div>
                 </div>
-
             </div>
         </div>
     }
@@ -726,9 +1062,9 @@ pub fn SidebarRecords (
                             <div style="order:0" class="field-title">Decrypted Record</div>
 
                             <div class="output-textarea-wrapper">
-                                <textarea style="order:0" id="decrypt-record-output" placeholder="Decrypted Record" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <textarea style="order:0; white-space: pre-wrap;" id="decrypt-record-output" placeholder="Decrypted Record" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                                 <div class="output-textarea-img-wrapper" style="order:1">
-                                    <img src="public/files.svg"/>
+                                    <CopyButton target_field="#decrypt-record-output".to_string() element_type="TextArea".to_string()/>
                                 </div>
                             </div>
                         </div>
@@ -738,25 +1074,25 @@ pub fn SidebarRecords (
                     on:click:target=move|_ev| {
                         //TODO: Use SnarkVM to decrypt records using input values
                         let document = leptos::prelude::document();
-                        let current_title_input = document.query_selector("#decrypt-record-input-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        let current_ciphertext_input = document.query_selector("#decrypt-record-input-ciphertext").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        let current_vk_input = document.query_selector("#decrypt-record-input-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let name_input_element = document.query_selector("#decrypt-record-input-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let ciphertext_input_element = document.query_selector("#decrypt-record-input-ciphertext").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let vk_input_element = document.query_selector("#decrypt-record-input-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
 
-                        let title = current_title_input.value().clone();
-                        let ciphertext = current_ciphertext_input.value().clone();
-                        let vk = current_vk_input.value().clone();
+                        let name = name_input_element.value();
+                        let ciphertext = ciphertext_input_element.value();
+                        let vk = vk_input_element.value();
 
 
-                        let target1 = current_title_input.dyn_into::<HtmlElement>().unwrap();
-                        let target2 = current_ciphertext_input.dyn_into::<HtmlElement>().unwrap();
-                        let target3 = current_vk_input.dyn_into::<HtmlElement>().unwrap();
+                        let target1 = name_input_element.dyn_into::<HtmlElement>().unwrap();
+                        let target2 = ciphertext_input_element.dyn_into::<HtmlElement>().unwrap();
+                        let target3 = vk_input_element.dyn_into::<HtmlElement>().unwrap();
 
 
                         let style1 = target1.style();
                         let style2 = target2.style();
                         let style3 = target3.style();
 
-                        if &title == "" {
+                        if &name == "" {
                             let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
                             let _ = style1.set_property("border", "1px solid #494e64");   
@@ -773,6 +1109,23 @@ pub fn SidebarRecords (
                         } else {
                             let _ = style3.set_property("border", "1px solid #494e64");   
                         }
+                        
+                        if &ciphertext != "" && &vk != ""{
+                            let _ = style2.set_property("border", "1px solid #494e64");   
+                            let _ = style3.set_property("border", "1px solid #494e64");  
+                            spawn_local(async move{
+                                let args = serde_wasm_bindgen::to_value(&DecryptRecordArgs{network: "Mainnet".to_string(), ciphertext : ciphertext, viewkey : vk}).unwrap();
+                                let (error,plaintext) : (bool, String) = serde_wasm_bindgen::from_value(invoke("decrypt_record", args).await).unwrap();
+                                if !error {
+                                    let output_element = document.query_selector("#decrypt-record-output").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                    output_element.set_inner_html(&plaintext); 
+                                } else {
+
+                                }
+
+                            });
+                        }
+
                     }
                     >
                         Decrypt
@@ -1322,7 +1675,7 @@ pub fn SidebarRestApi (
                             <div class="output-textarea-wrapper">
                                 <textarea style="order:0" id="get-program-output" placeholder="Program" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                                 <div class="output-textarea-img-wrapper" style="order:1">
-                                    <img src="public/files.svg"/>
+                                    <CopyButton target_field="#get-program-output".to_string() element_type="TextArea".to_string()/>
                                 </div>
                             </div>
                         </div>

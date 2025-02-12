@@ -1,15 +1,16 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-mod compile;
 mod highlight;
+mod leo;
 mod load_theme_syntax;
 mod open_explorer;
 mod read_file;
-mod leo;
-
+mod clipboard;
+mod snarkvm;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
@@ -17,8 +18,10 @@ pub fn run() {
             highlight::highlight,
             open_explorer::open_explorer,
             read_file::read_file,
-            compile::compile,
             leo::execute,
+            clipboard::copy,
+            snarkvm::decrypt_record, 
+            snarkvm::address_from_vk,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -152,6 +152,11 @@ pub fn App() -> impl IntoView {
     let new_vec : Vec<(String,String)> = Vec::new();
     let (open_files, set_open_files) = signal(new_vec.clone());
 
+    
+    let (environment_dropdown_active, set_environment_dropdown_active) = signal(false);
+    let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("devnet-button".to_string());
+    let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Local Devnet".to_string());
+
 
     /*
     ==============================================================================
@@ -234,7 +239,7 @@ pub fn App() -> impl IntoView {
                 <SidebarIcon id="account-button".to_string()  img_src="public/account.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="records-button".to_string()  img_src="public/checklist.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="deploy-execute-button".to_string()  img_src="public/play-circle.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
-                <SidebarIcon id="rest-api-button".to_string()  img_src="public/debug-disconnect.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
+                <SidebarIcon id="rest-api-button".to_string()  img_src="public/debug-disconnect.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon/>
                 // <SidebarIcon id="deploy-button".to_string()  img_src="public/cloud-upload.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
 
                 <div id ="empty-space"></div>
@@ -248,8 +253,8 @@ pub fn App() -> impl IntoView {
                 <SidebarFileExplorer selected_activity_icon=selected_activity_icon fs_html=fs_html set_fs_html=set_fs_html set_selected_file=set_selected_file set_open_files=set_open_files />
                 <SidebarAccount selected_activity_icon=selected_activity_icon/>
                 <SidebarRecords selected_activity_icon=selected_activity_icon/>
-                <SidebarDeployExecute selected_activity_icon=selected_activity_icon/>
-                <SidebarRestApi selected_activity_icon=selected_activity_icon/>
+                <SidebarDeployExecute selected_activity_icon=selected_activity_icon environment_dropdown_active=environment_dropdown_active set_environment_dropdown_active=set_environment_dropdown_active current_environment_dropdown_item=current_environment_dropdown_item set_current_environment_dropdown_item=set_current_environment_dropdown_item current_environment_dropdown_text=current_environment_dropdown_text set_current_environment_dropdown_text=set_current_environment_dropdown_text/>
+                <SidebarRestApi selected_activity_icon=selected_activity_icon environment_dropdown_active=environment_dropdown_active set_environment_dropdown_active=set_environment_dropdown_active current_environment_dropdown_item=current_environment_dropdown_item set_current_environment_dropdown_item=set_current_environment_dropdown_item current_environment_dropdown_text=current_environment_dropdown_text set_current_environment_dropdown_text=set_current_environment_dropdown_text/>
                 //<SidebarDeploy selected_activity_icon=selected_activity_icon/>
             </div>
 

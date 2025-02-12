@@ -31,9 +31,43 @@ leo-errors = "2.4.1"
 leo-package = "2.4.1"
 leo-retriever = "2.4.1"
 leo-span = "2.4.1"
-snarkvm = "1.1.0"
 indexmap = "2.6"
 notify = { version = "8.0.0", features = ["serde"] }
 futures = "0.3.31"
 notify-debouncer-mini = "0.6.0"
 tauri-plugin-shell = "2"
+tauri-plugin-clipboard-manager = "2.2.1"
+
+
+[dependencies.snarkvm-circuit-network]
+version = "1.3.0"
+
+[dependencies.snarkvm-console]
+version = "1.3.0"
+features = [ "wasm" ]
+
+[dependencies.snarkvm-ledger-block]
+version = "1.3.0"
+features = [ "wasm" ]
+
+[dependencies.snarkvm-ledger-query]
+version = "1.3.0"
+features = [ "async", "wasm" ]
+
+[dependencies.snarkvm-ledger-store]
+version = "1.3.0"
+
+[dependencies.snarkvm-parameters]
+version = "1.3.0"
+features = [ "wasm" ]
+
+[dependencies.snarkvm-synthesizer]
+version = "1.3.0"
+features = [ "async", "wasm" ]
+
+[dependencies.snarkvm-wasm]
+version = "1.3.0"
+features = [ "console", "fields", "utilities" ]
+
+[dependencies.anyhow]
+version = "1.0"
