@@ -32,6 +32,7 @@ Built with Tauri + Leptos
         - Add way to save accounts once generated
     - Load Account from PK
         - Add way to save accounts once loaded
+        - Fix erroneous behavior (migrate to snarkVM?)
     - Sign a Message
         - Add button functionality
         - Add conditional output section to card body

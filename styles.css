@@ -534,6 +534,7 @@
 
 .output-field{
   margin-bottom: 10px;
+
 }
 
 .output-field input{
@@ -544,7 +545,7 @@
   font-size: 14px;
   font-weight: 400;
   font-family:'Inter'; 
-  color: var(--stone);
+  color: hsla(0, 0%, 100%, .5);
   background-color: #242424;
   padding-top: 7px;
   padding-bottom: 7px;
@@ -602,7 +603,7 @@
   resize:none;
   width:100%;
   background-color: #242424;
-  color: var(--stone);
+  color: hsla(0, 0%, 100%, .5);
   padding:10px;
   font-size: 14px; 
   font-weight: 400; 

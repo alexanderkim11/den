@@ -217,14 +217,14 @@ pub fn SidebarRestApi (
                                 let document = leptos::prelude::document();
 
                                 
-                                // let output_field = document.query_selector("#get-block-by-height-output").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                // if output_field.inner_html() != "".to_string() {
-                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                //     let _ = card_element.style().set_property("height", "100%");
-                                // } else {
-                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                //     let _ = card_element.style().remove_property("height");
-                                // }
+                                let output_field = document.query_selector("#get-block-by-height-output-json").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                if output_field.inner_html() != "".to_string() {
+                                    let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = card_element.style().set_property("height", "100%");
+                                } else {
+                                    let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = card_element.style().remove_property("height");
+                                }
 
                         
                                 let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
@@ -375,12 +375,33 @@ pub fn SidebarRestApi (
                     </button>
                 </div>
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-block-by-height-button" {"display: flex"} else {"display: none"}}>
-                    <div id="get-block-by-height-body" class="card-body">
+                    <div id="get-block-by-height-input-card-body" class="card-body">
                         <div class="input-field">
                             <div class="field-title">Block Height</div>
                             <input id="get-block-by-height-input" placeholder="Block Height" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div id="get-block-by-height-input-error" class="error-title" style="display:none;"></div>
                         </div>
                     </div>
+                    <div id="get-block-by-height-output-card-body" class="card-body" style="display:none; flex-direction:column;">
+                        <div id="get-block-by-height-output-field" class="output-field" style="display:flex; flex-direction:column; box-sizing:border-box; order:2; height:100%;">
+                            <div class="output-field" style="display:flex; flex-direction: column;">
+                                <div class="field-title">Block Height</div>
+                                <div class="output-input-wrapper">
+                                    <input id="get-block-by-height-output-height" placeholder="Block Height" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                </div>
+                            </div>    
+                            
+                            <div style="order:0" class="field-title">JSON</div>
+
+                            <div class="output-textarea-wrapper" style="box-sizing: border-box; padding-bottom:10px">
+                                <textarea style="order:0; white-space:normal;" id="get-block-by-height-output-json" placeholder="None" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-textarea-img-wrapper" style="order:1">
+                                    <CopyButton target_field="#get-block-by-height-output-json".to_string() element_type="TextArea".to_string()/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card-divider"/>
                     <button id="get-button" class="card-button"
                     on:click:target=move|_ev| {
@@ -392,13 +413,57 @@ pub fn SidebarRestApi (
                         if &value == "" {
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
-                            let _ = style.set_property("border", "1px solid #494e64");   
+                            let _ = style.set_property("border", "1px solid #494e64");
+                            let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
+                            
+                            spawn_local(async move {
+                                let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
+                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "block".to_string(), "--network".to_string(),network,"--endpoint".to_string(),"https://api.explorer.provable.com/v1".to_string(), value.clone()]}).unwrap();
+        
+                                let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                if !error {
+                                    let mut formatted_output = String::new();
+                                    let split = output.split("\n\n").collect::<Vec<&str>>();
+                                    for item in &(split)[2..split.len()]{
+                                        if *item == "" {
+                                            formatted_output = format!("{}{}", formatted_output, "\n");
+                                        } else {
+                                            formatted_output = format!("{}{}{}", formatted_output, item, "\n");
+                                        }
+                                    }
+    
+                                    let json_output_element = document.query_selector("#get-block-by-height-output-json").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                    json_output_element.set_inner_html(&formatted_output);
+
+                                    let height_output_element = document.query_selector("#get-block-by-height-output-height").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                    height_output_element.set_value(&value);
+
+                                    let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = card_element.style().set_property("height", "100%");
+
+                                    let old_body = document.query_selector("#get-block-by-height-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_body = document.query_selector("#get-block-by-height-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    
+                                    let _ = old_body.style().set_property("display", "none");
+                                    let _ = new_body.style().set_property("display", "flex");
+
+
+
+                                } else {
+                                    let error = document.query_selector("#get-block-by-height-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    error.set_inner_html("Error: The block with this height does not exist.");
+                                    let _ = error.style().set_property("display", "block");
+                                }
+                            });
+                            
                         }
                     }
                     >
                         Get
                     </button>
                 </div>  
+
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-program-button" {"display: flex"} else {"display: none"}}>
                     <div id="get-program-body" style="display:flex; flex-direction:column;" class="card-body">
                         <div class="input-field" style="order:1;">

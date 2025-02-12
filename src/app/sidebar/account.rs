@@ -214,10 +214,10 @@ pub fn SidebarAccount (
                         spawn_local(async move {
                             let args = serde_wasm_bindgen::to_value(&Command { command : vec!["account".to_string(),"new".to_string()]}).unwrap();
     
-                            let output: (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                            let (error,output) : (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                             let mut results : [&str; 3] = [""; 3];
-                            if output.0 {
-                                let split = output.1.split("\n\n").collect::<Vec<&str>>();
+                            if !error {
+                                let split = output.split("\n\n").collect::<Vec<&str>>();
                                 let trimmed_split = &(split[1..split.len()-2]);
                                 for i in 0..trimmed_split.len(){
                                     let split2 = trimmed_split[i].trim_start().split("  ").collect::<Vec<&str>>();
@@ -363,10 +363,10 @@ pub fn SidebarAccount (
                                 let current_input = document.query_selector("#load-account-from-pk-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                 current_input.set_value("");
 
-                                let output: (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                                 let mut results : [&str; 3] = [""; 3];
-                                if output.0 {
-                                    let split = output.1.split("\n\n").collect::<Vec<&str>>();
+                                if !error {
+                                    let split = output.split("\n\n").collect::<Vec<&str>>();
                                     let trimmed_split = &(split[1..split.len()-2]);
                                     for i in 0..trimmed_split.len(){
                                         let split2 = trimmed_split[i].trim_start().split("  ").collect::<Vec<&str>>();
