@@ -18,10 +18,14 @@ pub fn run() {
             highlight::highlight,
             open_explorer::open_explorer,
             read_file::read_file,
-            leo::execute,
             clipboard::copy,
-            snarkvm::decrypt_record, 
+            leo::execute,
+            snarkvm::new_account,
+            snarkvm::account_from_pk,
             snarkvm::address_from_vk,
+            snarkvm::sign,
+            snarkvm::verify,  
+            snarkvm::decrypt_record, 
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

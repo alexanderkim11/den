@@ -22,14 +22,35 @@ STRUCTS
 */
 
 #[derive(Serialize, Deserialize)]
-pub struct Command<> {
-    pub command : Vec<String>
+pub struct NewAccountArgs<> {
+    pub network : String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AccountFromPrivateKeyArgs<> {
+    pub network : String,
+    pub privatekey : String
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct AddressFromViewKeyArgs<> {
     pub network : String,
     pub viewkey : String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SignMessageArgs<> {
+    pub network : String,
+    pub privatekey: String,
+    pub message: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct VerifyMessageArgs<> {
+    pub network : String,
+    pub address: String,
+    pub message: String,
+    pub signature: String
 }
 
 
@@ -212,28 +233,17 @@ pub fn SidebarAccount (
                         let document = leptos::prelude::document();
 
                         spawn_local(async move {
-                            let args = serde_wasm_bindgen::to_value(&Command { command : vec!["account".to_string(),"new".to_string()]}).unwrap();
-    
-                            let (error,output) : (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
-                            let mut results : [&str; 3] = [""; 3];
-                            if !error {
-                                let split = output.split("\n\n").collect::<Vec<&str>>();
-                                let trimmed_split = &(split[1..split.len()-2]);
-                                for i in 0..trimmed_split.len(){
-                                    let split2 = trimmed_split[i].trim_start().split("  ").collect::<Vec<&str>>();
-                                    results[i] = split2[1]
-                                }
-                                let pk = results[0];
-                                let vk = results[1];
-                                let address = results[2];
+                            let args = serde_wasm_bindgen::to_value(&NewAccountArgs {network : "Mainnet".to_string()}).unwrap();
+                            let (error, (pk,vk,address)): (bool, (String,String,String)) = serde_wasm_bindgen::from_value(invoke("new_account", args).await).unwrap();
 
+                            if !error {
                                 let pk_output_element = document.query_selector("#create-new-account-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                 let vk_output_element = document.query_selector("#create-new-account-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                 let address_output_element = document.query_selector("#create-new-account-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
 
-                                pk_output_element.set_value(pk);
-                                vk_output_element.set_value(vk);
-                                address_output_element.set_value(address);
+                                pk_output_element.set_value(&pk);
+                                vk_output_element.set_value(&vk);
+                                address_output_element.set_value(&address);
 
                                 let old_button = document.query_selector("#create-new-account-generate-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 let new_button = document.query_selector("#create-new-account-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
@@ -353,36 +363,27 @@ pub fn SidebarAccount (
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
                             let _ = style.set_property("border", "1px solid #494e64");
-                            let error = document.query_selector("#load-account-from-pk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                            let _ = error.style().set_property("display", "none");
+                            let error_element = document.query_selector("#load-account-from-pk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error_element.style().set_property("display", "none");
 
                             spawn_local(async move {
-                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["account".to_string(),"import".to_string(), value]}).unwrap();
+
+
+                                let args = serde_wasm_bindgen::to_value(&AccountFromPrivateKeyArgs {network : "Mainnet".to_string(), privatekey : value.clone()}).unwrap();
+                                let (error, (pk,vk,address)): (bool, (String,String,String)) = serde_wasm_bindgen::from_value(invoke("account_from_pk", args).await).unwrap();
 
                                 //Reset pk input so it doesn't get remain
                                 let current_input = document.query_selector("#load-account-from-pk-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                 current_input.set_value("");
 
-                                let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
-                                let mut results : [&str; 3] = [""; 3];
                                 if !error {
-                                    let split = output.split("\n\n").collect::<Vec<&str>>();
-                                    let trimmed_split = &(split[1..split.len()-2]);
-                                    for i in 0..trimmed_split.len(){
-                                        let split2 = trimmed_split[i].trim_start().split("  ").collect::<Vec<&str>>();
-                                        results[i] = split2[1]
-                                    }
-                                    let pk = results[0];
-                                    let vk = results[1];
-                                    let address = results[2];
-    
                                     let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                     let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                     let address_output_element = document.query_selector("#load-account-from-pk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
     
-                                    pk_output_element.set_value(pk);
-                                    vk_output_element.set_value(vk);
-                                    address_output_element.set_value(address);
+                                    pk_output_element.set_value(&pk);
+                                    vk_output_element.set_value(&vk);
+                                    address_output_element.set_value(&address);
 
                                     let old_body = document.query_selector("#load-account-from-pk-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     let new_body = document.query_selector("#load-account-from-pk-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
@@ -395,9 +396,9 @@ pub fn SidebarAccount (
                                     let _ = new_button.style().set_property("display", "flex");          
     
                                 } else {
-                                    let error = document.query_selector("#load-account-from-pk-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                    error.set_inner_html("Error: Invalid private key");
-                                    let _ = error.style().set_property("display", "block");
+                                    let error_element = document.query_selector("#load-account-from-pk-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    error_element.set_inner_html("Error: Invalid private key");
+                                    let _ = error_element.style().set_property("display", "block");
                                 }
                             });   
                         }
@@ -415,7 +416,7 @@ pub fn SidebarAccount (
                             if name == "".to_string() {
                                 let _ = target.style().set_property("border", "1px solid var(--grapefruit)");   
                             } else {
-                                let _ = target.style().set_property("border", "1px solid #494e64");;   
+                                let _ = target.style().set_property("border", "1px solid #494e64");
                                 let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                 let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                 let address_output_element = document.query_selector("#load-account-from-pk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -498,8 +499,8 @@ pub fn SidebarAccount (
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
                             let _ = style.set_property("border", "1px solid #494e64");
-                            let error = document.query_selector("#load-address-from-vk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                            let _ = error.style().set_property("display", "none");
+                            let error_element = document.query_selector("#load-address-from-vk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error_element.style().set_property("display", "none");
     
                             spawn_local(async move {
                                 let args = serde_wasm_bindgen::to_value(&AddressFromViewKeyArgs {network : "Mainnet".to_string(), viewkey : value.clone()}).unwrap();
@@ -527,9 +528,9 @@ pub fn SidebarAccount (
                                     let _ = new_button.style().set_property("display", "inline-block");          
     
                                 } else {
-                                    let error = document.query_selector("#load-address-from-vk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                    error.set_inner_html("Error: Invalid private key");
-                                    let _ = error.style().set_property("display", "block");
+                                    let error_element = document.query_selector("#load-address-from-vk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    error_element.set_inner_html("Error: Invalid private key");
+                                    let _ = error_element.style().set_property("display", "block");
                                 }
                             });   
                         }
@@ -567,7 +568,7 @@ pub fn SidebarAccount (
 
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "sign-message-button" {"display: flex"} else {"display: none"}}>
-                    <div id="sign-message-card-body" class="card-body">
+                    <div id="sign-message-input-card-body" class="card-body">
                         <div class="input-field">
                             <div class="field-title">Private Key</div>
                             <input id="sign-message-input-pk" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off"/>
@@ -579,13 +580,44 @@ pub fn SidebarAccount (
                         <div class="output-field">
                             <div class="field-title">Signature</div>
                             <div class="output-input-wrapper">
-                                <input id="sign-message-output" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <input id="sign-message-output" placeholder="Signature" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                                 <div class="output-img-wrapper">
                                     <CopyButton target_field="#sign-message-output".to_string() element_type="Input".to_string()/>
                                 </div>
                             </div>
+                            <div id="sign-message-input-error" class="error-title" style="display:none;"></div>
                         </div>
                     </div>
+                    <div id="sign-message-output-card-body" class="card-body" style="display:none;">
+                        <div class="output-field">
+                            <div class="field-title">Private Key</div>
+                            <div class="output-input-wrapper">
+                                <input id="sign-message-output-pk" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#sign-message-output-pk".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="output-field">
+                            <div class="field-title">Message</div>
+                            <div class="output-input-wrapper">
+                                <input id="sign-message-output-message" placeholder="Message" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#sign-message-output-message".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="output-field">
+                            <div class="field-title">Signature</div>
+                            <div class="output-input-wrapper">
+                                <input id="sign-message-output-signature" placeholder="Signature" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#sign-message-output-signature".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card-divider"/>
                     <div class="double-button-wrapper" style="order:3; display:flex; justify-content:center">
                         <button id="sign-button" class="card-button" style="margin-right:10px;"
@@ -595,8 +627,8 @@ pub fn SidebarAccount (
                             let current_pk_input = document.query_selector("#sign-message-input-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let current_message_input = document.query_selector("#sign-message-input-message").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
     
-                            let pk = current_pk_input.value().clone();
-                            let message = current_message_input.value().clone();
+                            let pk = current_pk_input.value();
+                            let message = current_message_input.value();
     
                             let target1 = current_pk_input.dyn_into::<HtmlElement>().unwrap();
                             let target2 = current_message_input.dyn_into::<HtmlElement>().unwrap();
@@ -614,6 +646,41 @@ pub fn SidebarAccount (
                                 let _ = style2.set_property("border", "1px solid var(--grapefruit)");   
                             } else {
                                 let _ = style2.set_property("border", "1px solid #494e64");   
+                            }
+
+
+                            if &message != "" && &pk != ""{
+                                let _ = style1.set_property("border", "1px solid #494e64");   
+                                let _ = style2.set_property("border", "1px solid #494e64");  
+
+                                spawn_local(async move {
+                                    let args = serde_wasm_bindgen::to_value(&SignMessageArgs {network : "Mainnet".to_string(), privatekey : pk.clone(), message: message.clone()}).unwrap();
+                                    let (error, signature): (bool, String) = serde_wasm_bindgen::from_value(invoke("sign", args).await).unwrap();
+
+                                    // //Reset pk input so it doesn't get remain
+                                    // current_pk_input.set_value("");
+
+                                    if !error {
+                                        let pk_output_element = document.query_selector("#sign-message-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                        let message_output_element = document.query_selector("#sign-message-output-message").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                        let signature_output_element = document.query_selector("#sign-message-output-signature").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+        
+                                        pk_output_element.set_value(&pk);
+                                        message_output_element.set_value(&message);
+                                        signature_output_element.set_value(&signature);
+
+                                        let old_body = document.query_selector("#sign-message-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        let new_body = document.query_selector("#sign-message-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        
+                                        let _ = old_body.style().set_property("display", "none");
+                                        let _ = new_body.style().set_property("display", "block");      
+        
+                                    } else {
+                                        let error_element = document.query_selector("#sign-message-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        error_element.set_inner_html("Error: Could not generate signature");
+                                        let _ = error_element.style().set_property("display", "block");
+                                    }
+                                });   
                             }
                         }
                         >
@@ -644,8 +711,12 @@ pub fn SidebarAccount (
                             <input id="verify-message-input-signature" placeholder="Signature" spellcheck="false" autocomplete="off" autocapitalize="off"/>
                         </div>
                     </div>
+
                     <div class="card-divider"/>
-                    <div class="double-button-wrapper" style="order:3; display:flex; justify-content:center">
+
+                    <div id="verify-message-output-message"  style="display:none; order:3; padding-bottom: 10px; padding-left: 10px; font-size: 12px; font-weight: 400; font-family: 'Inter'; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none"></div>
+
+                    <div class="double-button-wrapper" style="order:4; display:flex; justify-content:center">
                         <button id="verify-button" class="card-button" style="margin-right:10px;"
                         on:click:target=move|_ev| {
                             let document = leptos::prelude::document();
@@ -654,9 +725,9 @@ pub fn SidebarAccount (
                             let current_message_input = document.query_selector("#verify-message-input-message").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let current_signature_input = document.query_selector("#verify-message-input-signature").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
     
-                            let address = current_address_input.value().clone();
-                            let message = current_message_input.value().clone();
-                            let signature = current_signature_input.value().clone();
+                            let address = current_address_input.value();
+                            let message = current_message_input.value();
+                            let signature = current_signature_input.value();
     
     
                             let target1 = current_address_input.dyn_into::<HtmlElement>().unwrap();
@@ -684,6 +755,37 @@ pub fn SidebarAccount (
                                 let _ = style3.set_property("border", "1px solid var(--grapefruit)");   
                             } else {
                                 let _ = style3.set_property("border", "1px solid #494e64");   
+                            }
+
+
+
+
+
+                            if &address != "" && &message != "" && &signature != ""{
+                                let _ = style1.set_property("border", "1px solid #494e64");   
+                                let _ = style2.set_property("border", "1px solid #494e64");
+                                let _ = style3.set_property("border", "1px solid #494e64");
+                                let output_element = document.query_selector("#verify-message-output-message").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = output_element.style().set_property("display", "block"); 
+
+                                spawn_local(async move {
+                                    let args = serde_wasm_bindgen::to_value(&VerifyMessageArgs {network : "Mainnet".to_string(), address : address.clone(), message: message.clone(), signature: signature.clone()}).unwrap();
+                                    let (error, message): (bool, String) = serde_wasm_bindgen::from_value(invoke("verify", args).await).unwrap();
+
+
+                                    if !error {
+                                        let output_element = document.query_selector("#verify-message-output-message").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        output_element.set_inner_html(&message);
+                                        let _ = output_element.style().set_property("color", "var(--lime)");
+                                        let _ = output_element.style().set_property("display", "block");
+        
+                                    } else {
+                                        let output_element = document.query_selector("#verify-message-output-message").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        output_element.set_inner_html(&message);
+                                        let _ = output_element.style().set_property("color", "var(--grapefruit)");
+                                        let _ = output_element.style().set_property("display", "block");
+                                    }
+                                });   
                             }
                         }
                         >

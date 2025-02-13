@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use syntect::{highlighting::Theme, parsing::SyntaxSet};
 use wasm_bindgen::prelude::*;
 use std::cmp;
+use std::collections::HashMap;
 
 
 
@@ -128,6 +129,8 @@ pub fn IDE(
 
     }) as Box<dyn FnMut(_)>);
 
+    let (key_pressed, set_key_pressed) : (ReadSignal<HashMap<String,bool>>,WriteSignal<HashMap<String,bool>>) = signal(HashMap::new());
+
     view! {
 
         <div class= "ide">
@@ -177,7 +180,17 @@ pub fn IDE(
                     // This function is used for the special case of Tabs, as HtmlTextArea does not natively support tab.
                     let key = ev.key();
                     let code = ev.target().value();
-                    if key == "Tab" {
+
+                    let mut key_pressed_map = key_pressed.get();
+                    key_pressed_map.insert(key.clone(),true);
+
+
+                    if (&key_pressed_map).contains_key("Control") && &key == "s" {
+                        console_log("hello");
+                    }
+                    set_key_pressed.set(key_pressed_map);
+
+                    if &key == "Tab" {
                         /* Tab key pressed */
                         ev.prevent_default(); // stop normal
 
@@ -210,7 +223,16 @@ pub fn IDE(
         
                             }
                         );
+                    } else if  false{
+
                     }
+                }
+                on:keyup:target= move |ev| {
+                    let key = ev.key();
+                    let mut key_pressed_map = key_pressed.get();
+                    key_pressed_map.remove(&key);
+                    set_key_pressed.set(key_pressed_map);
+
                 }
                 ></textarea>
 

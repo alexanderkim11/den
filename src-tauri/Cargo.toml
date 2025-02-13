@@ -37,6 +37,7 @@ futures = "0.3.31"
 notify-debouncer-mini = "0.6.0"
 tauri-plugin-shell = "2"
 tauri-plugin-clipboard-manager = "2.2.1"
+rand = "0.8.0"
 
 
 [dependencies.snarkvm-circuit-network]

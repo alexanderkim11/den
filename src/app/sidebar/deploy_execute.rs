@@ -83,7 +83,7 @@ pub fn SidebarDeployExecute (
                     <div id="deploy-card-body" class="card-body">
                         <div class="input-field">
                             <div class="field-title">Network</div>
-                            <div id="environment-dropdown-custom" class="dropdown-custom">
+                            <div id="environment-dropdown-custom" class="dropdown-custom" style="z-index: 3;">
                                 <div id="environment-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
                                 {
                                     let this = ev.target().dyn_into::<Element>().unwrap();

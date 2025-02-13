@@ -12,13 +12,14 @@ Built with Tauri + Leptos
 - Integrate Devnet support
 - Work on Custom Titlebar with buttons
 - Need to figure out way to integrate LSP server for document-wide error checking
-- Migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
 - Disable button clicking when backend/API requests are pending
+- Clear various fields in input cards when output is generated
 
 ## Sidebar:
 - General:
     - Add hover names for sidebar icon buttons
     - Persistant state between closing and reopening the app
+    - Disable copy button if target field is empty
 - File System:
     - Reset FS default directory
     - Add way to open new file directory
@@ -32,13 +33,10 @@ Built with Tauri + Leptos
         - Add way to save accounts once generated
     - Load Account from PK
         - Add way to save accounts once loaded
-        - Fix erroneous behavior (migrate to snarkVM?)
     - Sign a Message
-        - Add button functionality
-        - Add conditional output section to card body
+        - Add "Clear" button functionality
     - Verify a Message
-        - Add button functionality
-        - Add conditional output section to card body
+        - Add "Clear" button functionality
 - Records:
     - Add way to save records?
 - Compile
@@ -46,13 +44,16 @@ Built with Tauri + Leptos
 - Deploy and Execute:
     - Add way to use private fees for deployment
     - Add deployed program interaction
+    - Migrate leo.exe stuff to underlying snarkVM code for platform agnostic support
 - REST API:
     - Get Latest Block:
         - Add buttons to clear and open latest block once retrieved
     - Get Program:
         - Add buttons to clear and open program once retrieved
-    - Else
+    - Get Account Balance:
+        - Is there a better way to do this other than brute-force searching for record?
         - Add functionality and output
+    - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support
 
 
 ## Editor

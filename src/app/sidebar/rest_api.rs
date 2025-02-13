@@ -245,7 +245,7 @@ pub fn SidebarRestApi (
                                 
                                 let document = leptos::prelude::document();
 
-                                let output_field = document.query_selector("#get-program-output").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let output_field = document.query_selector("#get-program-output-json").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 if output_field.inner_html() != "".to_string() {
                                     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     let _ = card_element.style().set_property("height", "100%");
@@ -272,14 +272,14 @@ pub fn SidebarRestApi (
 
                                 let document = leptos::prelude::document();
 
-                                // let output_field = document.query_selector("#get-transaction-output").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                // if output_field.inner_html() != "".to_string() {
-                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                //     let _ = card_element.style().set_property("height", "100%");
-                                // } else {
-                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                //     let _ = card_element.style().remove_property("height");
-                                // }
+                                let output_field = document.query_selector("#get-transaction-output-json").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                if output_field.inner_html() != "".to_string() {
+                                    let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = card_element.style().set_property("height", "100%");
+                                } else {
+                                    let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = card_element.style().remove_property("height");
+                                }
 
                                 let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
                                 let new_val = Array::new();
@@ -464,25 +464,78 @@ pub fn SidebarRestApi (
                     </button>
                 </div>  
 
+
+
+
+
+
+
+
+                <div id="get-transaction-output-card-body" class="card-body" style="display:none; flex-direction:column;">
+                    <div id="get-transaction-output-field" class="output-field" style="display:flex; flex-direction:column; box-sizing:border-box; order:2; height:100%;">
+                        <div class="output-field" style="display:flex; flex-direction: column;">
+                            <div class="field-title">Transaction ID</div>
+                            <div class="output-input-wrapper">
+                                <input id="get-transaction-output-id" placeholder="Transaction ID" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#get-transaction-output-id".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
+                        </div>    
+                        
+                        <div style="order:0" class="field-title">JSON</div>
+
+                        <div class="output-textarea-wrapper" style="box-sizing: border-box; padding-bottom:10px">
+                            <textarea style="order:0; white-space:normal;" id="get-transaction-output-json" placeholder="None" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                            <div class="output-textarea-img-wrapper" style="order:1">
+                                <CopyButton target_field="#get-transaction-output-json".to_string() element_type="TextArea".to_string()/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+
+
+
+
+
+
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-program-button" {"display: flex"} else {"display: none"}}>
-                    <div id="get-program-body" style="display:flex; flex-direction:column;" class="card-body">
+                    <div id="get-program-input-card-body" style="display:flex; flex-direction:column;" class="card-body">
                         <div class="input-field" style="order:1;">
                             <div class="field-title">Program ID</div>
                             <input id="get-program-input" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
                             <div id="get-program-input-error" class="error-title" style="display:none;"></div>
                         </div>
-                        <div id="get-program-output-field" class="output-field" style="display:none; flex-direction:column; box-sizing:border-box; order:2; height:100%;">
+                    </div>
+                    <div id="get-program-output-card-body" class="card-body" style="display:none; flex-direction:column;">
+                        <div id="get-program-output-field" class="output-field" style="display:flex; flex-direction:column; box-sizing:border-box; order:2; height:100%;">
+                            <div class="output-field" style="display:flex; flex-direction: column;">
+                                <div class="field-title">Program ID</div>
+                                <div class="output-input-wrapper">
+                                    <input id="get-program-output-id" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                    <div class="output-img-wrapper">
+                                        <CopyButton target_field="#get-program-output-id".to_string() element_type="Input".to_string()/>
+                                    </div>
+                                </div>
+                            </div>    
+                            
                             <div style="order:0" class="field-title">Program</div>
 
-                            <div class="output-textarea-wrapper">
-                                <textarea style="order:0" id="get-program-output" placeholder="Program" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                            <div class="output-textarea-wrapper" style="box-sizing: border-box;">
+                                <textarea style="order:0" id="get-program-output-json" placeholder="Program" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                                 <div class="output-textarea-img-wrapper" style="order:1">
-                                    <CopyButton target_field="#get-program-output".to_string() element_type="TextArea".to_string()/>
+                                    <CopyButton target_field="#get-program-output-json".to_string() element_type="TextArea".to_string()/>
                                 </div>
                             </div>
                         </div>
                     </div>
+
                     <div class="card-divider"/>
+
                     <button id="get-button" class="card-button"
                     on:click:target=move|_ev| {
                         let document = leptos::prelude::document();
@@ -499,13 +552,12 @@ pub fn SidebarRestApi (
                             
                             spawn_local(async move {
                                 let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
-                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),network,"--endpoint".to_string(),"https://api.explorer.provable.com/v1".to_string(),"program".to_string(), value]}).unwrap();
-        
+                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),network,"--endpoint".to_string(),"https://api.explorer.provable.com/v1".to_string(),"program".to_string(), value.clone()]}).unwrap();        
                                 let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                                 if !error {
                                     let mut formatted_output = String::new();
                                     let split = output.split("\n\n").collect::<Vec<&str>>();
-                                    for item in &(split)[2..split.len()]{
+                                    for item in &(split)[2..split.len()-3]{
                                         if *item == "" {
                                             formatted_output = format!("{}{}", formatted_output, "\n");
                                         } else {
@@ -513,12 +565,23 @@ pub fn SidebarRestApi (
                                         }
                                     }
     
-                                    let output_element = document.query_selector("#get-program-output").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
-                                    output_element.set_inner_html(&formatted_output); 
+                                    let json_output_element = document.query_selector("#get-program-output-json").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                    json_output_element.set_inner_html(&formatted_output);
+
+                                    let height_output_element = document.query_selector("#get-program-output-id").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                    height_output_element.set_value(&value);
+
                                     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                    let output_field = document.query_selector("#get-program-output-field").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     let _ = card_element.style().set_property("height", "100%");
-                                    let _ = output_field.style().set_property("display","inline-block");    
+
+                                    let old_body = document.query_selector("#get-program-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_body = document.query_selector("#get-program-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    
+                                    let _ = old_body.style().set_property("display", "none");
+                                    let _ = new_body.style().set_property("display", "flex");
+
+
+
                                 } else {
                                     let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     error.set_inner_html("Error: The program with this ID does not exist.");
@@ -532,13 +595,38 @@ pub fn SidebarRestApi (
                         Get
                     </button>
                 </div>
+
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-transaction-button" {"display: flex"} else {"display: none"}}>
-                    <div id="get-transaction-body" class="card-body">
+                    <div id="get-transaction-input-card-body" class="card-body">
                         <div class="input-field">
                             <div class="field-title">Transaction ID</div>
                             <input id="get-transaction-input" placeholder="Transaction ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div id="get-transaction-input-error" class="error-title" style="display:none;"></div>
                         </div>
                     </div>
+                    <div id="get-transaction-output-card-body" class="card-body" style="display:none; flex-direction:column;">
+                        <div id="get-transaction-output-field" class="output-field" style="display:flex; flex-direction:column; box-sizing:border-box; order:2; height:100%;">
+                            <div class="output-field" style="display:flex; flex-direction: column;">
+                                <div class="field-title">Transaction ID</div>
+                                <div class="output-input-wrapper">
+                                    <input id="get-transaction-output-id" placeholder="Transaction ID" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                    <div class="output-img-wrapper">
+                                        <CopyButton target_field="#get-transaction-output-id".to_string() element_type="Input".to_string()/>
+                                    </div>
+                                </div>
+                            </div>    
+                            
+                            <div style="order:0" class="field-title">JSON</div>
+
+                            <div class="output-textarea-wrapper" style="box-sizing: border-box; padding-bottom:10px">
+                                <textarea style="order:0; white-space:normal;" id="get-transaction-output-json" placeholder="None" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-textarea-img-wrapper" style="order:1">
+                                    <CopyButton target_field="#get-transaction-output-json".to_string() element_type="TextArea".to_string()/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card-divider"/>
                     <button id="get-button" class="card-button"
                     on:click:target=move|_ev| {
@@ -550,13 +638,59 @@ pub fn SidebarRestApi (
                         if &value == "" {
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
-                            let _ = style.set_property("border", "1px solid #494e64");   
+                            let _ = style.set_property("border", "1px solid #494e64");
+                            let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
+                            
+                            spawn_local(async move {
+                                let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
+                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "transaction".to_string(), "--network".to_string(),network,"--endpoint".to_string(),"https://api.explorer.provable.com/v1".to_string(), value.clone()]}).unwrap();
+        
+                                let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                if !error {
+                                    let mut formatted_output = String::new();
+                                    let split = output.split("\n\n").collect::<Vec<&str>>();
+                                    for item in &(split)[2..split.len()]{
+                                        if *item == "" {
+                                            formatted_output = format!("{}{}", formatted_output, "\n");
+                                        } else {
+                                            formatted_output = format!("{}{}{}", formatted_output, item, "\n");
+                                        }
+                                    }
+    
+                                    let json_output_element = document.query_selector("#get-transaction-output-json").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                    json_output_element.set_inner_html(&formatted_output);
+
+                                    let height_output_element = document.query_selector("#get-transaction-output-id").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                    height_output_element.set_value(&value);
+
+                                    let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = card_element.style().set_property("height", "100%");
+
+                                    let old_body = document.query_selector("#get-transaction-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_body = document.query_selector("#get-transaction-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    
+                                    let _ = old_body.style().set_property("display", "none");
+                                    let _ = new_body.style().set_property("display", "flex");
+
+
+
+                                } else {
+                                    let error = document.query_selector("#get-transaction-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    error.set_inner_html("Error: The transaction with this ID does not exist.");
+                                    let _ = error.style().set_property("display", "block");
+                                }
+                            });
+                            
                         }
                     }
                     >
                         Get
                     </button>
-                </div>
+                </div>  
+
+
+
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-account-balance-button" {"display: flex"} else {"display: none"}}>
                     <div id="get-account-balance-body" class="card-body">
                         <div class="input-field">
