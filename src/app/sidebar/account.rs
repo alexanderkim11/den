@@ -657,8 +657,12 @@ pub fn SidebarAccount (
                                     let args = serde_wasm_bindgen::to_value(&SignMessageArgs {network : "Mainnet".to_string(), privatekey : pk.clone(), message: message.clone()}).unwrap();
                                     let (error, signature): (bool, String) = serde_wasm_bindgen::from_value(invoke("sign", args).await).unwrap();
 
-                                    // //Reset pk input so it doesn't get remain
-                                    // current_pk_input.set_value("");
+                                    // //Reset pk and message inputs so it doesn't get remain
+                                    let current_pk_input = document.query_selector("#sign-message-input-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                    let current_message_input = document.query_selector("#sign-message-input-message").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+            
+                                    current_pk_input.set_value("");
+                                    current_message_input.set_value("");
 
                                     if !error {
                                         let pk_output_element = document.query_selector("#sign-message-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -688,7 +692,21 @@ pub fn SidebarAccount (
                         </button>
                         <button id="signature-clear-button" class="card-button-clear" style="margin-left:10px;"
                         on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+    
+                            let new_body = document.query_selector("#sign-message-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let old_body = document.query_selector("#sign-message-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            
+                            let _ = old_body.style().set_property("display", "none");
+                            let _ = new_body.style().set_property("display", "block");
 
+                            let pk_output_element = document.query_selector("#sign-message-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let message_output_element = document.query_selector("#sign-message-output-message").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let signature_output_element = document.query_selector("#sign-message-output-signature").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+
+                            pk_output_element.set_value("");
+                            message_output_element.set_value("");
+                            signature_output_element.set_value("");
                         }
                         >
                             Clear
@@ -758,9 +776,6 @@ pub fn SidebarAccount (
                             }
 
 
-
-
-
                             if &address != "" && &message != "" && &signature != ""{
                                 let _ = style1.set_property("border", "1px solid #494e64");   
                                 let _ = style2.set_property("border", "1px solid #494e64");
@@ -793,7 +808,20 @@ pub fn SidebarAccount (
                         </button>
                         <button id="signature-clear-button" class="card-button-clear" style="margin-left:10px;"
                         on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
 
+                            let pk_output_element = document.query_selector("#verify-message-input-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let message_output_element = document.query_selector("#verify-message-input-message").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let signature_output_element = document.query_selector("#verify-message-input-signature").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+
+                            pk_output_element.set_value("");
+                            message_output_element.set_value("");
+                            signature_output_element.set_value("");
+
+                            let output_element = document.query_selector("#verify-message-output-message").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            output_element.set_inner_html("");
+                            let _ = output_element.style().remove_property("color");
+                            let _ = output_element.style().set_property("display", "none");
                         }
                         >
                             Clear

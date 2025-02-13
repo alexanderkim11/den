@@ -1,11 +1,17 @@
 pub mod file_explorer;
 pub use file_explorer::*;
 
+pub mod environment;
+pub use environment::*;
+
 pub mod account;
 pub use account::*;
 
 pub mod records;
 pub use records::*;
+
+pub mod compile;
+pub use compile::*;
 
 pub mod deploy_execute;
 pub use deploy_execute::*;

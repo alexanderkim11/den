@@ -106,20 +106,29 @@
   order:1;
 }
 
-#account-button {
+#environment-button {
   order:2;
 }
 
-#records-button {
+
+#account-button {
   order:3;
 }
 
-#deploy-execute-button {
+#records-button {
   order:4;
 }
 
-#rest-api-button {
+#compile-button {
   order:5;
+}
+
+#deploy-execute-button {
+  order:6;
+}
+
+#rest-api-button {
+  order:7;
 }
 
 

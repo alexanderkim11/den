@@ -6,20 +6,19 @@
 
 Built with Tauri + Leptos
 
-
 # TODO:
 ## General:
 - Integrate Devnet support
 - Work on Custom Titlebar with buttons
 - Need to figure out way to integrate LSP server for document-wide error checking
 - Disable button clicking when backend/API requests are pending
-- Clear various fields in input cards when output is generated
 
 ## Sidebar:
 - General:
     - Add hover names for sidebar icon buttons
     - Persistant state between closing and reopening the app
     - Disable copy button if target field is empty
+    - Make icon size consistent
 - File System:
     - Reset FS default directory
     - Add way to open new file directory
@@ -28,15 +27,13 @@ Built with Tauri + Leptos
     - Add hover filepaths for file buttons
     - Add way to delete files
     - Add screen if file cannot be found
+- Environment:
+    - Add more features?
 - Account:
     - Create New Account
         - Add way to save accounts once generated
     - Load Account from PK
         - Add way to save accounts once loaded
-    - Sign a Message
-        - Add "Clear" button functionality
-    - Verify a Message
-        - Add "Clear" button functionality
 - Records:
     - Add way to save records?
 - Compile
@@ -46,6 +43,8 @@ Built with Tauri + Leptos
     - Add deployed program interaction
     - Migrate leo.exe stuff to underlying snarkVM code for platform agnostic support
 - REST API:
+    - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support
+
     - Get Latest Block:
         - Add buttons to clear and open latest block once retrieved
     - Get Program:
@@ -53,8 +52,6 @@ Built with Tauri + Leptos
     - Get Account Balance:
         - Is there a better way to do this other than brute-force searching for record?
         - Add functionality and output
-    - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support
-
 
 ## Editor
 - Dynamic error checking (red squiggle with error description)
