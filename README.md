@@ -22,11 +22,11 @@ Built with Tauri + Leptos
 - File System:
     - Reset FS default directory
     - Add way to open new file directory
-    - Add way to save files
     - Add check if user tries to close file without it being saved
     - Add hover filepaths for file buttons
     - Add way to delete files
     - Add screen if file cannot be found
+
 - Environment:
     - Add more features?
 - Account:
@@ -57,6 +57,8 @@ Built with Tauri + Leptos
 - Dynamic error checking (red squiggle with error description)
 - Highlight current line of text with gray?
 - Add highlighting conditional on file type (.leo vs .aleo vs. everything else)
+- Maintain scroll level and cursor position when switching between file tabs and reopening files
+- Add unsaved changes indiciater to file tab
 
 ## Terminal:
 - Start work on this

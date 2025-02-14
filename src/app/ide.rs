@@ -33,8 +33,14 @@ struct HighlightArgs<'a> {
 
 
 #[derive(Serialize, Deserialize)]
-struct LoadFileArgs<> {
+struct ReadFileArgs<> {
     filepath: String
+}
+
+#[derive(Serialize, Deserialize)]
+struct WriteFileArgs<> {
+    filepath : String,
+    contents : String
 }
 /*
 ==============================================================================
@@ -105,6 +111,10 @@ pub fn IDE(
     syntax_set: ReadSignal<SyntaxSet>,
     theme: ReadSignal<Theme>,
     selected_file : ReadSignal<String>,
+    saved_file_contents: ReadSignal<HashMap<String,String>>, 
+    set_saved_file_contents: WriteSignal<HashMap<String,String>>,
+    cached_file_contents: ReadSignal<HashMap<String,String>>, 
+    set_cached_file_contents: WriteSignal<HashMap<String,String>>
 ) -> impl IntoView {
 
 
@@ -186,7 +196,35 @@ pub fn IDE(
 
 
                     if (&key_pressed_map).contains_key("Control") && &key == "s" {
-                        console_log("hello");
+                        let current_filepath = selected_file.get_untracked();
+                        let mut saved_content = saved_file_contents.get_untracked();
+                        let mut cached_content = cached_file_contents.get_untracked();
+                        let current_saved_file_content = saved_content.get(&current_filepath).unwrap();
+
+                        let document = leptos::prelude::document();
+                        let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                        if &result_element.value() != current_saved_file_content{
+                            spawn_local(
+                                async move {
+                                    let document = leptos::prelude::document();
+                                    let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+
+                                    let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: current_filepath.clone(), contents: result_element.value()}).unwrap();
+                                    let (error, message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();
+                                    if !error {
+                                        saved_content.remove(&current_filepath);
+                                        saved_content.insert(current_filepath.clone(), result_element.value());
+                                        set_saved_file_contents.set(saved_content);
+
+                                        cached_content.remove(&current_filepath);
+                                        cached_content.insert(current_filepath, result_element.value());
+                                        set_cached_file_contents.set(cached_content);                     
+                                    } else {
+                                        console_log(&message);
+                                    }
+                                }
+                            );
+                        }
                     }
                     set_key_pressed.set(key_pressed_map);
 
@@ -223,8 +261,6 @@ pub fn IDE(
         
                             }
                         );
-                    } else if  false{
-
                     }
                 }
                 on:keyup:target= move |ev| {
@@ -240,35 +276,61 @@ pub fn IDE(
                 {Effect::new(move |_| {
                     let selected = selected_file.get();
                     if selected != String::new(){
-                        spawn_local(
-                            async move {
-                                let args = serde_wasm_bindgen::to_value(&LoadFileArgs{filepath: selected}).unwrap();
-                                match invoke("read_file", args).await.as_string(){
-                                    Some(contents) => {
-                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
-                                        let highlighted = invoke("highlight", args).await.as_string().unwrap();
-                                        set_highlighted_msg.set(highlighted);
+                        let mut saved_contents = saved_file_contents.get_untracked();
+                        let mut cached_contents = cached_file_contents.get_untracked();
+                        if cached_contents.contains_key(&selected){
+                            spawn_local(
+                                async move {
+                                    let contents = cached_contents.get(&selected).unwrap();
+                                    let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
+                                    let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                    set_highlighted_msg.set(highlighted);
 
-                                        let document = leptos::prelude::document();
-                                        let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
-                                        result_element.set_value(&contents);
 
-                                        let lines_html = get_lines(contents);
-                                        set_lines_html.set(lines_html);
+                                    let document = leptos::prelude::document();
+                                    let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                    result_element.set_value(&contents);
 
-                                        let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                        let _ = result_element.style().remove_property("display");
-                                    },
-                                    None => {
-                                        console_log("Error: File does not exist");
+                                    let lines_html = get_lines(contents.to_string());
+                                    set_lines_html.set(lines_html);
+
+                                    let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = result_element.style().remove_property("display");
+
+                                }
+                            );
+                        } else {
+                            spawn_local(
+                                async move {
+                                    let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: selected.clone()}).unwrap();
+                                    match invoke("read_file", args).await.as_string(){
+                                        Some(contents) => {
+                                            let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
+                                            let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                            set_highlighted_msg.set(highlighted);
+
+                                            saved_contents.insert(selected.clone(), contents.clone());
+                                            cached_contents.insert(selected, contents.clone());
+                                            set_saved_file_contents.set(saved_contents);
+                                            set_cached_file_contents.set(cached_contents);
+
+                                            let document = leptos::prelude::document();
+                                            let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                            result_element.set_value(&contents);
+
+                                            let lines_html = get_lines(contents);
+                                            set_lines_html.set(lines_html);
+
+                                            let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element.style().remove_property("display");
+                                        },
+                                        None => {
+                                            console_log("Error: File does not exist");
+                                        }
                                     }
                                 }
-                                
-                                //.as_string().unwrap();
-                                
-
-                            }
-                        );
+                            );
+                        }
                     } else {
                         let document = leptos::prelude::document();
                         let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();

@@ -4,7 +4,7 @@ use sidebar::*;
 mod ide;
 use ide::*;
 
-use leptos::web_sys::{Element,HtmlElement};
+use leptos::web_sys::{Element,HtmlElement, HtmlTextAreaElement};
 use js_sys::Array;
 use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
@@ -13,6 +13,7 @@ use syntect::{highlighting::Theme, parsing::SyntaxSet};
 use wasm_bindgen::prelude::*;
 use web_sys::css::escape;
 use std::cmp;
+use std::collections::HashMap;
 
 
 
@@ -36,6 +37,19 @@ struct LoadThemeArgs<'a> {
     code: &'a str,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct PlaceholderArgs<'a> {
+    pub code: &'a str,
+}
+
+#[derive(Serialize, Deserialize)]
+struct WriteFileArgs<> {
+    filepath : String,
+    contents : String
+}
+
+
+
 /*
 ==============================================================================
 AUXILLARY COMPONENTS
@@ -50,7 +64,11 @@ fn FileTab(
     selected_file: ReadSignal<String>,
     set_selected_file : WriteSignal<String>,
     open_files : ReadSignal<Vec<(String,String)>>,
-    set_open_files : WriteSignal<Vec<(String,String)>>
+    set_open_files : WriteSignal<Vec<(String,String)>>,
+    saved_file_contents: ReadSignal<HashMap<String,String>>, 
+    set_saved_file_contents: WriteSignal<HashMap<String,String>>,
+    cached_file_contents: ReadSignal<HashMap<String,String>>, 
+    set_cached_file_contents: WriteSignal<HashMap<String,String>>,
 ) -> impl IntoView {
     view! {
         <div class = "tab" id=filepath.clone()
@@ -59,32 +77,93 @@ fn FileTab(
             let new_val = Array::new();
             new_val.push(&serde_wasm_bindgen::to_value("selected").unwrap());
             let _ = target.class_list().add(&new_val);
+
+            let document = leptos::prelude::document();
+            let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+
+            let current_filepath = selected_file.get_untracked();
+            let mut cached_content = cached_file_contents.get_untracked();
+
+            cached_content.remove(&current_filepath);
+            cached_content.insert(current_filepath, result_element.value());
+            set_cached_file_contents.set(cached_content);
+
             set_selected_file.set(target.id());
         }>
             {filename.clone()}
             <button class="exit-button"
             on:click:target = {
-                let filepath_clone = filepath.clone();
-                let filename_clone = filename.clone();
+                let outer_filepath_clone = filepath.clone();
+                let outer_filename_clone = filename.clone();
                 move|ev|{
-                ev.stop_propagation();
-                for index in 0..open_files.get().len(){
-                    let mut vec = open_files.get();
-                    if vec[index] == ((&filepath_clone).to_string(),(&filename_clone).to_string()){
-                        vec.remove(index);
-                        if vec.len() > 0 {
-                            if index == vec.len(){
-                                set_selected_file.set(vec[index-1].0.clone());
-                            } else if index < vec.len() {
-                                set_selected_file.set(vec[index].0.clone());
+                    ev.stop_propagation();
+
+                    let inner_filepath_clone = outer_filepath_clone.clone();
+                    let inner_filename_clone = outer_filename_clone.clone();
+                    spawn_local(async move {
+
+                        let mut saved_content = saved_file_contents.get_untracked();
+                        let mut cached_content = cached_file_contents.get_untracked();
+
+                        let selected = selected_file.get_untracked();
+                        if selected == inner_filepath_clone {
+                            let document = leptos::prelude::document();
+                            let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                            let saved = saved_content.get(&inner_filepath_clone).unwrap().to_string();
+                            if saved != result_element.value() {
+
+                                let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { code : "null"}).unwrap();
+                                let save = invoke("warning", args).await.as_bool().unwrap();
+        
+                                if save {
+                                    let document = leptos::prelude::document();
+                                    let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                    let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: result_element.value()}).unwrap();
+                                    let (error, message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();      
+                                }
                             }
-                        } else if vec.len() == 0 {
-                            set_selected_file.set(String::new());
+
+
+                        } else {
+                            let cached = cached_content.get(&inner_filepath_clone).unwrap().to_string();
+                            let saved = saved_content.get(&inner_filepath_clone).unwrap().to_string();
+                            if saved != cached {
+
+                                let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { code : "null"}).unwrap();
+                                let save = invoke("warning", args).await.as_bool().unwrap();
+        
+                                if save {
+                                    let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: cached}).unwrap();
+                                    let (error, message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();   
+                                }
+                            }
                         }
-                        set_open_files.set(vec);
-                        break;
-                    }
-                }
+
+                        for index in 0..open_files.get_untracked().len(){
+                            let mut vec = open_files.get_untracked();
+                            if vec[index] == ((&inner_filepath_clone).to_string(),(&inner_filename_clone).to_string()){
+                                saved_content.remove(&inner_filepath_clone);
+                                cached_content.remove(&inner_filepath_clone);
+    
+                                set_saved_file_contents.set(saved_content);
+                                set_cached_file_contents.set(cached_content);
+    
+                                vec.remove(index);
+                                if vec.len() > 0 {
+                                    if index == vec.len(){
+                                        set_selected_file.set(vec[index-1].0.clone());
+                                    } else if index < vec.len() {
+                                        set_selected_file.set(vec[index].0.clone());
+                                    }
+                                } else if vec.len() == 0 {
+                                    set_selected_file.set(String::new());
+                                }
+                                set_open_files.set(vec);
+                                break;
+                            }
+                        }
+                    });
+                    
                 }
             }>
                 <img src="public/close.svg"/>
@@ -151,6 +230,9 @@ pub fn App() -> impl IntoView {
     let (selected_file, set_selected_file) = signal(String::new());
     let new_vec : Vec<(String,String)> = Vec::new();
     let (open_files, set_open_files) = signal(new_vec.clone());
+
+    let (saved_file_contents, set_saved_file_contents) : (ReadSignal<HashMap<String,String>>,WriteSignal<HashMap<String,String>>) = signal(HashMap::new());
+    let (cached_file_contents, set_cached_file_contents) : (ReadSignal<HashMap<String,String>>,WriteSignal<HashMap<String,String>>) = signal(HashMap::new());
 
     
     let (environment_dropdown_active, set_environment_dropdown_active) = signal(false);
@@ -235,11 +317,11 @@ pub fn App() -> impl IntoView {
         >
             <div class="sidebar-icons">
                 <div class ="temp-buffer"></div>
-                <SidebarIcon selected=true id="file-explorer-button".to_string() img_src="public/files.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="environment-button".to_string()  img_src="public/home.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />                
+                <SidebarIcon selected=true id="file-explorer-button".to_string() img_src="public/files.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="account-button".to_string()  img_src="public/account.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="records-button".to_string()  img_src="public/checklist.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
-                <SidebarIcon id="compile-button".to_string()  img_src="public/extensions.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />                
+                // <SidebarIcon id="compile-button".to_string()  img_src="public/extensions.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />                
                 <SidebarIcon id="deploy-execute-button".to_string()  img_src="public/play-circle.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="rest-api-button".to_string()  img_src="public/debug-disconnect.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon/>
 
@@ -251,11 +333,11 @@ pub fn App() -> impl IntoView {
             </div>
 
             <div class="sidebar-details" style="display: flex; flex-basis: 300px;">
-                <SidebarFileExplorer selected_activity_icon=selected_activity_icon fs_html=fs_html set_fs_html=set_fs_html set_selected_file=set_selected_file set_open_files=set_open_files />
                 <SidebarEnvironment selected_activity_icon=selected_activity_icon environment_dropdown_active=environment_dropdown_active set_environment_dropdown_active=set_environment_dropdown_active current_environment_dropdown_item=current_environment_dropdown_item set_current_environment_dropdown_item=set_current_environment_dropdown_item current_environment_dropdown_text=current_environment_dropdown_text set_current_environment_dropdown_text=set_current_environment_dropdown_text/>
+                <SidebarFileExplorer selected_activity_icon=selected_activity_icon fs_html=fs_html set_fs_html=set_fs_html selected_file=selected_file set_selected_file=set_selected_file set_open_files=set_open_files saved_file_contents=saved_file_contents set_saved_file_contents=set_saved_file_contents cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents/>
                 <SidebarAccount selected_activity_icon=selected_activity_icon/>
                 <SidebarRecords selected_activity_icon=selected_activity_icon/>
-                <SidebarCompile selected_activity_icon=selected_activity_icon/>
+                // <SidebarCompile selected_activity_icon=selected_activity_icon/>
                 <SidebarDeployExecute selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item />
                 <SidebarRestApi selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item/>
             </div>
@@ -277,7 +359,7 @@ pub fn App() -> impl IntoView {
                         let _ = child.dyn_into::<HtmlElement>().unwrap().style().set_property("pointer-events","none");
                     } 
                 }
-                let _ =result_element.dyn_into::<HtmlElement>().unwrap().style().set_property("cursor", "col-resize");
+                let _ = result_element.dyn_into::<HtmlElement>().unwrap().style().set_property("cursor", "col-resize");
             }
             ></div>
 
@@ -287,11 +369,11 @@ pub fn App() -> impl IntoView {
                     <div class= "tabs">
                         <For each=move || open_files.get() key=|tuple| tuple.0.clone() children=move |(filepath, filename)| {
                             view! {
-                                <FileTab filepath=filepath filename=filename selected_file=selected_file set_selected_file=set_selected_file open_files=open_files set_open_files=set_open_files/>
+                                <FileTab filepath=filepath filename=filename selected_file=selected_file set_selected_file=set_selected_file open_files=open_files set_open_files=set_open_files saved_file_contents=saved_file_contents set_saved_file_contents=set_saved_file_contents cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents/>
                             }
                         }/>
                     </div>
-                    <IDE lines_html=lines_html set_lines_html=set_lines_html sl=sl set_sl=set_sl st=st set_st=set_st highlighted_msg=highlighted_msg set_highlighted_msg=set_highlighted_msg syntax_set=syntax_set theme=theme selected_file=selected_file/>
+                    <IDE lines_html=lines_html set_lines_html=set_lines_html sl=sl set_sl=set_sl st=st set_st=set_st highlighted_msg=highlighted_msg set_highlighted_msg=set_highlighted_msg syntax_set=syntax_set theme=theme selected_file=selected_file saved_file_contents=saved_file_contents set_saved_file_contents=set_saved_file_contents cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents/>
                 </div>
                 <div class = "terminal">
                     //TODO: Start this

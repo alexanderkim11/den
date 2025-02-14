@@ -1,9 +1,10 @@
 use leptos::ev::Event;
-use leptos::web_sys::{Element,HtmlElement, HtmlImageElement};
+use leptos::web_sys::{Element,HtmlElement, HtmlImageElement, HtmlTextAreaElement};
 use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use std::collections::HashMap;
 
 
 
@@ -82,8 +83,13 @@ pub fn SidebarFileExplorer (
     fs_html: ReadSignal<String>,
     set_fs_html : WriteSignal<String>,
     selected_activity_icon: ReadSignal<String>,
+    selected_file : ReadSignal<String>,
     set_selected_file: WriteSignal<String>,
-    set_open_files: WriteSignal<Vec<(String,String)>>
+    set_open_files: WriteSignal<Vec<(String,String)>>,
+    saved_file_contents: ReadSignal<HashMap<String,String>>, 
+    set_saved_file_contents: WriteSignal<HashMap<String,String>>,
+    cached_file_contents: ReadSignal<HashMap<String,String>>, 
+    set_cached_file_contents: WriteSignal<HashMap<String,String>>
 ) -> impl IntoView {
 
 
@@ -102,6 +108,17 @@ pub fn SidebarFileExplorer (
         let temp = filepath.clone();
         let collection = temp.split("\\").collect::<Vec<&str>>();
         let filename = collection[collection.len()-1].to_string();
+
+
+        let current_filepath = selected_file.get_untracked();
+        let mut cached_content = cached_file_contents.get_untracked();
+
+        let document = leptos::prelude::document();
+        let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+
+        cached_content.remove(&current_filepath);
+        cached_content.insert(current_filepath,result_element.value());
+        set_cached_file_contents.set(cached_content);
 
         set_selected_file.set(filepath.clone());
         set_open_files.update(|vec| if !vec.contains(&(filepath.clone(),filename.clone())){vec.push((filepath.clone(),filename.clone()))});

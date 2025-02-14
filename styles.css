@@ -102,14 +102,14 @@
   height: 100%
 }
 
-#file-explorer-button {
+
+#environment-button {
   order:1;
 }
 
-#environment-button {
+#file-explorer-button {
   order:2;
 }
-
 
 #account-button {
   order:3;

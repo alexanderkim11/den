@@ -3,9 +3,10 @@ mod highlight;
 mod leo;
 mod load_theme_syntax;
 mod open_explorer;
-mod read_file;
+mod file;
 mod clipboard;
 mod snarkvm;
+mod dialog;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -14,12 +15,14 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            load_theme_syntax::load,
-            highlight::highlight,
-            open_explorer::open_explorer,
-            read_file::read_file,
             clipboard::copy,
+            dialog::warning,
+            file::read_file,
+            file::write_file,
+            highlight::highlight,
             leo::execute,
+            load_theme_syntax::load,
+            open_explorer::open_explorer,
             snarkvm::new_account,
             snarkvm::account_from_pk,
             snarkvm::address_from_vk,
