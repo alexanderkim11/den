@@ -200,14 +200,8 @@ pub fn SidebarRestApi (
 
                                 let document = leptos::prelude::document();
 
-                                // let output_field = document.query_selector("#get-account-balance-output").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                // if output_field.inner_html() != "".to_string() {
-                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                //     let _ = card_element.style().set_property("height", "100%");
-                                // } else {
-                                //     let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                //     let _ = card_element.style().remove_property("height");
-                                // }
+                                let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = card_element.style().remove_property("height");
 
                                 let target = document.query_selector("#rest-api-dropdown-button").unwrap().unwrap();
                                 let new_val = Array::new();
@@ -235,7 +229,7 @@ pub fn SidebarRestApi (
                             </div>
                         </div>
                     </div>
-                    <button id="get-button" class="card-button"
+                    <button id="get-latest-block-get-button" class="card-button"
                     on:click:target=move|_ev| {        
                         let document = leptos::prelude::document();               
                         spawn_local(async move {
@@ -262,11 +256,14 @@ pub fn SidebarRestApi (
                                 let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 let output_field = document.query_selector("#get-latest-block-output-field").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 let _ = card_element.style().set_property("height", "100%");
-                                let _ = output_field.style().set_property("display","inline-block");    
+                                let _ = output_field.style().set_property("display","inline-block");
+
+                                let old_button = document.query_selector("#get-latest-block-get-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let new_button = document.query_selector("#get-latest-block-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                
+                                let _ = old_button.style().set_property("display", "none");
+                                let _ = new_button.style().set_property("display", "flex");        
                             } else {
-                                let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                error.set_inner_html("Error: The program with this ID does not exist.");
-                                let _ = error.style().set_property("display", "block");
                             }
                         });
                             
@@ -274,6 +271,36 @@ pub fn SidebarRestApi (
                     >
                         Get
                     </button>
+                    <div id="get-latest-block-double-button" class="double-button-wrapper" style="order:3; display:none; justify-content:center">
+                        <button id="get-latest-block-open-button" class="card-button" style="margin-right:10px;"
+                        on:click:target=move|_ev| {
+
+                        }
+                        >
+                            Open
+                        </button>
+                        <button id="get-latest-block-clear-button" class="card-button-clear" style="margin-left:10px;"
+                        on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+
+                            let old_button = document.query_selector("#get-latest-block-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let new_button = document.query_selector("#get-latest-block-get-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            
+                            let _ = old_button.style().set_property("display", "none");
+                            let _ = new_button.style().set_property("display", "inline-block");    
+
+                            let output_element = document.query_selector("#get-latest-block-output").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                            output_element.set_inner_html(""); 
+
+                            let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let output_field = document.query_selector("#get-latest-block-output-field").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = card_element.style().remove_property("height");
+                            let _ = output_field.style().set_property("display", "none");
+                        }
+                        >
+                            Clear
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-block-by-height-button" {"display: flex"} else {"display: none"}}>
                     <div id="get-block-by-height-input-card-body" class="card-body">
@@ -288,7 +315,7 @@ pub fn SidebarRestApi (
                             <div class="output-field" style="display:flex; flex-direction: column;">
                                 <div class="field-title">Block Height</div>
                                 <div class="output-input-wrapper">
-                                    <input id="get-block-by-height-output-height" placeholder="Block Height" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                    <input id="get-block-by-height-output-height" style="border-radius:6px;" placeholder="Block Height" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                                 </div>
                             </div>    
                             
@@ -304,7 +331,7 @@ pub fn SidebarRestApi (
                     </div>
 
                     <div class="card-divider"/>
-                    <button id="get-button" class="card-button"
+                    <button id="get-block-by-height-get-button" class="card-button"
                     on:click:target=move|_ev| {
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#get-block-by-height-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -315,7 +342,7 @@ pub fn SidebarRestApi (
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
                             let _ = style.set_property("border", "1px solid #494e64");
-                            let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let error = document.query_selector("#get-block-by-height-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = error.style().set_property("display", "none");
                             
                             spawn_local(async move {
@@ -349,6 +376,12 @@ pub fn SidebarRestApi (
                                     let _ = old_body.style().set_property("display", "none");
                                     let _ = new_body.style().set_property("display", "flex");
 
+                                    let old_button = document.query_selector("#get-block-by-height-get-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_button = document.query_selector("#get-block-by-height-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    
+                                    let _ = old_button.style().set_property("display", "none");
+                                    let _ = new_button.style().set_property("display", "flex");        
+
 
 
                                 } else {
@@ -363,45 +396,41 @@ pub fn SidebarRestApi (
                     >
                         Get
                     </button>
-                </div>  
+                    <div id="get-block-by-height-double-button" class="double-button-wrapper" style="order:3; display:none; justify-content:center">
+                        <button id="get-block-by-height-open-button" class="card-button" style="margin-right:10px;"
+                        on:click:target=move|_ev| {
 
+                        }
+                        >
+                            Open
+                        </button>
+                        <button id="get-block-by-height-clear-button" class="card-button-clear" style="margin-left:10px;"
+                        on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
 
+                            let old_button = document.query_selector("#get-block-by-height-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let new_button = document.query_selector("#get-block-by-height-get-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            
+                            let _ = old_button.style().set_property("display", "none");
+                            let _ = new_button.style().set_property("display", "inline-block");    
 
+                            let output_element = document.query_selector("#get-block-by-height-output-json").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                            output_element.set_inner_html(""); 
 
+                            let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = card_element.style().remove_property("height");
 
-
-
-
-                <div id="get-transaction-output-card-body" class="card-body" style="display:none; flex-direction:column;">
-                    <div id="get-transaction-output-field" class="output-field" style="display:flex; flex-direction:column; box-sizing:border-box; order:2; height:100%;">
-                        <div class="output-field" style="display:flex; flex-direction: column;">
-                            <div class="field-title">Transaction ID</div>
-                            <div class="output-input-wrapper">
-                                <input id="get-transaction-output-id" placeholder="Transaction ID" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
-                                <div class="output-img-wrapper">
-                                    <CopyButton target_field="#get-transaction-output-id".to_string() element_type="Input".to_string()/>
-                                </div>
-                            </div>
-                        </div>    
-                        
-                        <div style="order:0" class="field-title">JSON</div>
-
-                        <div class="output-textarea-wrapper" style="box-sizing: border-box; padding-bottom:10px">
-                            <textarea style="order:0; white-space:normal;" id="get-transaction-output-json" placeholder="None" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
-                            <div class="output-textarea-img-wrapper" style="order:1">
-                                <CopyButton target_field="#get-transaction-output-json".to_string() element_type="TextArea".to_string()/>
-                            </div>
-                        </div>
+                            let new_body = document.query_selector("#get-block-by-height-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let old_body = document.query_selector("#get-block-by-height-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            
+                            let _ = old_body.style().set_property("display", "none");
+                            let _ = new_body.style().set_property("display", "block");
+                        }
+                        >
+                            Clear
+                        </button>
                     </div>
-                </div>
-
-
-
-
-
-
-
-
+                </div>  
 
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-program-button" {"display: flex"} else {"display: none"}}>
@@ -437,7 +466,7 @@ pub fn SidebarRestApi (
 
                     <div class="card-divider"/>
 
-                    <button id="get-button" class="card-button"
+                    <button id="get-program-get-button" class="card-button"
                     on:click:target=move|_ev| {
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#get-program-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -481,6 +510,13 @@ pub fn SidebarRestApi (
                                     let _ = old_body.style().set_property("display", "none");
                                     let _ = new_body.style().set_property("display", "flex");
 
+                                    let old_button = document.query_selector("#get-program-get-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_button = document.query_selector("#get-program-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    
+                                    let _ = old_button.style().set_property("display", "none");
+                                    let _ = new_button.style().set_property("display", "flex");        
+
+
 
 
                                 } else {
@@ -495,6 +531,40 @@ pub fn SidebarRestApi (
                     >
                         Get
                     </button>
+                    <div id="get-program-double-button" class="double-button-wrapper" style="order:3; display:none; justify-content:center">
+                        <button id="get-program-open-button" class="card-button" style="margin-right:10px;"
+                        on:click:target=move|_ev| {
+
+                        }
+                        >
+                            Open
+                        </button>
+                        <button id="get-program-clear-button" class="card-button-clear" style="margin-left:10px;"
+                        on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+
+                            let old_button = document.query_selector("#get-program-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let new_button = document.query_selector("#get-program-get-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            
+                            let _ = old_button.style().set_property("display", "none");
+                            let _ = new_button.style().set_property("display", "inline-block");    
+
+                            let output_element = document.query_selector("#get-program-output-json").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                            output_element.set_inner_html(""); 
+
+                            let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = card_element.style().remove_property("height");
+
+                            let new_body = document.query_selector("#get-program-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let old_body = document.query_selector("#get-program-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            
+                            let _ = old_body.style().set_property("display", "none");
+                            let _ = new_body.style().set_property("display", "block");
+                        }
+                        >
+                            Clear
+                        </button>
+                    </div>
                 </div>
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-transaction-button" {"display: flex"} else {"display: none"}}>
@@ -529,7 +599,7 @@ pub fn SidebarRestApi (
                     </div>
 
                     <div class="card-divider"/>
-                    <button id="get-button" class="card-button"
+                    <button id="get-transaction-get-button" class="card-button"
                     on:click:target=move|_ev| {
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#get-transaction-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -573,7 +643,12 @@ pub fn SidebarRestApi (
                                     
                                     let _ = old_body.style().set_property("display", "none");
                                     let _ = new_body.style().set_property("display", "flex");
-
+                                    
+                                    let old_button = document.query_selector("#get-transaction-get-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_button = document.query_selector("#get-transaction-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    
+                                    let _ = old_button.style().set_property("display", "none");
+                                    let _ = new_button.style().set_property("display", "flex");        
 
 
                                 } else {
@@ -588,6 +663,41 @@ pub fn SidebarRestApi (
                     >
                         Get
                     </button>
+
+                    <div id="get-transaction-double-button" class="double-button-wrapper" style="order:3; display:none; justify-content:center">
+                        <button id="get-transaction-open-button" class="card-button" style="margin-right:10px;"
+                        on:click:target=move|_ev| {
+
+                        }
+                        >
+                            Open
+                        </button>
+                        <button id="get-transaction-clear-button" class="card-button-clear" style="margin-left:10px;"
+                        on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+
+                            let old_button = document.query_selector("#get-transaction-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let new_button = document.query_selector("#get-transaction-get-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            
+                            let _ = old_button.style().set_property("display", "none");
+                            let _ = new_button.style().set_property("display", "inline-block");    
+
+                            let output_element = document.query_selector("#get-transaction-output-json").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                            output_element.set_inner_html(""); 
+
+                            let card_element = document.query_selector("#rest-api-card").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = card_element.style().remove_property("height");
+
+                            let new_body = document.query_selector("#get-transaction-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let old_body = document.query_selector("#get-transaction-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            
+                            let _ = old_body.style().set_property("display", "none");
+                            let _ = new_body.style().set_property("display", "block");
+                        }
+                        >
+                            Clear
+                        </button>
+                    </div>
                 </div>  
 
 

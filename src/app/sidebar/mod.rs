@@ -87,6 +87,8 @@ pub fn CopyButton(
 pub fn SidebarIcon(
     #[prop(optional)]
     selected: bool,
+    #[prop(optional)]
+    style:String,
     id : String,
     img_src : String,
     selected_activity_icon: ReadSignal<String>,
@@ -100,7 +102,7 @@ pub fn SidebarIcon(
         class = "";
     }
     view!{
-        <button id = id.clone() class=class
+        <button id = id.clone() class=class style=style
         on:click=move |_|{
             let currently_selected = selected_activity_icon.get();
             let this_name = format!("{}{}","#", id);

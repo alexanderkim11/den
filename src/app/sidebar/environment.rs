@@ -36,6 +36,10 @@ pub fn SidebarEnvironment (
 
     current_environment_dropdown_text : ReadSignal<String>,
     set_current_environment_dropdown_text : WriteSignal<String>,
+
+    current_endpoint : ReadSignal<String>,
+    set_current_endpoint : WriteSignal<String>,
+
 ) -> impl IntoView {
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#environment-button" {"display: flex;"} else {"display: none;"}}>
@@ -75,6 +79,7 @@ pub fn SidebarEnvironment (
                                         if current_environment_dropdown_item.get() != ev.target().id(){
                                             set_current_environment_dropdown_item.set(ev.target().id());
                                             set_current_environment_dropdown_text.set(ev.target().inner_html());
+                                            set_current_endpoint.set("http://localhost:3030".to_string());
 
                                             let document = leptos::prelude::document();
                                             let target = document.query_selector("#environment-dropdown-button").unwrap().unwrap();
@@ -92,6 +97,7 @@ pub fn SidebarEnvironment (
                                         if current_environment_dropdown_item.get() != ev.target().id(){
                                             set_current_environment_dropdown_item.set(ev.target().id());
                                             set_current_environment_dropdown_text.set(ev.target().inner_html());
+                                            set_current_endpoint.set("https://api.explorer.provable.com/v1".to_string());
 
                                             let document = leptos::prelude::document();
                                             let target = document.query_selector("#environment-dropdown-button").unwrap().unwrap();
@@ -110,6 +116,7 @@ pub fn SidebarEnvironment (
                                         if current_environment_dropdown_item.get() != ev.target().id(){
                                             set_current_environment_dropdown_item.set(ev.target().id());
                                             set_current_environment_dropdown_text.set(ev.target().inner_html());
+                                            set_current_endpoint.set("https://api.explorer.provable.com/v1".to_string());
 
                                             let document = leptos::prelude::document();
                                             let target = document.query_selector("#environment-dropdown-button").unwrap().unwrap();
@@ -124,6 +131,11 @@ pub fn SidebarEnvironment (
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="input-field">
+                            <div class="field-title">Endpoint</div>
+                            <input id="endpoint-input" value={move || current_endpoint.get()}placeholder="Endpoint" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                            //<div id="get-block-by-height-input-error" class="error-title" style="display:none;"></div>
                         </div>
                     </div>
                 </div>

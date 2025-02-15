@@ -124,6 +124,7 @@ pub fn SidebarRecords (
                                 </div>
                             </div>
                         </div>
+                        <div id="decrypt-records-error" class="error-title" style="display:none;"></div>
                     </div>
                     <div class="card-divider"/>
                     <button id="decrypt-button" class="card-button"
