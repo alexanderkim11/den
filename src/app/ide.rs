@@ -77,8 +77,8 @@ fn get_width(code : &str) -> i32{
 // Helper function to get number of lines currently typed in editor
 pub fn get_lines(code2: String) -> String{
     let mut code = code2;
-    let previous_index = cmp::max(0, (code.len() as isize)-1) as usize;
-    let last_char = &code[previous_index..code.len()];
+    let last_index = cmp::max(0, (code.len() as isize)-1) as usize;
+    let last_char = &code[last_index..code.len()];
     if last_char == "\n" {
         code = format!("{}{}", code, "\u{00A0}");   
     }
@@ -284,6 +284,7 @@ pub fn IDE(
                                     let contents = cached_contents.get(&selected).unwrap();
                                     let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
                                     let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                    console_log(&contents);
                                     set_highlighted_msg.set(highlighted);
 
 

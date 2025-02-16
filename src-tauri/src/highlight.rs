@@ -5,6 +5,7 @@ use syntect::{
 };
 
 use std::fmt::Write;
+use std::cmp;
 
 fn write_css_color(s: &mut String, c: Color) {
     if c.a != 0xFF {
@@ -47,7 +48,14 @@ pub fn highlight(code: String, ss: SyntaxSet, theme: Theme) -> String {
     let syntax = ss.find_syntax_by_name("leo").expect("error with syntax");
     let mut h = HighlightLines::new(syntax, &theme);
 
-    let highlighted = h.highlight_line(&code, &ss).unwrap();
+    let mut code2 = code;
+    let last_index = cmp::max(0, (code2.len() as isize)-1) as usize;
+    let last_char = &code2[last_index..code2.len()];
+    if last_char == "\n" {
+        code2 = format!("{}{}", code2, "\u{00A0}");   
+    }   
+
+    let highlighted = h.highlight_line(&code2, &ss).unwrap();
     // println!("{:?}", highlighted);
     let html = generate_html(highlighted);
     //println!("{:?}", html);

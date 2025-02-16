@@ -4,6 +4,8 @@ use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use indexmap::IndexMap;
+
 
 use crate::app::CopyButton;
 
@@ -62,7 +64,9 @@ COMPONENTS
 
 #[component]
 pub fn SidebarAccount (
-    selected_activity_icon: ReadSignal<String>
+    selected_activity_icon: ReadSignal<String>,
+    accounts : ReadSignal<IndexMap<String,(String,String,String)>>,
+    set_accounts : WriteSignal<IndexMap<String,(String,String,String)>>,
 ) -> impl IntoView {
 
     /*
@@ -72,8 +76,12 @@ pub fn SidebarAccount (
     */
 
     let (dropdown_active, set_dropdown_active) = signal(false);
-    let (current_dropdown_item, set_current_dropdown_item) = signal("create-new-account-button".to_string());
-    let (current_dropdown_text, set_current_dropdown_text) = signal("Create a New Account".to_string());
+    let (current_dropdown_item, set_current_dropdown_item) = signal("saved-accounts-button".to_string());
+    let (current_dropdown_text, set_current_dropdown_text) = signal("Saved Accounts".to_string());
+
+    let (saved_accounts_dropdown_active, set_saved_accounts_dropdown_active) = signal(false);
+    let (saved_accounts_dropdown_item, set_saved_accounts_dropdown_item) = signal(String::new());
+    let (saved_accounts_dropdown_text, set_saved_accounts_dropdown_text) = signal("--".to_string());
 
     /*
     ==============================================================================
@@ -86,7 +94,7 @@ pub fn SidebarAccount (
             <div class="sidebar-title">Account</div>
             <div id="account-card" class="card">
 
-                <div id="account-dropdown-custom" class="dropdown-custom-head">
+                <div id="account-dropdown-custom" class="dropdown-custom-head" style="z-index:3">
                     <div id="account-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
                     {
                         let this = ev.target().dyn_into::<Element>().unwrap();
@@ -104,6 +112,25 @@ pub fn SidebarAccount (
                         <img src="public/chevron-down-dark.svg"/>
                     </div>
                     <div id="account-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
+
+                        <div id="saved-accounts-button" class={move || if current_dropdown_item.get() == "saved-accounts-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                        on:click:target = move|ev| {
+                            if current_dropdown_item.get() != ev.target().id(){
+                                set_current_dropdown_item.set(ev.target().id());
+                                set_current_dropdown_text.set(ev.target().inner_html());
+
+                                let document = leptos::prelude::document();
+                                let target = document.query_selector("#account-dropdown-button").unwrap().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                let _ = target.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            }
+                        }
+                        >
+                            Saved Accounts
+                        </div>
+
                         <div id="create-new-account-button" class={move || if current_dropdown_item.get() == "create-new-account-button" {"dropdown-item selected"} else {"dropdown-item"}}
                         on:click:target = move|ev| {
                             if current_dropdown_item.get() != ev.target().id(){
@@ -193,6 +220,64 @@ pub fn SidebarAccount (
 
                 </div>
 
+
+                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "saved-accounts-button" {"display: flex"} else {"display: none"}}>
+                    <div id="saved-accounts-card-body" class="card-body">
+
+                        <div class="input-field"  style="color:#e3e3e3;">
+                            <div class="field-title">Account</div>
+                            <div id="saved-accounts-dropdown-custom" class="dropdown-custom">
+                                <div id="saved-accounts-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                                {
+                                    let this = ev.target().dyn_into::<Element>().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    if this.class_list().contains("show"){
+                                        let _ = this.class_list().remove(&new_val);
+                                        set_saved_accounts_dropdown_active.set(false);
+                                    } else {
+                                        let _ = this.class_list().add(&new_val);
+                                        set_saved_accounts_dropdown_active.set(true);
+                                    }
+                                }> 
+                                    <div class="buffer" inner_html={move || saved_accounts_dropdown_text.get()}></div>
+                                    <img src="public/chevron-down.svg"/>
+                                </div>
+                                <div id="saved-accounts-dropdown-content" class="dropdown-content" style={move || if saved_accounts_dropdown_active.get() {"display: block"} else {"display: none"}}>
+                                    <div id="placeholder-button" class="dropdown-item-placeholder" style={move || if accounts.get().len() == 0 {"display: block; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {"display: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"}}
+                                    >
+                                        Please load an account first!
+                                    </div>
+                                    <For each=move || accounts.get() key=|(key,_)| key.to_string() children=move |(name,_)| {
+                                        view! {
+                                            <div id=name class={ let name_clone = name.clone(); move || { let id = saved_accounts_dropdown_item.get(); if id == name_clone  {"dropdown-item selected"} else {"dropdown-item"}}} style={ let name_clone = name.clone(); move || { let accounts_map = accounts.get(); if accounts_map.len() != 0 {let final_item = &accounts_map.get_index(accounts_map.len()-1).unwrap(); if final_item.0.to_string() == name_clone {"border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {""}} else {""}}}
+                                            on:click:target = move|ev| {
+                                                let current_item = saved_accounts_dropdown_item.get();
+                                                if current_item != ev.target().id(){
+                                                    set_saved_accounts_dropdown_item.set(ev.target().id());
+                                                    set_saved_accounts_dropdown_text.set(ev.target().inner_html());
+                    
+                                                    let document = leptos::prelude::document();
+                                                    let target = document.query_selector("#saved-accounts-dropdown-button").unwrap().unwrap();
+                                                    let new_val = Array::new();
+                                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                                    let _ = target.class_list().remove(&new_val);
+                                                    set_saved_accounts_dropdown_active.set(false);
+                                                }
+                                            }
+
+                                            >
+                                                {name.clone()}
+                                            </div>                                     
+                                        }
+                                    }/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "create-new-account-button" {"display: flex"} else {"display: none"}}>
                     <div id="create-account-card-body" class="card-body">
                         <div class="input-field">
@@ -264,10 +349,10 @@ pub fn SidebarAccount (
                         on:click:target=move|_ev| {
                             let document = leptos::prelude::document();
                             let current_input = document.query_selector("#create-new-account-input-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                            let value = current_input.value().clone();
+                            let name = current_input.value().clone();
                             let target = current_input.dyn_into::<HtmlElement>().unwrap();
                             let style = target.style();
-                            if &value == "" {
+                            if &name == "" {
                                 let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                             } else {
                                 let _ = style.set_property("border", "1px solid #494e64"); 
@@ -275,9 +360,13 @@ pub fn SidebarAccount (
                                 let vk_output_element = document.query_selector("#create-new-account-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                 let address_output_element = document.query_selector("#create-new-account-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
         
-                                // let pk = current_address_output.value();
-                                // let message = current_message_output.value();
-                                // let signature = current_signature_output.value();
+                                let pk = pk_output_element.value();
+                                let vk = vk_output_element.value();
+                                let address = address_output_element.value();
+
+                                let mut accounts = accounts.get_untracked();
+                                accounts.insert(name,(pk,vk,address));
+                                set_accounts.set(accounts);
                             }
                         }
                         >
@@ -421,9 +510,13 @@ pub fn SidebarAccount (
                                 let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                 let address_output_element = document.query_selector("#load-account-from-pk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
         
-                                // let pk = current_address_output.value();
-                                // let message = current_message_output.value();
-                                // let signature = current_signature_output.value();
+                                let pk = pk_output_element.value();
+                                let vk = vk_output_element.value();
+                                let address = address_output_element.value();
+
+                                let mut accounts = accounts.get_untracked();
+                                accounts.insert(name,(pk,vk,address));
+                                set_accounts.set(accounts);
                             }
                         }
                         >

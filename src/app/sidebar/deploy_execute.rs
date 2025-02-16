@@ -35,7 +35,6 @@ COMPONENTS
 pub fn SidebarDeployExecute (
     selected_activity_icon: ReadSignal<String>,
     // accounts: ReadSignal<Vec<String>>
-    current_environment_dropdown_item : ReadSignal<String>,
 
 ) -> impl IntoView {
 
@@ -50,9 +49,9 @@ pub fn SidebarDeployExecute (
     let (current_dropdown_text, set_current_dropdown_text) = signal("Deploy a New Program".to_string());
 
 
-    let (environment_dropdown_active, set_environment_dropdown_active) = signal(false);
-    let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("".to_string());
-    let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("--".to_string());
+    let (deploy_accounts_dropdown_active, set_deploy_accounts_dropdown_active) = signal(false);
+    let (environment_dropdown_item, set_environment_dropdown_item) = signal("".to_string());
+    let (deploy_accounts_dropdown_text, set_deploy_accounts_dropdown_text) = signal("--".to_string());
 
     /*
     ==============================================================================
@@ -132,24 +131,24 @@ pub fn SidebarDeployExecute (
 
                         <div class="input-field"  style="color:#e3e3e3;">
                             <div class="field-title">Account</div>
-                            <div id="environment-dropdown-custom" class="dropdown-custom">
-                                <div id="environment-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                            <div id="deploy-accounts-dropdown-custom" class="dropdown-custom">
+                                <div id="deploy-accounts-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
                                 {
                                     let this = ev.target().dyn_into::<Element>().unwrap();
                                     let new_val = Array::new();
                                     new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
                                     if this.class_list().contains("show"){
                                         let _ = this.class_list().remove(&new_val);
-                                        set_environment_dropdown_active.set(false);
+                                        set_deploy_accounts_dropdown_active.set(false);
                                     } else {
                                         let _ = this.class_list().add(&new_val);
-                                        set_environment_dropdown_active.set(true);
+                                        set_deploy_accounts_dropdown_active.set(true);
                                     }
                                 }> 
-                                    <div class="buffer" inner_html={move || current_environment_dropdown_text.get()}></div>
+                                    <div class="buffer" inner_html={move || deploy_accounts_dropdown_text.get()}></div>
                                     <img src="public/chevron-down.svg"/>
                                 </div>
-                                <div id="environment-dropdown-content" class="dropdown-content" style={move || if environment_dropdown_active.get() {"display: block"} else {"display: none"}}>
+                                <div id="deploy-accounts-dropdown-content" class="dropdown-content" style={move || if deploy_accounts_dropdown_active.get() {"display: block"} else {"display: none"}}>
                                     <div id="placeholder-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if false {"dropdown-item-placeholder selected"} else {"dropdown-item-placeholder"}}
                                     >
                                         Please load an account first!

@@ -7,11 +7,15 @@
 Built with Tauri + Leptos
 
 # TODO:
+
+**BOLD** signifies priority tasking
+
 ## General:
 - **Integrate Devnet support**
 - Work on Custom Titlebar with buttons
 - Need to figure out way to integrate LSP server for document-wide error checking
 - Disable button clicking when backend/API requests are pending
+- Testing framework?
 
 ## Sidebar:
 - General:
@@ -27,11 +31,19 @@ Built with Tauri + Leptos
 
 - Environment:
     - Add more features?
-- Account:
+    - Add way to edit API endpoint
+- Account
+    - Add authentication/authorization for accounts when either loading from persistant state or creating transactions?
+    - Add background async function to periodically scan and update saved account balances, also should run whenever transactions are sent out
+    - Saved Accounts
+        - Add fields showing account details once selected (Address, Balance, PK, VK, etc.)
+        - Hide PK and VK by default (password protected?)
     - Create New Account
-        - **Add way to save accounts once generated**
+        - **Add error checks if user tries to save account with existing name**
+        - Add error check if user tries to save the same (pk,vk,address) twice under different names?
     - Load Account from PK
-        - **Add way to save accounts once loaded**
+        - **Add error checks if user tries to save account with existing name**
+        - Add error check if user tries to save the same (pk,vk,address) twice under different names?
 - Records:
     - Add way to save records?
 - Compile
@@ -42,7 +54,7 @@ Built with Tauri + Leptos
     - Add deployed program interaction
     - Migrate leo.exe stuff to underlying snarkVM code for platform agnostic support
 - REST API:
-    - **Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support**
+    - **Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?**
     - Get Latest Block:
         - Add button to open latest block once retrieved
     - Get Block by Height:
@@ -50,7 +62,7 @@ Built with Tauri + Leptos
     - Get Program:
         - Add button to open program once retrieved
     - Get Transaction:
-        - Add button to open program once retrieved
+        - Add button to open transaction once retrieved
     - Get Account Balance:
         - Is there a better way to do this other than brute-force searching for record?
         - **Add functionality and output**

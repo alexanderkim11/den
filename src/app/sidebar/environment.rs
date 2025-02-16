@@ -134,7 +134,7 @@ pub fn SidebarEnvironment (
                         </div>
                         <div class="input-field">
                             <div class="field-title">Endpoint</div>
-                            <input id="endpoint-input" value={move || current_endpoint.get()}placeholder="Endpoint" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                            <input id="endpoint-input" value={move || current_endpoint.get()} placeholder="Endpoint" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                             //<div id="get-block-by-height-input-error" class="error-title" style="display:none;"></div>
                         </div>
                     </div>

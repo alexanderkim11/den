@@ -336,6 +336,7 @@
   -ms-user-select: none; 
   user-select: none;
   background: rgba(39,41,53,.7);
+  overflow:hidden;
 }
 
 .dropdown-custom .dropdown-content .dropdown-item.selected {

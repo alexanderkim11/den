@@ -14,6 +14,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::css::escape;
 use std::cmp;
 use std::collections::HashMap;
+use indexmap::IndexMap;
 
 
 
@@ -228,18 +229,19 @@ pub fn App() -> impl IntoView {
 
     let (selected_activity_icon, set_selected_activity_icon) = signal("#environment-button".to_string());
     let (selected_file, set_selected_file) = signal(String::new());
-    let new_vec : Vec<(String,String)> = Vec::new();
-    let (open_files, set_open_files) = signal(new_vec.clone());
+    let (open_files, set_open_files) : (ReadSignal<Vec<(String,String)>>,WriteSignal<Vec<(String,String)>>) = signal(Vec::new());
 
     let (saved_file_contents, set_saved_file_contents) : (ReadSignal<HashMap<String,String>>,WriteSignal<HashMap<String,String>>) = signal(HashMap::new());
     let (cached_file_contents, set_cached_file_contents) : (ReadSignal<HashMap<String,String>>,WriteSignal<HashMap<String,String>>) = signal(HashMap::new());
 
-    
     let (environment_dropdown_active, set_environment_dropdown_active) = signal(false);
     let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("devnet-button".to_string());
     let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Local Devnet".to_string());
     let (current_endpoint, set_current_endpoint) = signal("http://localhost:3030".to_string());
 
+    //let (accounts, set_accounts) : (ReadSignal<Vec<(String,String,String,String)>>,WriteSignal<Vec<(String,String,String,String)>>) = signal(Vec::new());
+    //let (accounts, set_accounts) : (ReadSignal<Vec<(String,String,String,String)>>,WriteSignal<Vec<(String,String,String,String)>>) = signal(vec![("Account 1".to_string(), "APrivateKey1zkpHVuQij6q5HX7LZMwqET7J7NmFjYhW9LEDZPAoW3mBhoe".to_string(), "AViewKey1nWF1a6XfzvrQ1r8LnrMeVN3aDBUFg1xZfdowAHqqo8L8".to_string(), "aleo109q2eaugqradc44qqzlf6n9ghzkazyh6fg2myzqrdzzm4jguxyqqp4d2l8".to_string()),("Account 2".to_string(), "APrivateKey1zkpHVuQij6q5HX7LZMwqET7J7NmFjYhW9LEDZPAoW3mBhoe".to_string(), "AViewKey1nWF1a6XfzvrQ1r8LnrMeVN3aDBUFg1xZfdowAHqqo8L8".to_string(), "aleo109q2eaugqradc44qqzlf6n9ghzkazyh6fg2myzqrdzzm4jguxyqqp4d2l8".to_string())]);
+    let (accounts, set_accounts) : (ReadSignal<IndexMap<String,(String,String,String)>>,WriteSignal<IndexMap<String,(String,String,String)>>) = signal(IndexMap::new());
 
     /*
     ==============================================================================
@@ -336,10 +338,10 @@ pub fn App() -> impl IntoView {
             <div class="sidebar-details" style="display: flex; flex-basis: 300px;">
                 <SidebarEnvironment selected_activity_icon=selected_activity_icon environment_dropdown_active=environment_dropdown_active set_environment_dropdown_active=set_environment_dropdown_active current_environment_dropdown_item=current_environment_dropdown_item set_current_environment_dropdown_item=set_current_environment_dropdown_item current_environment_dropdown_text=current_environment_dropdown_text set_current_environment_dropdown_text=set_current_environment_dropdown_text current_endpoint=current_endpoint set_current_endpoint=set_current_endpoint/>
                 <SidebarFileExplorer selected_activity_icon=selected_activity_icon fs_html=fs_html set_fs_html=set_fs_html selected_file=selected_file set_selected_file=set_selected_file set_open_files=set_open_files saved_file_contents=saved_file_contents set_saved_file_contents=set_saved_file_contents cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents/>
-                <SidebarAccount selected_activity_icon=selected_activity_icon/>
+                <SidebarAccount selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts/>
                 <SidebarRecords selected_activity_icon=selected_activity_icon/>
                 // <SidebarCompile selected_activity_icon=selected_activity_icon/>
-                <SidebarDeployExecute selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item />
+                <SidebarDeployExecute selected_activity_icon=selected_activity_icon/>
                 <SidebarRestApi selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item/>
             </div>
 
