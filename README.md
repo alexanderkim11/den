@@ -15,14 +15,12 @@ Built with Tauri + Leptos
 - **Integrate Devnet support**
 - Work on Custom Titlebar with buttons
 - Need to figure out way to integrate LSP server for document-wide error checking
-- **Disable button clicking when backend/API requests are pending**
 - Testing framework?
 
 ## Sidebar:
 - General:
     - Add hover names for sidebar icon buttons?
     - **Persistant state between closing and reopening the app**
-    - Disable copy button if target field is empty
 - File System:
     - **Reset FS default directory**
     - **Add way to open new file directory**
@@ -61,7 +59,7 @@ Built with Tauri + Leptos
 - Highlight current line of text with gray?
 - **Add highlighting conditional on file type (.leo vs .aleo vs. everything else)**
 - **Maintain scroll level and cursor position when switching between file tabs and reopening files**
-- Add unsaved changes indicator to file tab
+- **Add unsaved changes indicator to file tab**
 
 ## Terminal:
 - **Start work on this**

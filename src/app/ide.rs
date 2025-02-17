@@ -172,6 +172,12 @@ pub fn IDE(
                     let lines_html = get_lines(ev.target().value());
                     set_lines_html.set(lines_html);
 
+                    let mut cached_content = cached_file_contents.get_untracked();
+                    let current_filepath = selected_file.get_untracked();
+                    cached_content.remove(&current_filepath);
+                    cached_content.insert(current_filepath,  ev.target().value());
+                    set_cached_file_contents.set(cached_content);   
+
                     spawn_local(
                         async move {
                             let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
@@ -284,7 +290,6 @@ pub fn IDE(
                                     let contents = cached_contents.get(&selected).unwrap();
                                     let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
                                     let highlighted = invoke("highlight", args).await.as_string().unwrap();
-                                    console_log(&contents);
                                     set_highlighted_msg.set(highlighted);
 
 

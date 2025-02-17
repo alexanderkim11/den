@@ -16,6 +16,9 @@ use std::cmp;
 use std::collections::HashMap;
 use indexmap::IndexMap;
 
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+
 
 
 #[wasm_bindgen]
@@ -166,8 +169,97 @@ fn FileTab(
                     });
                     
                 }
-            }>
-                <img src="public/close.svg"/>
+            }
+            >
+                <div id={
+                    let mut hasher = DefaultHasher::new();
+                    format!("{}{}", filepath.clone(),"-unsaved").hash(&mut hasher);
+                    format!("{}{}","p",hasher.finish().to_string())
+                } style="display:none;" class="exit-img-wrapper">
+                    <img class="unsaved-icon" src="public/circle-filled.svg"/> 
+                    <img class="exit-icon" src="public/close.svg"/>
+                </div>
+                <div id={
+                    let mut hasher = DefaultHasher::new();
+                    format!("{}{}", filepath.clone(),"-saved").hash(&mut hasher);
+                    format!("{}{}","p",hasher.finish().to_string())   
+                } class="exit-img-wrapper">
+                    <img style="display:flex;" class="exit-icon" src="public/close.svg"/>
+                </div>
+
+                {Effect::new({
+                    let filepath_clone = filepath.clone();
+                    move |_| {
+                        let saved_content = saved_file_contents.get();
+                        let cached_content = cached_file_contents.get();
+
+                        let cached;
+                        match cached_content.get(&filepath_clone){
+                            Some(v) => cached = v.to_string(),
+                            None => cached = String::new(),
+                        }
+                        let saved;
+                        match saved_content.get(&filepath_clone){
+                            Some(v) => saved = v.to_string(),
+                            None => saved = String::new(),
+                        }
+
+
+                        let selected = selected_file.get_untracked();
+                        // if selected == filepath_clone {
+                        // if false {
+                        //     let document = leptos::prelude::document();
+                        //     let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                        //     let mut hasher = DefaultHasher::new();
+                        //     format!("{}{}", filepath_clone,"-saved").hash(&mut hasher);      
+                        //     let saved_id = format!("{}{}","#p",hasher.finish().to_string());
+                        //     let mut hasher = DefaultHasher::new();
+                        //     format!("{}{}", filepath_clone,"-unsaved").hash(&mut hasher);     
+                        //     let unsaved_id = format!("{}{}","#p",hasher.finish().to_string());
+                        //     console_log(&saved);
+                        //     console_log(&result_element.value());
+                        //     if saved != result_element.value() {
+                        //         let old_element = document.query_selector(&saved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        //         let new_element = document.query_selector(&unsaved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+
+                        //         let _ = old_element.style().set_property("display", "none");
+                        //         let _ = new_element.style().remove_property("display");
+
+                        //     } else {
+                        //         let new_element = document.query_selector(&saved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        //         let old_element = document.query_selector(&unsaved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+
+                        //         let _ = old_element.style().set_property("display", "none");
+                        //         let _ = new_element.style().remove_property("display");
+                        //     }
+
+                        // } else {
+                            let document = leptos::prelude::document();
+                            let mut hasher = DefaultHasher::new();
+                            format!("{}{}", filepath_clone,"-saved").hash(&mut hasher);      
+                            let saved_id = format!("{}{}","#p",hasher.finish().to_string());
+                            let mut hasher = DefaultHasher::new();
+                            format!("{}{}", filepath_clone,"-unsaved").hash(&mut hasher);     
+                            let unsaved_id = format!("{}{}","#p",hasher.finish().to_string());
+                            if saved != cached {
+                                let old_element = document.query_selector(&saved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let new_element = document.query_selector(&unsaved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+
+                                let _ = old_element.style().set_property("display", "none");
+                                let _ = new_element.style().remove_property("display");
+                            } else {
+                                let new_element = document.query_selector(&saved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let old_element = document.query_selector(&unsaved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+
+                                let _ = old_element.style().set_property("display", "none");
+                                let _ = new_element.style().remove_property("display");
+                            // }
+
+
+                        }
+                    }
+                });
+                }
             </button>
         </div>
 
