@@ -204,6 +204,13 @@
   cursor: pointer;
   transition:all .3s ease;
 }
+.open-folder-wrapper .open-folder.disabled {
+  color:#494e64;
+  border: 2px solid #494e64;;
+  background-color: var(--coal);
+  cursor: default;
+  pointer-events: none;
+}
 
 
 .sidebar-title {
@@ -684,11 +691,20 @@
   min-width:75px;
   transition:all .3s ease;
 }
+
 .card-button:hover {
   background-color:var(--lime);
   color:var(--coal);  
   cursor: pointer;
   transition:all .3s ease;
+}
+
+.card-button.disabled {
+  color:#494e64;
+  border: 2px solid #494e64;;
+  background-color: var(--coal);
+  cursor: default;
+  pointer-events: none;
 }
 
 

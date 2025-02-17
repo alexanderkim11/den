@@ -341,7 +341,7 @@ pub fn App() -> impl IntoView {
                 <SidebarAccount selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts/>
                 <SidebarRecords selected_activity_icon=selected_activity_icon/>
                 // <SidebarCompile selected_activity_icon=selected_activity_icon/>
-                <SidebarDeployExecute selected_activity_icon=selected_activity_icon/>
+                <SidebarDeployExecute selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts/>
                 <SidebarRestApi selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item/>
             </div>
 

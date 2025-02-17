@@ -5,6 +5,7 @@ use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use std::collections::HashMap;
+use js_sys::Array;
 
 
 
@@ -158,7 +159,13 @@ pub fn SidebarFileExplorer (
             <div class="sidebar-title">File Explorer</div>
             <div class="open-folder-wrapper" style="display:flex;">
                 <button class="open-folder"
-                on:click:target=move|_| {
+                on:click:target=move|ev| {
+                    let this = ev.target().dyn_into::<Element>().unwrap();
+                    let new_val = Array::new();
+                    new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                    let _ = this.class_list().add(&new_val);
+
+
                     spawn_local(async move {
                         let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { code : "null"}).unwrap();
 
@@ -172,6 +179,7 @@ pub fn SidebarFileExplorer (
                             let _ = element.style().set_property("display", "none");
                             set_fs_html.set(fs_html);
                         }
+                        let _ = this.class_list().remove(&new_val);
                     });
                 }
                 > Open Folder </button>

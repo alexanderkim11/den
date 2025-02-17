@@ -4,6 +4,7 @@ use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use indexmap::IndexMap;
 
 
 #[wasm_bindgen]
@@ -34,7 +35,8 @@ COMPONENTS
 #[component]
 pub fn SidebarDeployExecute (
     selected_activity_icon: ReadSignal<String>,
-    // accounts: ReadSignal<Vec<String>>
+    accounts : ReadSignal<IndexMap<String,(String,String,String)>>,
+    set_accounts : WriteSignal<IndexMap<String,(String,String,String)>>,
 
 ) -> impl IntoView {
 
@@ -50,7 +52,7 @@ pub fn SidebarDeployExecute (
 
 
     let (deploy_accounts_dropdown_active, set_deploy_accounts_dropdown_active) = signal(false);
-    let (environment_dropdown_item, set_environment_dropdown_item) = signal("".to_string());
+    let (deploy_accounts_dropdown_item, set_deploy_accounts_dropdown_item) = signal(String::new());
     let (deploy_accounts_dropdown_text, set_deploy_accounts_dropdown_text) = signal("--".to_string());
 
     /*
@@ -149,10 +151,33 @@ pub fn SidebarDeployExecute (
                                     <img src="public/chevron-down.svg"/>
                                 </div>
                                 <div id="deploy-accounts-dropdown-content" class="dropdown-content" style={move || if deploy_accounts_dropdown_active.get() {"display: block"} else {"display: none"}}>
-                                    <div id="placeholder-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if false {"dropdown-item-placeholder selected"} else {"dropdown-item-placeholder"}}
+                                    <div id="placeholder-button" class="dropdown-item-placeholder" style={move || if accounts.get().len() == 0 {"display: block; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {"display: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"}}
                                     >
                                         Please load an account first!
                                     </div>
+                                    <For each=move || accounts.get() key=|(key,_)| key.to_string() children=move |(name,_)| {
+                                        view! {
+                                            <div id=name class={ let name_clone = name.clone(); move || { let id = deploy_accounts_dropdown_item.get(); if id == name_clone  {"dropdown-item selected"} else {"dropdown-item"}}} style={ let name_clone = name.clone(); move || { let accounts_map = accounts.get(); if accounts_map.len() != 0 {let final_item = &accounts_map.get_index(accounts_map.len()-1).unwrap(); if final_item.0.to_string() == name_clone {"border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {""}} else {""}}}
+                                            on:click:target = move|ev| {
+                                                let current_item = deploy_accounts_dropdown_item.get();
+                                                if current_item != ev.target().id(){
+                                                    set_deploy_accounts_dropdown_item.set(ev.target().id());
+                                                    set_deploy_accounts_dropdown_text.set(ev.target().inner_html());
+                    
+                                                    let document = leptos::prelude::document();
+                                                    let target = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap();
+                                                    let new_val = Array::new();
+                                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                                    let _ = target.class_list().remove(&new_val);
+                                                    set_deploy_accounts_dropdown_active.set(false);
+                                                }
+                                            }
+
+                                            >
+                                                {name.clone()}
+                                            </div>                                     
+                                        }
+                                    }/>
                                 </div>
                             </div>
                         </div>

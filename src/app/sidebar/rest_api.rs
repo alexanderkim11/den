@@ -26,6 +26,13 @@ pub struct Command<> {
 }
 
 
+#[derive(Serialize, Deserialize)]
+pub struct URL<> {
+    pub url : String
+}
+
+
+
 /*
 ==============================================================================
 COMPONENTS
@@ -35,7 +42,6 @@ COMPONENTS
 #[component]
 pub fn SidebarRestApi (
     selected_activity_icon: ReadSignal<String>,
-    
     current_environment_dropdown_item : ReadSignal<String>,
 
 ) -> impl IntoView {
@@ -230,7 +236,12 @@ pub fn SidebarRestApi (
                         </div>
                     </div>
                     <button id="get-latest-block-get-button" class="card-button"
-                    on:click:target=move|_ev| {        
+                    on:click:target=move|ev| {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        let _ = this.class_list().add(&new_val);
+      
                         let document = leptos::prelude::document();               
                         spawn_local(async move {
                             let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
@@ -262,11 +273,13 @@ pub fn SidebarRestApi (
                                 let new_button = document.query_selector("#get-latest-block-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 
                                 let _ = old_button.style().set_property("display", "none");
-                                let _ = new_button.style().set_property("display", "flex");        
+                                let _ = new_button.style().set_property("display", "flex");
+                                let _ = this.class_list().remove(&new_val);        
                             } else {
+                                let _ = this.class_list().remove(&new_val);    
                             }
                         });
-                            
+                           
                     }
                     >
                         Get
@@ -274,7 +287,12 @@ pub fn SidebarRestApi (
                     <div id="get-latest-block-double-button" class="double-button-wrapper" style="order:3; display:none; justify-content:center">
                         <button id="get-latest-block-open-button" class="card-button" style="margin-right:10px;"
                         on:click:target=move|_ev| {
+                            spawn_local(async move {
+                                let base_url : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"https://explorer.provable.com/block/latest".to_string()} else {"https://testnet.explorer.provable.com/block/latest".to_string()};
+                                let args = serde_wasm_bindgen::to_value(&URL{url:base_url}).unwrap();
+                                invoke("open_url", args).await;
 
+                            });
                         }
                         >
                             Open
@@ -332,14 +350,22 @@ pub fn SidebarRestApi (
 
                     <div class="card-divider"/>
                     <button id="get-block-by-height-get-button" class="card-button"
-                    on:click:target=move|_ev| {
+                    on:click:target=move|ev| {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        let _ = this.class_list().add(&new_val);
+
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#get-block-by-height-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        let value = current_input.value().clone();
+                        let value = current_input.value();
                         let target = current_input.dyn_into::<HtmlElement>().unwrap();
                         let style = target.style();
                         if &value == "" {
-                            let _ = style.set_property("border", "1px solid var(--grapefruit)");   
+                            let _ = style.set_property("border", "1px solid var(--grapefruit)");
+                            let _ = this.class_list().remove(&new_val);
+                            let error = document.query_selector("#get-block-by-height-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");  
                         } else {
                             let _ = style.set_property("border", "1px solid #494e64");
                             let error = document.query_selector("#get-block-by-height-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
@@ -382,12 +408,13 @@ pub fn SidebarRestApi (
                                     let _ = old_button.style().set_property("display", "none");
                                     let _ = new_button.style().set_property("display", "flex");        
 
-
+                                    let _ = this.class_list().remove(&new_val);
 
                                 } else {
                                     let error = document.query_selector("#get-block-by-height-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     error.set_inner_html("Error: The block with this height does not exist.");
                                     let _ = error.style().set_property("display", "block");
+                                    let _ = this.class_list().remove(&new_val);    
                                 }
                             });
                             
@@ -399,7 +426,16 @@ pub fn SidebarRestApi (
                     <div id="get-block-by-height-double-button" class="double-button-wrapper" style="order:3; display:none; justify-content:center">
                         <button id="get-block-by-height-open-button" class="card-button" style="margin-right:10px;"
                         on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+                            let current_input = document.query_selector("#get-block-by-height-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let value = current_input.value();
+                            let base_url : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"https://explorer.provable.com/block/".to_string()} else {"https://testnet.explorer.provable.com/block/".to_string()};
+                            let url = format!("{}{}",base_url, value);
+                            spawn_local(async move {
+                                let args = serde_wasm_bindgen::to_value(&URL{url:url}).unwrap();
+                                invoke("open_url", args).await;
 
+                            });
                         }
                         >
                             Open
@@ -467,14 +503,22 @@ pub fn SidebarRestApi (
                     <div class="card-divider"/>
 
                     <button id="get-program-get-button" class="card-button"
-                    on:click:target=move|_ev| {
+                    on:click:target=move|ev| {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        let _ = this.class_list().add(&new_val);
+
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#get-program-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                         let value = current_input.value().clone();
                         let target = current_input.dyn_into::<HtmlElement>().unwrap();
                         let style = target.style();
                         if &value == "" {
-                            let _ = style.set_property("border", "1px solid var(--grapefruit)");   
+                            let _ = style.set_property("border", "1px solid var(--grapefruit)");
+                            let _ = this.class_list().remove(&new_val);
+                            let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");   
                         } else {
                             let _ = style.set_property("border", "1px solid #494e64");
                             let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
@@ -516,13 +560,12 @@ pub fn SidebarRestApi (
                                     let _ = old_button.style().set_property("display", "none");
                                     let _ = new_button.style().set_property("display", "flex");        
 
-
-
-
+                                    let _ = this.class_list().remove(&new_val);
                                 } else {
                                     let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     error.set_inner_html("Error: The program with this ID does not exist.");
                                     let _ = error.style().set_property("display", "block");
+                                    let _ = this.class_list().remove(&new_val);
                                 }
                             });
                             
@@ -534,7 +577,16 @@ pub fn SidebarRestApi (
                     <div id="get-program-double-button" class="double-button-wrapper" style="order:3; display:none; justify-content:center">
                         <button id="get-program-open-button" class="card-button" style="margin-right:10px;"
                         on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+                            let current_input = document.query_selector("#get-program-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let value = current_input.value();
+                            let base_url : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"https://explorer.provable.com/program/".to_string()} else {"https://testnet.explorer.provable.com/program/".to_string()};
+                            let url = format!("{}{}",base_url, value);
+                            spawn_local(async move {
+                                let args = serde_wasm_bindgen::to_value(&URL{url:url}).unwrap();
+                                invoke("open_url", args).await;
 
+                            });
                         }
                         >
                             Open
@@ -600,17 +652,25 @@ pub fn SidebarRestApi (
 
                     <div class="card-divider"/>
                     <button id="get-transaction-get-button" class="card-button"
-                    on:click:target=move|_ev| {
+                    on:click:target=move|ev| {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        let _ = this.class_list().add(&new_val);
+
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#get-transaction-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                         let value = current_input.value().clone();
                         let target = current_input.dyn_into::<HtmlElement>().unwrap();
                         let style = target.style();
                         if &value == "" {
-                            let _ = style.set_property("border", "1px solid var(--grapefruit)");   
+                            let _ = style.set_property("border", "1px solid var(--grapefruit)");
+                            let _ = this.class_list().remove(&new_val);
+                            let error = document.query_selector("#get-transaction-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
                         } else {
                             let _ = style.set_property("border", "1px solid #494e64");
-                            let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let error = document.query_selector("#get-transaction-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = error.style().set_property("display", "none");
                             
                             spawn_local(async move {
@@ -650,11 +710,12 @@ pub fn SidebarRestApi (
                                     let _ = old_button.style().set_property("display", "none");
                                     let _ = new_button.style().set_property("display", "flex");        
 
-
+                                    let _ = this.class_list().remove(&new_val);
                                 } else {
                                     let error = document.query_selector("#get-transaction-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     error.set_inner_html("Error: The transaction with this ID does not exist.");
                                     let _ = error.style().set_property("display", "block");
+                                    let _ = this.class_list().remove(&new_val);
                                 }
                             });
                             
@@ -667,7 +728,16 @@ pub fn SidebarRestApi (
                     <div id="get-transaction-double-button" class="double-button-wrapper" style="order:3; display:none; justify-content:center">
                         <button id="get-transaction-open-button" class="card-button" style="margin-right:10px;"
                         on:click:target=move|_ev| {
+                            let document = leptos::prelude::document();
+                            let current_input = document.query_selector("#get-transaction-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let value = current_input.value();
+                            let base_url : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"https://explorer.provable.com/transaction/".to_string()} else {"https://testnet.explorer.provable.com/transaction/".to_string()};
+                            let url = format!("{}{}",base_url, value);
+                            spawn_local(async move {
+                                let args = serde_wasm_bindgen::to_value(&URL{url:url}).unwrap();
+                                invoke("open_url", args).await;
 
+                            });
                         }
                         >
                             Open

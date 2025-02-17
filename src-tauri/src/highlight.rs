@@ -4,8 +4,8 @@ use syntect::{
     parsing::SyntaxSet,
 };
 
-use std::fmt::Write;
 use std::cmp;
+use std::fmt::Write;
 
 fn write_css_color(s: &mut String, c: Color) {
     if c.a != 0xFF {
@@ -49,11 +49,11 @@ pub fn highlight(code: String, ss: SyntaxSet, theme: Theme) -> String {
     let mut h = HighlightLines::new(syntax, &theme);
 
     let mut code2 = code;
-    let last_index = cmp::max(0, (code2.len() as isize)-1) as usize;
+    let last_index = cmp::max(0, (code2.len() as isize) - 1) as usize;
     let last_char = &code2[last_index..code2.len()];
     if last_char == "\n" {
-        code2 = format!("{}{}", code2, "\u{00A0}");   
-    }   
+        code2 = format!("{}{}", code2, "\u{00A0}");
+    }
 
     let highlighted = h.highlight_line(&code2, &ss).unwrap();
     // println!("{:?}", highlighted);

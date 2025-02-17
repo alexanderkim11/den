@@ -85,6 +85,24 @@ pub fn SidebarAccount (
 
     /*
     ==============================================================================
+    HELPER FUNCTIONS
+    ==============================================================================
+    */
+
+    fn account_check(new_entry :(&str,&str,&str), accounts : &IndexMap<String,(String,String,String)>) -> bool{
+        let new_pk = new_entry.0;
+        let new_vk = new_entry.1;
+        let new_address = new_entry.2;
+        for (_,(pk,vk,address)) in accounts {
+            if new_pk == &pk.to_string() && new_vk == &vk.to_string() && new_address == &address.to_string() {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /*
+    ==============================================================================
     MAIN VIEW
     ==============================================================================
     */
@@ -283,6 +301,7 @@ pub fn SidebarAccount (
                         <div class="input-field">
                             <div class="field-title">Name</div>
                             <input id="create-new-account-input-name" placeholder="Account Name" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div id="create-new-account-error" class="error-title" style="display:none;"></div>
                         </div>
                         <div class="output-field">
                             <div class="field-title">Private Key</div>
@@ -314,7 +333,12 @@ pub fn SidebarAccount (
                     </div>
                     <div class="card-divider"/>
                     <button id="create-new-account-generate-button" class="card-button"
-                    on:click:target=move|_ev| {
+                    on:click:target=move|ev| {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        let _ = this.class_list().add(&new_val);
+    
                         let document = leptos::prelude::document();
 
                         spawn_local(async move {
@@ -334,10 +358,11 @@ pub fn SidebarAccount (
                                 let new_button = document.query_selector("#create-new-account-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 
                                 let _ = old_button.style().set_property("display", "none");
-                                let _ = new_button.style().set_property("display", "flex");    
+                                let _ = new_button.style().set_property("display", "flex");
 
+                                let _ = this.class_list().remove(&new_val);
                             } else {
-
+                                let _ = this.class_list().remove(&new_val);
                             }
                         });
                     }
@@ -349,22 +374,38 @@ pub fn SidebarAccount (
                         on:click:target=move|_ev| {
                             let document = leptos::prelude::document();
                             let current_input = document.query_selector("#create-new-account-input-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                            let name = current_input.value().clone();
+                            let name = current_input.value();
                             let target = current_input.dyn_into::<HtmlElement>().unwrap();
                             let style = target.style();
-                            if &name == "" {
-                                let _ = style.set_property("border", "1px solid var(--grapefruit)");   
-                            } else {
-                                let _ = style.set_property("border", "1px solid #494e64"); 
-                                let pk_output_element = document.query_selector("#create-new-account-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                                let vk_output_element = document.query_selector("#create-new-account-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                                let address_output_element = document.query_selector("#create-new-account-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        
-                                let pk = pk_output_element.value();
-                                let vk = vk_output_element.value();
-                                let address = address_output_element.value();
+                            let mut accounts = accounts.get_untracked();
 
-                                let mut accounts = accounts.get_untracked();
+                            let pk_output_element = document.query_selector("#create-new-account-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let vk_output_element = document.query_selector("#create-new-account-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let address_output_element = document.query_selector("#create-new-account-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+    
+                            let pk = pk_output_element.value();
+                            let vk = vk_output_element.value();
+                            let address = address_output_element.value();
+
+                            if &name == "" {
+                                let error = document.query_selector("#create-new-account-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = error.style().set_property("display", "none"); 
+                                let _ = style.set_property("border", "1px solid var(--grapefruit)");   
+                            } else if accounts.contains_key(&name) {
+                                let error = document.query_selector("#create-new-account-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                error.set_inner_html("Error: This account name is already taken");
+                                let _ = error.style().set_property("display", "block");
+                                let _ = style.set_property("border", "1px solid var(--grapefruit)");
+                            } else if account_check((&pk,&vk,&address),&accounts) {
+                                let error = document.query_selector("#create-new-account-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                error.set_inner_html("Error: This account has already been saved");
+                                let _ = error.style().set_property("display", "block");
+                                let _ = style.set_property("border", "1px solid var(--grapefruit)");      
+                            } else {
+                                let error = document.query_selector("#create-new-account-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = error.style().set_property("display", "none");
+                                let _ = style.set_property("border", "1px solid #494e64"); 
+
                                 accounts.insert(name,(pk,vk,address));
                                 set_accounts.set(accounts);
                             }
@@ -377,7 +418,9 @@ pub fn SidebarAccount (
                             let document = leptos::prelude::document();
 
                             let input_style = document.query_selector("#create-new-account-input-name").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap().style();
-                            let _ = input_style.set_property("border", "1px solid #494e64"); 
+                            let _ = input_style.set_property("border", "1px solid #494e64");
+                            let error = document.query_selector("#create-new-account-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
 
                             let new_button = document.query_selector("#create-new-account-generate-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let old_button = document.query_selector("#create-new-account-double-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
@@ -388,7 +431,9 @@ pub fn SidebarAccount (
                             let pk_output_element = document.query_selector("#create-new-account-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let vk_output_element = document.query_selector("#create-new-account-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let address_output_element = document.query_selector("#create-new-account-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let name_input = document.query_selector("#create-new-account-input-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             
+                            name_input.set_value("");                    
                             pk_output_element.set_value("");
                             vk_output_element.set_value("");
                             address_output_element.set_value("");
@@ -411,6 +456,7 @@ pub fn SidebarAccount (
                         <div class="input-field">
                             <div class="field-title">Name</div>
                             <input id="load-account-from-pk-output-name" placeholder="Account Name" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div id="load-account-from-pk-output-error" class="error-title" style="display:none;"></div>
                         </div>
                         <div class="output-field">
                             <div class="field-title">Private Key</div>
@@ -442,30 +488,37 @@ pub fn SidebarAccount (
                     </div>
                     <div class="card-divider"/>
                     <button id="load-account-from-pk-load-button" class="card-button"
-                    on:click:target=move|_ev| {
+                    on:click:target=move|ev| {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        let _ = this.class_list().add(&new_val);
+
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#load-account-from-pk-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                         let value = (&current_input).value();
                         let target = current_input.dyn_into::<HtmlElement>().unwrap();
                         let style = target.style();
                         if &value == "" {
-                            let _ = style.set_property("border", "1px solid var(--grapefruit)");   
+                            let _ = style.set_property("border", "1px solid var(--grapefruit)");
+                            let _ = this.class_list().remove(&new_val);   
+                            let error_element = document.query_selector("#load-account-from-pk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error_element.style().set_property("display", "none");
                         } else {
                             let _ = style.set_property("border", "1px solid #494e64");
                             let error_element = document.query_selector("#load-account-from-pk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = error_element.style().set_property("display", "none");
 
                             spawn_local(async move {
-
-
                                 let args = serde_wasm_bindgen::to_value(&AccountFromPrivateKeyArgs {network : "Mainnet".to_string(), privatekey : value.clone()}).unwrap();
                                 let (error, (pk,vk,address)): (bool, (String,String,String)) = serde_wasm_bindgen::from_value(invoke("account_from_pk", args).await).unwrap();
 
-                                //Reset pk input so it doesn't get remain
-                                let current_input = document.query_selector("#load-account-from-pk-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                                current_input.set_value("");
 
                                 if !error {
+                                    //Reset pk input so it doesn't  remain
+                                    let current_input = document.query_selector("#load-account-from-pk-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                    current_input.set_value("");
+
                                     let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                     let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                                     let address_output_element = document.query_selector("#load-account-from-pk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -484,10 +537,12 @@ pub fn SidebarAccount (
                                     let _ = new_body.style().set_property("display", "block");
                                     let _ = new_button.style().set_property("display", "flex");          
     
+                                    let _ = this.class_list().remove(&new_val);
                                 } else {
-                                    let error_element = document.query_selector("#load-account-from-pk-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let error_element = document.query_selector("#load-account-from-pk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     error_element.set_inner_html("Error: Invalid private key");
                                     let _ = error_element.style().set_property("display", "block");
+                                    let _ = this.class_list().remove(&new_val);
                                 }
                             });   
                         }
@@ -502,19 +557,35 @@ pub fn SidebarAccount (
                             let current_name_input = document.query_selector("#load-account-from-pk-output-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let name = current_name_input.value();
                             let target = current_name_input.dyn_into::<HtmlElement>().unwrap();
-                            if name == "".to_string() {
-                                let _ = target.style().set_property("border", "1px solid var(--grapefruit)");   
-                            } else {
-                                let _ = target.style().set_property("border", "1px solid #494e64");
-                                let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                                let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                                let address_output_element = document.query_selector("#load-account-from-pk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-        
-                                let pk = pk_output_element.value();
-                                let vk = vk_output_element.value();
-                                let address = address_output_element.value();
+                            let style = target.style();
 
-                                let mut accounts = accounts.get_untracked();
+                            let mut accounts = accounts.get_untracked();
+
+                            let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let address_output_element = document.query_selector("#load-account-from-pk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+    
+                            let pk = pk_output_element.value();
+                            let vk = vk_output_element.value();
+                            let address = address_output_element.value();
+
+                            if name == "".to_string() {
+                                let _ = style.set_property("border", "1px solid var(--grapefruit)");
+                            } else if accounts.contains_key(&name) {
+                                let error = document.query_selector("#load-account-from-pk-output-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                error.set_inner_html("Error: This account name is already taken");
+                                let _ = error.style().set_property("display", "block");
+                                let _ = style.set_property("border", "1px solid var(--grapefruit)");
+                            } else if account_check((&pk,&vk,&address),&accounts) {
+                                let error = document.query_selector("#load-account-from-pk-output-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                error.set_inner_html("Error: This account has already been saved");
+                                let _ = error.style().set_property("display", "block");
+                                let _ = style.set_property("border", "1px solid var(--grapefruit)");         
+                            } else {
+                                let error = document.query_selector("#load-account-from-pk-output-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = error.style().set_property("display", "none");
+                                let _ = style.set_property("border", "1px solid #494e64");
+
                                 accounts.insert(name,(pk,vk,address));
                                 set_accounts.set(accounts);
                             }
@@ -539,15 +610,22 @@ pub fn SidebarAccount (
                             let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let address_output_element = document.query_selector("#load-account-from-pk-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let name_output_element = document.query_selector("#load-account-from-pk-output-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             
+                            name_output_element.set_value("");            
                             pk_output_element.set_value("");
                             vk_output_element.set_value("");
                             address_output_element.set_value("");
+
+                            let error = document.query_selector("#load-account-from-pk-output-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
+                            let _ = name_output_element.dyn_into::<HtmlElement>().unwrap().style().set_property("border", "1px solid #494e64"); 
                         }
                         >
                             Clear
                         </button>
                     </div>
+
                 </div>
 
 
@@ -582,14 +660,22 @@ pub fn SidebarAccount (
                     </div>
                     <div class="card-divider"/>
                     <button id="load-address-from-vk-load-button" class="card-button"
-                    on:click:target=move|_ev| {
+                    on:click:target=move|ev| {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        let _ = this.class_list().add(&new_val);
+
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#load-address-from-vk-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                         let value = (&current_input).value();
                         let target = current_input.dyn_into::<HtmlElement>().unwrap();
                         let style = target.style();
                         if &value == "" {
-                            let _ = style.set_property("border", "1px solid var(--grapefruit)");   
+                            let _ = style.set_property("border", "1px solid var(--grapefruit)");
+                            let _ = this.class_list().remove(&new_val);
+                            let error_element = document.query_selector("#load-address-from-vk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error_element.style().set_property("display", "none");     
                         } else {
                             let _ = style.set_property("border", "1px solid #494e64");
                             let error_element = document.query_selector("#load-address-from-vk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
@@ -613,17 +699,20 @@ pub fn SidebarAccount (
                                     let old_body = document.query_selector("#load-address-from-vk-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     let new_body = document.query_selector("#load-address-from-vk-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     let old_button = document.query_selector("#load-address-from-vk-load-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                    let new_button = document.query_selector("#load-address-from-vk-cancel-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let new_button = document.query_selector("#load-address-from-vk-clear-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     
                                     let _ = old_body.style().set_property("display", "none");
                                     let _ = old_button.style().set_property("display", "none");
                                     let _ = new_body.style().set_property("display", "block");
-                                    let _ = new_button.style().set_property("display", "inline-block");          
-    
+                                    let _ = new_button.style().set_property("display", "inline-block");
+
+                                    let _ = this.class_list().remove(&new_val);    
                                 } else {
                                     let error_element = document.query_selector("#load-address-from-vk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                     error_element.set_inner_html("Error: Invalid private key");
                                     let _ = error_element.style().set_property("display", "block");
+                                    let _ = this.class_list().remove(&new_val);
+
                                 }
                             });   
                         }
@@ -631,14 +720,14 @@ pub fn SidebarAccount (
                     >
                         Load
                     </button>
-                    <button id="load-address-from-vk-cancel-button" class="card-button-clear" style="display:none;"
+                    <button id="load-address-from-vk-clear-button" class="card-button-clear" style="display:none;"
                     on:click:target=move|_ev| {
                         let document = leptos::prelude::document();
     
                         let new_body = document.query_selector("#load-address-from-vk-input-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                         let old_body = document.query_selector("#load-address-from-vk-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                         let new_button = document.query_selector("#load-address-from-vk-load-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let old_button = document.query_selector("#load-address-from-vk-cancel-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        let old_button = document.query_selector("#load-address-from-vk-clear-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                         
                         let _ = old_body.style().set_property("display", "none");
                         let _ = old_button.style().set_property("display", "none");
@@ -652,7 +741,7 @@ pub fn SidebarAccount (
                         address_output_element.set_value("");
                     }
                     >
-                        Cancel
+                        Clear
                     </button>
                 </div>
 
@@ -714,7 +803,12 @@ pub fn SidebarAccount (
                     <div class="card-divider"/>
                     <div class="double-button-wrapper" style="order:3; display:flex; justify-content:center">
                         <button id="sign-button" class="card-button" style="margin-right:10px;"
-                        on:click:target=move|_ev| {
+                        on:click:target=move|ev| {
+                            let this = ev.target().dyn_into::<Element>().unwrap();
+                            let new_val = Array::new();
+                            new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                            let _ = this.class_list().add(&new_val);
+
                             let document = leptos::prelude::document();
                             
                             let current_pk_input = document.query_selector("#sign-message-input-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -770,14 +864,19 @@ pub fn SidebarAccount (
                                         let new_body = document.query_selector("#sign-message-output-card-body").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                         
                                         let _ = old_body.style().set_property("display", "none");
-                                        let _ = new_body.style().set_property("display", "block");      
+                                        let _ = new_body.style().set_property("display", "block");
+
+                                        let _ = this.class_list().remove(&new_val);      
         
                                     } else {
                                         let error_element = document.query_selector("#sign-message-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                         error_element.set_inner_html("Error: Could not generate signature");
                                         let _ = error_element.style().set_property("display", "block");
+                                        let _ = this.class_list().remove(&new_val);
                                     }
                                 });   
+                            } else {
+                                let _ = this.class_list().remove(&new_val);
                             }
                         }
                         >
@@ -829,8 +928,17 @@ pub fn SidebarAccount (
 
                     <div class="double-button-wrapper" style="order:4; display:flex; justify-content:center">
                         <button id="verify-button" class="card-button" style="margin-right:10px;"
-                        on:click:target=move|_ev| {
+                        on:click:target=move|ev| {
+                            let this = ev.target().dyn_into::<Element>().unwrap();
+                            let new_val = Array::new();
+                            new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                            let _ = this.class_list().add(&new_val);
+                            
+
                             let document = leptos::prelude::document();
+
+                            let output_element = document.query_selector("#verify-message-output-message").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = output_element.style().set_property("display", "none"); 
 
                             let current_address_input = document.query_selector("#verify-message-input-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let current_message_input = document.query_selector("#verify-message-input-message").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -893,7 +1001,11 @@ pub fn SidebarAccount (
                                         let _ = output_element.style().set_property("color", "var(--grapefruit)");
                                         let _ = output_element.style().set_property("display", "block");
                                     }
+
+                                    let _ = this.class_list().remove(&new_val);
                                 });   
+                            } else {
+                                let _ = this.class_list().remove(&new_val);
                             }
                         }
                         >

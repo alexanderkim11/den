@@ -102,10 +102,10 @@ pub fn SidebarRecords (
                 </div>
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "decrypt-record-button" {"display: flex"} else {"display: none"}}>
                     <div id="records-card-body" style="display:flex; flex-direction:column;" class="card-body">
-                        <div class="input-field" style="order:0;">
-                            <div class="field-title">Name</div>
-                            <input id="decrypt-record-input-name" placeholder="Record Name" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                        </div>
+                        // <div class="input-field" style="order:0;">
+                        //     <div class="field-title">Name</div>
+                        //     <input id="decrypt-record-input-name" placeholder="Record Name" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        // </div>
                         <div class="input-field" style="order:1;">
                             <div class="field-title">Ciphertext</div>
                             <input id="decrypt-record-input-ciphertext" placeholder="Ciphertext" spellcheck="false" autocomplete="off" autocapitalize="off"/>
@@ -113,6 +113,7 @@ pub fn SidebarRecords (
                         <div class="input-field" style="order:2;">
                             <div class="field-title">View Key</div>
                             <input id="decrypt-record-input-vk" placeholder="View Key" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div id="decrypt-record-input-error" class="error-title" style="display:none;"></div>
                         </div>
                         <div class="output-field" style="display:flex; flex-direction:column; box-sizing:border-box; height:100%; order:3;">
                             <div style="order:0" class="field-title">Decrypted Record</div>
@@ -124,36 +125,39 @@ pub fn SidebarRecords (
                                 </div>
                             </div>
                         </div>
-                        <div id="decrypt-records-error" class="error-title" style="display:none;"></div>
                     </div>
                     <div class="card-divider"/>
                     <button id="decrypt-button" class="card-button"
-                    on:click:target=move|_ev| {
-                        //TODO: Use SnarkVM to decrypt records using input values
+                    on:click:target=move|ev| {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        let _ = this.class_list().add(&new_val);
+
                         let document = leptos::prelude::document();
-                        let name_input_element = document.query_selector("#decrypt-record-input-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        //let name_input_element = document.query_selector("#decrypt-record-input-name").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                         let ciphertext_input_element = document.query_selector("#decrypt-record-input-ciphertext").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                         let vk_input_element = document.query_selector("#decrypt-record-input-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
 
-                        let name = name_input_element.value();
+                        //let name = name_input_element.value();
                         let ciphertext = ciphertext_input_element.value();
                         let vk = vk_input_element.value();
 
 
-                        let target1 = name_input_element.dyn_into::<HtmlElement>().unwrap();
+                        //let target1 = name_input_element.dyn_into::<HtmlElement>().unwrap();
                         let target2 = ciphertext_input_element.dyn_into::<HtmlElement>().unwrap();
                         let target3 = vk_input_element.dyn_into::<HtmlElement>().unwrap();
 
 
-                        let style1 = target1.style();
+                        //let style1 = target1.style();
                         let style2 = target2.style();
                         let style3 = target3.style();
 
-                        if &name == "" {
-                            let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
-                        } else {
-                            let _ = style1.set_property("border", "1px solid #494e64");   
-                        }
+                        // if &name == "" {
+                        //     let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
+                        // } else {
+                        //     let _ = style1.set_property("border", "1px solid #494e64");   
+                        // }
 
                         if &ciphertext == "" {
                             let _ = style2.set_property("border", "1px solid var(--grapefruit)");   
@@ -168,6 +172,8 @@ pub fn SidebarRecords (
                         }
                         
                         if &ciphertext != "" && &vk != ""{
+                            let error = document.query_selector("#decrypt-record-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
                             let _ = style2.set_property("border", "1px solid #494e64");   
                             let _ = style3.set_property("border", "1px solid #494e64");  
                             spawn_local(async move{
@@ -177,10 +183,14 @@ pub fn SidebarRecords (
                                     let output_element = document.query_selector("#decrypt-record-output").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
                                     output_element.set_inner_html(&plaintext); 
                                 } else {
-
+                                    let error = document.query_selector("#decrypt-record-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    error.set_inner_html("Error: Invalid View Key for this record.");
+                                    let _ = error.style().set_property("display", "block");
                                 }
-
+                                let _ = this.class_list().remove(&new_val);
                             });
+                        } else {
+                            let _ = this.class_list().remove(&new_val);
                         }
 
                     }

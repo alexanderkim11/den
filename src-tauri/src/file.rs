@@ -14,22 +14,17 @@ pub fn read_file(_handle: tauri::AppHandle, filepath: String) -> Option<String> 
     }
 }
 
-
 #[tauri::command]
-pub fn write_file(_handle: tauri::AppHandle, filepath: String, contents : String) -> (bool,String) {
-    let file = File::options()
-    .read(true)
-    .write(true)
-    .open(&filepath);
+pub fn write_file(_handle: tauri::AppHandle, filepath: String, contents: String) -> (bool, String) {
+    let file = File::options().read(true).write(true).open(&filepath);
     match file {
         Ok(mut f) => {
             let call = f.write_all(contents.as_bytes());
             match call {
                 Ok(()) => (false, String::new()),
-                Err(e) => (true, e.to_string())
+                Err(e) => (true, e.to_string()),
             }
-
         }
-        Err(e) => (true,e.to_string())
+        Err(e) => (true, e.to_string()),
     }
 }
