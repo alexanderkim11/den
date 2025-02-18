@@ -14,7 +14,6 @@ pub struct CustomDirEntry {
 
 pub fn recurse_walk_dir(folder_path: &Path) -> Vec<CustomDirEntry> {
     let mut return_vec: Vec<CustomDirEntry> = Vec::new();
-
     let paths = fs::read_dir(folder_path).unwrap();
     for entry in paths {
         let dir_entry = entry.unwrap();
@@ -41,7 +40,15 @@ pub fn recurse_walk_dir(folder_path: &Path) -> Vec<CustomDirEntry> {
             subpaths: subpaths_vec,
         });
     }
-    return return_vec;
+
+    let mut full_return_vec: Vec<CustomDirEntry> = Vec::new();
+    full_return_vec.push(CustomDirEntry {
+        name: folder_path.file_name().unwrap().to_str().unwrap().to_string(),
+        path: folder_path.to_str().unwrap().to_string(),
+        type_of: "Directory".to_string(),
+        subpaths: return_vec,
+    });
+    return full_return_vec;
 }
 
 #[tauri::command]

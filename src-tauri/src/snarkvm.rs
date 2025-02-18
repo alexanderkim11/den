@@ -644,3 +644,33 @@ pub fn decrypt_record(
         return (true, "Error: undefined behavior".to_string());
     }
 }
+
+
+// pub fn estimate_fee () {
+//     pub async fn estimate_deployment_fee(program: &str, imports: Option<Object>) -> Result<u64, String> {
+//         log(
+//             "Disclaimer: Fee estimation is experimental and may not represent a correct estimate on any current or future network",
+//         );
+//         let mut process_native = ProcessNative::load_web().map_err(|err| err.to_string())?;
+//         let process = &mut process_native;
+
+//         log("Check program has a valid name");
+//         let program = ProgramNative::from_str(program).map_err(|err| err.to_string())?;
+
+//         log("Check program imports are valid and add them to the process");
+//         ProgramManager::resolve_imports(process, &program, imports)?;
+
+//         log("Create sample deployment");
+//         let deployment =
+//             process.deploy::<CurrentAleo, _>(&program, &mut StdRng::from_entropy()).map_err(|err| err.to_string())?;
+//         if deployment.program().functions().is_empty() {
+//             return Err("Attempted to create an empty transaction deployment".to_string());
+//         }
+
+//         let (minimum_deployment_cost, (_, _, _)) =
+//             deployment_cost::<CurrentNetwork>(&deployment).map_err(|err| err.to_string())?;
+
+//         Ok(minimum_deployment_cost)
+//     }
+
+// }

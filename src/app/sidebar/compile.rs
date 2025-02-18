@@ -47,7 +47,24 @@ pub fn SidebarCompile (
 
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#compile-button" {"display: flex;"} else {"display: none;"}}>
-            <div class="sidebar-title">Compile</div>
+        <div class="sidebar-title">Compile</div>
+
+
+            <div id="compile-card" style="color:#e3e3e3;" class="card">
+                <div id="compile-card-head" class="card-head" >
+                    <div class="title" style="-webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;">
+                        Compile
+                    </div>
+                </div>
+                <div class="card-body-wrapper">
+                    <div id="compile-card-body" class="card-body">
+                        <div class="input-field">
+                            <div class="field-title">Project Root</div>
+                            <input id="project-root-input" value="" placeholder="" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     }
 }

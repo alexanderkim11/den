@@ -117,6 +117,7 @@ pub fn SidebarFileExplorer (
         let document = leptos::prelude::document();
         let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
 
+        // Cache content of starting file before switching focus to new file
         cached_content.remove(&current_filepath);
         cached_content.insert(current_filepath,result_element.value());
         set_cached_file_contents.set(cached_content);

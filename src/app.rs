@@ -29,6 +29,7 @@ extern "C" {
 
 
 
+
 /*
 ==============================================================================
 STRUCTS
@@ -137,8 +138,16 @@ fn FileTab(
                                 let save = invoke("warning", args).await.as_bool().unwrap();
         
                                 if save {
-                                    let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: cached}).unwrap();
-                                    let (error, message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();   
+                                    let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: cached.clone()}).unwrap();
+                                    let (error, message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();
+                                    if !error {
+                                        saved_content.remove(&inner_filepath_clone);
+                                        saved_content.insert(inner_filepath_clone.clone(), cached);
+                                        set_saved_file_contents.set(saved_content);
+                      
+                                    } else {
+                                        console_log(&message);
+                                    }   
                                 }
                             }
                         }
@@ -146,11 +155,12 @@ fn FileTab(
                         for index in 0..open_files.get_untracked().len(){
                             let mut vec = open_files.get_untracked();
                             if vec[index] == ((&inner_filepath_clone).to_string(),(&inner_filename_clone).to_string()){
+                                let mut saved_content = saved_file_contents.get_untracked();
                                 saved_content.remove(&inner_filepath_clone);
-                                cached_content.remove(&inner_filepath_clone);
+                                // cached_content.remove(&inner_filepath_clone);
     
                                 set_saved_file_contents.set(saved_content);
-                                set_cached_file_contents.set(cached_content);
+                                // set_cached_file_contents.set(cached_content);
     
                                 vec.remove(index);
                                 if vec.len() > 0 {
@@ -206,54 +216,26 @@ fn FileTab(
 
 
                         let selected = selected_file.get_untracked();
-                        // if selected == filepath_clone {
-                        // if false {
-                        //     let document = leptos::prelude::document();
-                        //     let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
-                        //     let mut hasher = DefaultHasher::new();
-                        //     format!("{}{}", filepath_clone,"-saved").hash(&mut hasher);      
-                        //     let saved_id = format!("{}{}","#p",hasher.finish().to_string());
-                        //     let mut hasher = DefaultHasher::new();
-                        //     format!("{}{}", filepath_clone,"-unsaved").hash(&mut hasher);     
-                        //     let unsaved_id = format!("{}{}","#p",hasher.finish().to_string());
-                        //     console_log(&saved);
-                        //     console_log(&result_element.value());
-                        //     if saved != result_element.value() {
-                        //         let old_element = document.query_selector(&saved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        //         let new_element = document.query_selector(&unsaved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        let document = leptos::prelude::document();
+                        let mut hasher = DefaultHasher::new();
+                        format!("{}{}", filepath_clone,"-saved").hash(&mut hasher);      
+                        let saved_id = format!("{}{}","#p",hasher.finish().to_string());
+                        let mut hasher = DefaultHasher::new();
+                        format!("{}{}", filepath_clone,"-unsaved").hash(&mut hasher);     
+                        let unsaved_id = format!("{}{}","#p",hasher.finish().to_string());
+                        if saved != cached {
+                            let old_element = document.query_selector(&saved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let new_element = document.query_selector(&unsaved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
 
-                        //         let _ = old_element.style().set_property("display", "none");
-                        //         let _ = new_element.style().remove_property("display");
+                            let _ = old_element.style().set_property("display", "none");
+                            let _ = new_element.style().remove_property("display");
+                        } else {
+                            let new_element = document.query_selector(&saved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let old_element = document.query_selector(&unsaved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
 
-                        //     } else {
-                        //         let new_element = document.query_selector(&saved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        //         let old_element = document.query_selector(&unsaved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = old_element.style().set_property("display", "none");
+                            let _ = new_element.style().remove_property("display");
 
-                        //         let _ = old_element.style().set_property("display", "none");
-                        //         let _ = new_element.style().remove_property("display");
-                        //     }
-
-                        // } else {
-                            let document = leptos::prelude::document();
-                            let mut hasher = DefaultHasher::new();
-                            format!("{}{}", filepath_clone,"-saved").hash(&mut hasher);      
-                            let saved_id = format!("{}{}","#p",hasher.finish().to_string());
-                            let mut hasher = DefaultHasher::new();
-                            format!("{}{}", filepath_clone,"-unsaved").hash(&mut hasher);     
-                            let unsaved_id = format!("{}{}","#p",hasher.finish().to_string());
-                            if saved != cached {
-                                let old_element = document.query_selector(&saved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                let new_element = document.query_selector(&unsaved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-
-                                let _ = old_element.style().set_property("display", "none");
-                                let _ = new_element.style().remove_property("display");
-                            } else {
-                                let new_element = document.query_selector(&saved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                let old_element = document.query_selector(&unsaved_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-
-                                let _ = old_element.style().set_property("display", "none");
-                                let _ = new_element.style().remove_property("display");
-                            // }
 
 
                         }
@@ -304,6 +286,7 @@ pub fn App() -> impl IntoView {
     ==============================================================================
     */
 
+
     // let (test, set_test) = signal(String::new());
     let (highlighted_msg, set_highlighted_msg) = signal(String::new());
 
@@ -323,17 +306,18 @@ pub fn App() -> impl IntoView {
     let (selected_file, set_selected_file) = signal(String::new());
     let (open_files, set_open_files) : (ReadSignal<Vec<(String,String)>>,WriteSignal<Vec<(String,String)>>) = signal(Vec::new());
 
+    // HashMap<String,(String, i32, i32, i32)> == filepath --> (contents, scroll_left, scroll_top, cursor_pos)
     let (saved_file_contents, set_saved_file_contents) : (ReadSignal<HashMap<String,String>>,WriteSignal<HashMap<String,String>>) = signal(HashMap::new());
     let (cached_file_contents, set_cached_file_contents) : (ReadSignal<HashMap<String,String>>,WriteSignal<HashMap<String,String>>) = signal(HashMap::new());
+    let (compiled_file, set_compiled_file) = signal(String::new());
 
     let (environment_dropdown_active, set_environment_dropdown_active) = signal(false);
     let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("devnet-button".to_string());
     let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Local Devnet".to_string());
     let (current_endpoint, set_current_endpoint) = signal("http://localhost:3030".to_string());
 
-    //let (accounts, set_accounts) : (ReadSignal<Vec<(String,String,String,String)>>,WriteSignal<Vec<(String,String,String,String)>>) = signal(Vec::new());
-    //let (accounts, set_accounts) : (ReadSignal<Vec<(String,String,String,String)>>,WriteSignal<Vec<(String,String,String,String)>>) = signal(vec![("Account 1".to_string(), "APrivateKey1zkpHVuQij6q5HX7LZMwqET7J7NmFjYhW9LEDZPAoW3mBhoe".to_string(), "AViewKey1nWF1a6XfzvrQ1r8LnrMeVN3aDBUFg1xZfdowAHqqo8L8".to_string(), "aleo109q2eaugqradc44qqzlf6n9ghzkazyh6fg2myzqrdzzm4jguxyqqp4d2l8".to_string()),("Account 2".to_string(), "APrivateKey1zkpHVuQij6q5HX7LZMwqET7J7NmFjYhW9LEDZPAoW3mBhoe".to_string(), "AViewKey1nWF1a6XfzvrQ1r8LnrMeVN3aDBUFg1xZfdowAHqqo8L8".to_string(), "aleo109q2eaugqradc44qqzlf6n9ghzkazyh6fg2myzqrdzzm4jguxyqqp4d2l8".to_string())]);
     let (accounts, set_accounts) : (ReadSignal<IndexMap<String,(String,String,String)>>,WriteSignal<IndexMap<String,(String,String,String)>>) = signal(IndexMap::new());
+
 
     /*
     ==============================================================================
@@ -416,7 +400,7 @@ pub fn App() -> impl IntoView {
                 <SidebarIcon id="file-explorer-button".to_string() img_src="public/files.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="account-button".to_string()  img_src="public/account.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="records-button".to_string() style="padding:8px;".to_string() img_src="public/checklist.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
-                // <SidebarIcon id="compile-button".to_string()  img_src="public/extensions.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />                
+                <SidebarIcon id="compile-button".to_string()  img_src="public/extensions.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />                
                 <SidebarIcon id="deploy-execute-button".to_string() style="padding:8px;".to_string()  img_src="public/play-circle.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="rest-api-button".to_string() style="padding:8px;".to_string()  img_src="public/debug-disconnect.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon/>
 
@@ -432,7 +416,7 @@ pub fn App() -> impl IntoView {
                 <SidebarFileExplorer selected_activity_icon=selected_activity_icon fs_html=fs_html set_fs_html=set_fs_html selected_file=selected_file set_selected_file=set_selected_file set_open_files=set_open_files saved_file_contents=saved_file_contents set_saved_file_contents=set_saved_file_contents cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents/>
                 <SidebarAccount selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts/>
                 <SidebarRecords selected_activity_icon=selected_activity_icon/>
-                // <SidebarCompile selected_activity_icon=selected_activity_icon/>
+                <SidebarCompile selected_activity_icon=selected_activity_icon/>
                 <SidebarDeployExecute selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts/>
                 <SidebarRestApi selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item/>
             </div>
