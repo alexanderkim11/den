@@ -41,6 +41,21 @@ pub struct RecursiveClosureWrapper<'s>  {
     pub closure : &'s dyn Fn(Element,&RecursiveClosureWrapper)
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct GetDirArgs<> {
+    pub directory : String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UpdateStateRootDirArgs<> {
+    pub directory : String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetStateRootDirArgs<> {
+    pub placeholder : String,
+}
+
 
 /*
 ==============================================================================
@@ -87,10 +102,12 @@ pub fn SidebarFileExplorer (
     selected_file : ReadSignal<String>,
     set_selected_file: WriteSignal<String>,
     set_open_files: WriteSignal<Vec<(String,String)>>,
-    saved_file_contents: ReadSignal<HashMap<String,String>>, 
-    set_saved_file_contents: WriteSignal<HashMap<String,String>>,
+    // saved_file_contents: ReadSignal<HashMap<String,String>>, 
+    // set_saved_file_contents: WriteSignal<HashMap<String,String>>,
     cached_file_contents: ReadSignal<HashMap<String,String>>, 
-    set_cached_file_contents: WriteSignal<HashMap<String,String>>
+    set_cached_file_contents: WriteSignal<HashMap<String,String>>,
+    root : ReadSignal<String>,
+    set_root : WriteSignal<String>,
 ) -> impl IntoView {
 
 
@@ -156,8 +173,38 @@ pub fn SidebarFileExplorer (
     */
 
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#file-explorer-button" {"display: flex;"} else {"display: none;"}}>
-            <div class="sidebar-title">File Explorer</div>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#file-explorer-tab-button" {"display: flex;"} else {"display: none;"}}>
+            <div class="sidebar-title">
+                <div class="sidebar-title-text" style="white-space:nowrap;">File Explorer</div>
+                <div id ="empty-space-horizontal"/>
+                <button class="refresh-button" style="display:none"
+                on:click:target = move |ev| {
+                    let root_dir = root.get_untracked();
+                    if root_dir != "".to_string() {
+                        spawn_local(async move{
+                            let args = serde_wasm_bindgen::to_value(&GetDirArgs { directory : root.get_untracked()}).unwrap();
+                            let return_val = invoke("get_directory", args).await.as_string().unwrap();
+                            let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
+                            let fs_html = generate_file_explorer_html(deserialized_return_val);
+
+                            let document = leptos::prelude::document();
+                            let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = element.style().set_property("display", "none");
+                            set_fs_html.set(fs_html);
+
+                            let document = leptos::prelude::document();
+                            let target = document.query_selector("#compiler-output").unwrap().unwrap();
+                            let _ = target.set_class_name("compile-output-message success");
+                            target.set_inner_html("\u{2713} Compiled 'test.aleo' into Aleo instructions!");
+                        });
+                    }
+                }
+                >
+                    <div class="refresh-img-wrapper">
+                        <img class="refresh-icon" src="public/refresh.svg"/>
+                    </div>
+                </button>
+            </div>
             <div class="open-folder-wrapper" style="display:flex;">
                 <button class="open-folder"
                 on:click:target=move|ev| {
@@ -173,12 +220,21 @@ pub fn SidebarFileExplorer (
                         let return_val = invoke("open_explorer", args).await.as_string().unwrap();
                         if return_val != ""{
                             let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
+
+                            set_root.set(deserialized_return_val[0].path.clone());
+                            let args = serde_wasm_bindgen::to_value(&UpdateStateRootDirArgs { directory : deserialized_return_val[0].path.clone()}).unwrap();
+                            invoke("update_state_root_dir", args).await;
+
+                            
                             let fs_html = generate_file_explorer_html(deserialized_return_val);
 
                             let document = leptos::prelude::document();
                             let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = element.style().set_property("display", "none");
                             set_fs_html.set(fs_html);
+
+                            let element2 = document.query_selector(".refresh-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = element2.style().set_property("display", "flex");
                         }
                         let _ = this.class_list().remove(&new_val);
                     });
@@ -213,6 +269,29 @@ pub fn SidebarFileExplorer (
                 };
                 (wrapper.closure)(result_element,&wrapper);
             });}
+
+            {
+                spawn_local(async move {
+                    let args = serde_wasm_bindgen::to_value(&GetStateRootDirArgs { placeholder: "null".to_string()}).unwrap();
+                    let saved_root_dir =invoke("get_state_root_dir", args).await.as_string().unwrap();
+                    if saved_root_dir != String::new() {
+                        set_root.set(saved_root_dir.clone());
+                        let args = serde_wasm_bindgen::to_value(&GetDirArgs { directory : saved_root_dir}).unwrap();
+                        let return_val = invoke("get_directory", args).await.as_string().unwrap();
+                        let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
+                        
+                        
+                        let fs_html = generate_file_explorer_html(deserialized_return_val);
+                        let document = leptos::prelude::document();
+                        let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        let _ = element.style().set_property("display", "none");
+                        set_fs_html.set(fs_html);
+    
+                        let element2 = document.query_selector(".refresh-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        let _ = element2.style().set_property("display", "flex");
+                    }
+                });
+            }
         </div>
     }
 }

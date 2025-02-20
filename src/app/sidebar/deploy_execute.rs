@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use indexmap::IndexMap;
 
+use crate::app::CopyButton;
+
 
 #[wasm_bindgen]
 extern "C" {
@@ -25,6 +27,11 @@ pub struct Command<> {
     pub command : Vec<String>
 }
 
+#[derive(Serialize, Deserialize)]
+struct ReadProgramJsonArgs<> {
+    filepath : String,
+}
+
 /*
 ==============================================================================
 COMPONENTS
@@ -37,6 +44,8 @@ pub fn SidebarDeployExecute (
     selected_activity_icon: ReadSignal<String>,
     accounts : ReadSignal<IndexMap<String,(String,String,String)>>,
     set_accounts : WriteSignal<IndexMap<String,(String,String,String)>>,
+    compiled_project : ReadSignal<(String,String)>,
+    set_compiled_project : WriteSignal<(String,String)>,
 
 ) -> impl IntoView {
 
@@ -55,6 +64,20 @@ pub fn SidebarDeployExecute (
     let (deploy_accounts_dropdown_item, set_deploy_accounts_dropdown_item) = signal(String::new());
     let (deploy_accounts_dropdown_text, set_deploy_accounts_dropdown_text) = signal("--".to_string());
 
+    let (compiled_program_id, set_compiled_program_id) = signal(String::new());
+
+    Effect::new({
+        move || {
+            if compiled_project.get().1 != String::new() {
+                spawn_local(async move {
+                    let args = serde_wasm_bindgen::to_value(&ReadProgramJsonArgs { filepath : format!("{}{}", compiled_project.get().0, "/program.json")}).unwrap();
+                    let program_id = invoke("read_program_json", args).await.as_string().unwrap();
+                    set_compiled_program_id.set(program_id.replace("\"",""));
+                });                            
+            }
+        }
+    });
+
     /*
     ==============================================================================
     MAIN VIEW
@@ -62,7 +85,7 @@ pub fn SidebarDeployExecute (
     */
 
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#deploy-execute-button" {"display: flex;"} else {"display: none;"}}>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#deploy-execute-tab-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">
                 Deploy and Execute
             </div>
@@ -184,9 +207,23 @@ pub fn SidebarDeployExecute (
 
 
 
+                        // <div class="input-field">
+                        //     <div class="field-title">Program ID</div>
+                        //     <input id="deploy-input-program-id" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        // </div>
+
+
+                        <div class="input-field">
+                            <div class="field-title">Project</div>
+                            <div class="output-input-wrapper">
+                                <input id="deploy-input-project" value={move || compiled_project.get().1} placeholder="Project" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                            </div>
+                        </div>
                         <div class="input-field">
                             <div class="field-title">Program ID</div>
-                            <input id="deploy-input-program-id" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div class="output-input-wrapper">
+                                <input id="deploy-input-program-id" value={move || compiled_program_id.get()} placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                            </div>
                         </div>
 
                         <div class="input-field">
@@ -232,31 +269,40 @@ pub fn SidebarDeployExecute (
                     on:click:target=move|_ev| {
                         let document = leptos::prelude::document();
                                                     
-                        let current_program_id_input = document.query_selector("#deploy-input-program-id").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        // let current_program_id_input = document.query_selector("#deploy-input-program-id").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                         let current_fee_input = document.query_selector("#deploy-input-fee").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
 
-                        let program_id = current_program_id_input.value().clone();
+                        // let program_id = current_program_id_input.value().clone();
                         let fee = current_fee_input.value().clone();
 
-
-                        let target1 = current_program_id_input.dyn_into::<HtmlElement>().unwrap();
+                        // let target1 = current_program_id_input.dyn_into::<HtmlElement>().unwrap();
                         let target2 = current_fee_input.dyn_into::<HtmlElement>().unwrap();
+                        let target3 = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
 
-
-                        let style1 = target1.style();
+                        // let style1 = target2.style();
                         let style2 = target2.style();
+                        let style3 = target3.style();
 
-                        if &program_id== "" {
-                            let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
-                        } else {
-                            let _ = style1.set_property("border", "1px solid #494e64");   
-                        }
+                        // if &program_id== "" {
+                        //     let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
+                        // } else {
+                        //     let _ = style1.set_property("border", "1px solid #494e64");   
+                        // }
 
                         if &fee == "" {
                             let _ = style2.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
                             let _ = style2.set_property("border", "1px solid #494e64");   
                         }
+
+                        if deploy_accounts_dropdown_item.get() == String::new(){
+                            let _ = style3.set_property("border", "1px solid var(--grapefruit)");   
+                        } else {
+                            let _ = style3.set_property("border", "1px solid #494e64");   
+                        }
+
+
+                        // leo deploy --no-build --private-key XXX --base-fee XXX --record XXX --endpoint XXX --network XXX --path XXX
                     }
                     >
                         Deploy

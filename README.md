@@ -16,26 +16,31 @@ Built with Tauri + Leptos
 - Work on Custom Titlebar with buttons
 - Need to figure out way to integrate LSP server for document-wide error checking
 - Testing framework?
+- Add way to open multiple windows/app instances
 
 ## Sidebar:
 - General:
     - Add hover names for sidebar icon buttons?
-    - **Persistant state between closing and reopening the app**
+    - Persistant state between closing and reopening the app
+        - **Update state filepath**
         - Persistant state is challenging due to little support for Leptos + Tauri combo
         - Need to save state each time any of the items change
         - State should be:
             - Session/directory name
-                - open_files
-                - selected_file
-                - cached_files
-                - saved_files
+                - **open_files**
+                - **selected_file**
+                - **cached_files**
+                - **saved_files**
                 - accounts
+                - open_directory
 - File System:
     - **Reset FS default directory**
     - **Add way to open new file directory**
+        - Check for unsaved open files -> send warning if true
+        - Reload window with new filesystem open
     - Add hover filepaths for file buttons
-    - **Add way to delete files**
-    - Add screen if file cannot be found
+    - **Add way to create/delete files and directories**
+    - **Add screen if file cannot be found**
 
 - Environment:
     - Add more features?
@@ -44,13 +49,13 @@ Built with Tauri + Leptos
     - Add authentication/authorization for accounts when either loading from persistant state or creating transactions?
     - Add background async function to periodically scan and update saved account balances, also should run whenever transactions are sent out
     - Saved Accounts
-        - Add fields showing account details once selected (Address, Balance, PK, VK, etc.)
+        - Add field showing account balance
         - Hide PK and VK by default (password protected?)
-        - **Add delete account button**
 - Records:
     - Add way to save records?
 - Compile
-    - Add this?
+    - Add sub-icon on sidebar icon to indicator success,failure, or pending
+    - **Ctrl + S on IDE should automatically compile a Leo program**
 - **Deploy and Execute:**
     - Add indicator for current network
     - Add functionality here

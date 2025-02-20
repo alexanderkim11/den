@@ -9,29 +9,33 @@ mod open_explorer;
 mod snarkvm;
 mod url;
 mod test;
+mod state;
 
-use std::{collections::HashMap, sync::Mutex};
+use std::sync::Mutex;
 use indexmap::IndexMap;
-use tauri::{Builder, Manager, RunEvent};
+use tauri::{Builder, Manager};
+use tauri_plugin_store::StoreExt;
 
 
 
-// Define the plugin config
-#[derive(Default)]
-struct AppState {
-  open_files: Vec<(String,String)>,
-  selected_file : String,
-  cached_files: HashMap<String,String>,
-  saved_files: HashMap<String,String>, 
-  accounts:IndexMap<String,(String,String,String)>,
-
-}
+// // Define the plugin config
+// #[derive(Default)]
+// struct AppState {
+//     root_dir: String,
+//     accounts:IndexMap<String,(String,String,String)>,
+// //   open_files: Vec<(String,String)>,
+// //   selected_file : String,
+// //   cached_files: HashMap<String,String>,
+// //   saved_files: HashMap<String,String>,
+// }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     Builder::default()
+        .plugin(tauri_plugin_store::Builder::default().build())
         .setup(|app| {
-            app.manage(Mutex::new(AppState::default()));
+            // This loads the store from disk
+            //let store = app.store("state.json")?;
             Ok(())
         })
         .on_window_event(|window, event| match event {
@@ -55,16 +59,22 @@ pub fn run() {
             dialog::exit_warning,
             file::read_file,
             file::write_file,
+            file::read_program_json,
             highlight::highlight,
             leo::execute,
             load_theme_syntax::load,
             open_explorer::open_explorer,
+            open_explorer::get_directory,
             snarkvm::new_account,
             snarkvm::account_from_pk,
             snarkvm::address_from_vk,
             snarkvm::sign,
             snarkvm::verify,
             snarkvm::decrypt_record,
+            state::get_state_accounts,
+            state::get_state_root_dir,
+            state::update_state_accounts,
+            state::update_state_root_dir,
             test::test,
             url::open_url,
         ])

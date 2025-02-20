@@ -42,7 +42,7 @@ pub fn SidebarEnvironment (
 
 ) -> impl IntoView {
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#environment-button" {"display: flex;"} else {"display: none;"}}>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#environment-tab-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">Environment</div>
 
 

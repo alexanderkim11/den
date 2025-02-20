@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use indexmap::IndexMap;
 
-
 use crate::app::CopyButton;
 
 #[wasm_bindgen]
@@ -14,9 +13,6 @@ extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
 }
-
-
-
 /*
 ==============================================================================
 STRUCTS
@@ -55,6 +51,10 @@ pub struct VerifyMessageArgs<> {
     pub signature: String
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct UpdateStateAccountsArgs<> {
+    pub updatedAccounts : IndexMap<String,(String,String,String)>,
+}
 
 /*
 ==============================================================================
@@ -79,6 +79,8 @@ pub fn SidebarAccount (
     let (current_dropdown_item, set_current_dropdown_item) = signal("saved-accounts-button".to_string());
     let (current_dropdown_text, set_current_dropdown_text) = signal("Saved Accounts".to_string());
 
+
+    //TODO: edit the starting values if accounts are loaded from cache
     let (saved_accounts_dropdown_active, set_saved_accounts_dropdown_active) = signal(false);
     let (saved_accounts_dropdown_item, set_saved_accounts_dropdown_item) = signal(String::new());
     let (saved_accounts_dropdown_text, set_saved_accounts_dropdown_text) = signal("--".to_string());
@@ -108,7 +110,7 @@ pub fn SidebarAccount (
     */
 
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#account-button" {"display: flex;"} else {"display: none;"}}>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#account-tab-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">Account</div>
             <div id="account-card" class="card">
 
@@ -281,6 +283,19 @@ pub fn SidebarAccount (
                                                     new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
                                                     let _ = target.class_list().remove(&new_val);
                                                     set_saved_accounts_dropdown_active.set(false);
+
+                                                    let map = accounts.get();
+                                                    let (pk,vk,address) = map.get(&saved_accounts_dropdown_item.get()).unwrap();
+                            
+                                                    let document = leptos::prelude::document();
+                            
+                                                    let pk_output_element = document.query_selector("#saved-accounts-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                                    let vk_output_element = document.query_selector("#saved-accounts-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                                    let address_output_element = document.query_selector("#saved-accounts-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            
+                                                    pk_output_element.set_value(&pk);
+                                                    vk_output_element.set_value(&vk);
+                                                    address_output_element.set_value(&address);
                                                 }
                                             }
 
@@ -292,7 +307,67 @@ pub fn SidebarAccount (
                                 </div>
                             </div>
                         </div>
+
+                        <div class="output-field" style={move || if saved_accounts_dropdown_item.get() == String::new() {"display:none"} else {"display: block"}}>
+                            <div class="field-title">Private Key</div>
+                            <div class="output-input-wrapper">
+                                <input id="saved-accounts-output-pk" placeholder="Private Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#saved-accounts-output-pk".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="output-field" style={move || if saved_accounts_dropdown_item.get() == String::new() {"display:none"} else {"display: block"}}>
+                            <div class="field-title">View Key</div>
+                            <div class="output-input-wrapper">
+                                <input id="saved-accounts-output-vk" placeholder="View Key" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#saved-accounts-output-vk".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="output-field" style={move || if saved_accounts_dropdown_item.get() == String::new() {"display:none"} else {"display: block"}}>
+                            <div class="field-title">Address</div>
+                            <div class="output-input-wrapper">
+                                <input id="saved-accounts-output-address" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#saved-accounts-output-address".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="card-divider"  style={move || if saved_accounts_dropdown_item.get() == String::new() {"display:none"} else {"display: block"}}/>
+
+                    <button id="saved-accounts-delete-button" class="card-button-delete" style={move || if saved_accounts_dropdown_item.get() == String::new() {"display:none"} else {"display: inline-block"}}
+                    on:click:target=move|_| {
+                        let name = saved_accounts_dropdown_item.get();
+                        set_saved_accounts_dropdown_item.set(String::new());
+                        set_saved_accounts_dropdown_text.set("--".to_string());
+                        set_saved_accounts_dropdown_active.set(false);
+
+                        let document = leptos::prelude::document();
+
+                        let pk_output_element = document.query_selector("#saved-accounts-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let vk_output_element = document.query_selector("#saved-accounts-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let address_output_element = document.query_selector("#saved-accounts-output-address").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+
+                        pk_output_element.set_value("");
+                        vk_output_element.set_value("");
+                        address_output_element.set_value("");
+
+                        let mut untracked_accounts = accounts.get_untracked();
+                        untracked_accounts.shift_remove(&name);
+                        set_accounts.set(untracked_accounts);
+
+                        spawn_local(async move {
+                            let args = serde_wasm_bindgen::to_value(&UpdateStateAccountsArgs { updatedAccounts: accounts.get_untracked()}).unwrap();
+                            invoke("update_state_accounts", args).await;
+                        });
+                    }
+                    >
+                        Delete
+                    </button>
                 </div>
 
 
@@ -377,7 +452,7 @@ pub fn SidebarAccount (
                             let name = current_input.value();
                             let target = current_input.dyn_into::<HtmlElement>().unwrap();
                             let style = target.style();
-                            let mut accounts = accounts.get_untracked();
+                            let mut untracked_accounts = accounts.get_untracked();
 
                             let pk_output_element = document.query_selector("#create-new-account-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let vk_output_element = document.query_selector("#create-new-account-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -391,12 +466,12 @@ pub fn SidebarAccount (
                                 let error = document.query_selector("#create-new-account-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 let _ = error.style().set_property("display", "none"); 
                                 let _ = style.set_property("border", "1px solid var(--grapefruit)");   
-                            } else if accounts.contains_key(&name) {
+                            } else if untracked_accounts.contains_key(&name) {
                                 let error = document.query_selector("#create-new-account-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 error.set_inner_html("Error: This account name is already taken");
                                 let _ = error.style().set_property("display", "block");
                                 let _ = style.set_property("border", "1px solid var(--grapefruit)");
-                            } else if account_check((&pk,&vk,&address),&accounts) {
+                            } else if account_check((&pk,&vk,&address),&untracked_accounts) {
                                 let error = document.query_selector("#create-new-account-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 error.set_inner_html("Error: This account has already been saved");
                                 let _ = error.style().set_property("display", "block");
@@ -406,8 +481,13 @@ pub fn SidebarAccount (
                                 let _ = error.style().set_property("display", "none");
                                 let _ = style.set_property("border", "1px solid #494e64"); 
 
-                                accounts.insert(name,(pk,vk,address));
-                                set_accounts.set(accounts);
+                                untracked_accounts.insert(name,(pk,vk,address));
+                                set_accounts.set(untracked_accounts);
+
+                                spawn_local(async move {
+                                    let args = serde_wasm_bindgen::to_value(&UpdateStateAccountsArgs { updatedAccounts: accounts.get_untracked()}).unwrap();
+                                    invoke("update_state_accounts", args).await;
+                                });
                             }
                         }
                         >
@@ -559,7 +639,7 @@ pub fn SidebarAccount (
                             let target = current_name_input.dyn_into::<HtmlElement>().unwrap();
                             let style = target.style();
 
-                            let mut accounts = accounts.get_untracked();
+                            let mut untracked_accounts = accounts.get_untracked();
 
                             let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -571,12 +651,12 @@ pub fn SidebarAccount (
 
                             if name == "".to_string() {
                                 let _ = style.set_property("border", "1px solid var(--grapefruit)");
-                            } else if accounts.contains_key(&name) {
+                            } else if untracked_accounts.contains_key(&name) {
                                 let error = document.query_selector("#load-account-from-pk-output-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 error.set_inner_html("Error: This account name is already taken");
                                 let _ = error.style().set_property("display", "block");
                                 let _ = style.set_property("border", "1px solid var(--grapefruit)");
-                            } else if account_check((&pk,&vk,&address),&accounts) {
+                            } else if account_check((&pk,&vk,&address),&untracked_accounts) {
                                 let error = document.query_selector("#load-account-from-pk-output-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                                 error.set_inner_html("Error: This account has already been saved");
                                 let _ = error.style().set_property("display", "block");
@@ -586,8 +666,13 @@ pub fn SidebarAccount (
                                 let _ = error.style().set_property("display", "none");
                                 let _ = style.set_property("border", "1px solid #494e64");
 
-                                accounts.insert(name,(pk,vk,address));
-                                set_accounts.set(accounts);
+                                untracked_accounts.insert(name,(pk,vk,address));
+                                set_accounts.set(untracked_accounts);
+
+                                spawn_local(async move {
+                                    let args = serde_wasm_bindgen::to_value(&UpdateStateAccountsArgs { updatedAccounts: accounts.get_untracked()}).unwrap();
+                                    invoke("update_state_accounts", args).await;
+                                });
                             }
                         }
                         >

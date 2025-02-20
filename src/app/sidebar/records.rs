@@ -60,7 +60,7 @@ pub fn SidebarRecords (
     */
 
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#records-button" {"display: flex;"} else {"display: none;"}}>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#records-tab-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">Records</div>
             <div id="records-card" style="height: 100%;" class="card">
                 <div id="records-dropdown-custom" class="dropdown-custom-head">

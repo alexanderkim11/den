@@ -64,7 +64,7 @@ pub fn SidebarRestApi (
     */
 
     view! {
-        <div class="wrapper" style={move || if selected_activity_icon.get() == "#rest-api-button" {"display: flex;"} else {"display: none;"}}>
+        <div class="wrapper" style={move || if selected_activity_icon.get() == "#rest-api-tab-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">REST API</div>
 
             <div id="rest-api-card" class="card" style="">

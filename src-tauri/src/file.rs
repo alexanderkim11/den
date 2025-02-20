@@ -16,7 +16,7 @@ pub fn read_file(_handle: tauri::AppHandle, filepath: String) -> Option<String> 
 
 #[tauri::command]
 pub fn write_file(_handle: tauri::AppHandle, filepath: String, contents: String) -> (bool, String) {
-    let file = File::options().read(true).write(true).open(&filepath);
+    let file = File::create(&filepath.replace("\\","/"));
     match file {
         Ok(mut f) => {
             let call = f.write_all(contents.as_bytes());
@@ -27,4 +27,17 @@ pub fn write_file(_handle: tauri::AppHandle, filepath: String, contents: String)
         }
         Err(e) => (true, e.to_string()),
     }
+}
+
+
+#[tauri::command]
+pub fn read_program_json(_handle: tauri::AppHandle, filepath: String) -> String {
+    println!("{}",filepath);
+    let file = File::open(&filepath)
+    .expect("File should open read only");
+    let json: serde_json::Value = serde_json::from_reader(file)
+        .expect("File should be proper JSON");
+    let first_name = json.get("program")
+        .expect("File should have program name");
+    return first_name.to_string()
 }

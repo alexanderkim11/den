@@ -206,9 +206,12 @@ pub fn IDE(
                         let mut saved_content = saved_file_contents.get_untracked();
                         let mut cached_content = cached_file_contents.get_untracked();
                         let current_saved_file_content = saved_content.get(&current_filepath).unwrap();
+                        console_log(&current_filepath);
 
                         let document = leptos::prelude::document();
                         let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                        console_log(&result_element.value());
+                        console_log(&current_saved_file_content);
                         if &result_element.value() != current_saved_file_content{
                             spawn_local(
                                 async move {
