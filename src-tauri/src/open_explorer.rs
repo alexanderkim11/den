@@ -1,8 +1,10 @@
-use tauri_plugin_dialog::DialogExt;
-
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
+
+
+use rfd::FileDialog;
+
 
 #[derive(Serialize, Deserialize)]
 pub struct CustomDirEntry {
@@ -45,18 +47,13 @@ pub fn recurse_walk_dir(folder_path: &Path) -> Vec<CustomDirEntry> {
 }
 
 #[tauri::command]
-pub fn open_explorer(handle: tauri::AppHandle, _code: String) -> String {
-    let default_path = Path::new("C:\\Users\\r0ami\\Home\\aleo\\projects\\den-test\\test2");
-    let folder_path_option = handle
-        .dialog()
-        .file()
-        .set_directory(default_path)
-        .blocking_pick_folder();
+pub fn open_explorer(_handle: tauri::AppHandle, _code: String) -> String {
+    let folder_path_option = FileDialog::new().pick_folder();
 
     let mut return_val: String = String::new();
     match folder_path_option {
         Some(folder_path) => {
-            let folder_path = folder_path.as_path().unwrap();
+            let folder_path = Path::new(folder_path.to_str().unwrap());
             let this_folder = recurse_walk_dir(&folder_path);
 
             let mut full_return_vec: Vec<CustomDirEntry> = Vec::new();

@@ -448,8 +448,6 @@ pub fn SidebarFileExplorer (
                 let _ = super_div.append_child(&wrapper_element);
             }
 
-            console_log(&filepath);
-
             spawn_local(async move {
                 let args = serde_wasm_bindgen::to_value(&MkdirArgs {path: filepath}).unwrap();
                 let (error, message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("mkdir", args).await).unwrap();

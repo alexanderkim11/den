@@ -39,9 +39,10 @@ Built with Tauri + Leptos
         - Reload window with new filesystem open
     - Add hover filepaths for file buttons
     - **Add way to create/delete files and directories**
-        - **Add check for conflicting file names**
-        - Add auto sorting to FS when files/directories are created
+        - **Add check for conflicting file and directory names**
+        - Add better auto sorting to FS when files/directories are created
     - **Add screen if file cannot be found**
+        - **Handle in FileTabs as Well**
 
 - Environment:
     - Add more features?

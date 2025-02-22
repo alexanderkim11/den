@@ -11,10 +11,11 @@ mod url;
 mod test;
 mod state;
 
-use std::sync::Mutex;
-use indexmap::IndexMap;
 use tauri::{Builder, Manager};
-use tauri_plugin_store::StoreExt;
+
+// use std::sync::Mutex;
+// use indexmap::IndexMap;
+// use tauri_plugin_store::StoreExt;
 
 
 
@@ -33,7 +34,7 @@ use tauri_plugin_store::StoreExt;
 pub fn run() {
     Builder::default()
         .plugin(tauri_plugin_store::Builder::default().build())
-        .setup(|app| {
+        .setup(|_app| {
             // This loads the store from disk
             //let store = app.store("state.json")?;
             Ok(())
@@ -52,7 +53,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             clipboard::copy,
             dialog::warning,
