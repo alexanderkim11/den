@@ -905,7 +905,8 @@ input:checked + .slider:before {
   box-sizing: border-box;
 }
 
-.refresh-button {
+
+.fs-button {
   background-color: transparent;
   border:0;
   padding:0;
@@ -922,7 +923,7 @@ input:checked + .slider:before {
   margin-top:2.5px;
 }
 
-.refresh-button .refresh-icon{
+.fs-button .fs-icon{
   height: 17px;
   width: 17px;
   right: 0px;
@@ -931,7 +932,7 @@ input:checked + .slider:before {
 }
 
 
-.refresh-img-wrapper{
+.fs-img-wrapper{
   height: 17px;
   width: 17px;
   position: relative;
@@ -940,22 +941,11 @@ input:checked + .slider:before {
 }
 
 
-.refresh-button:hover {
+.fs-button:hover {
   background-color: #343746;
   border:0;
   transition:all .3s ease;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1237,6 +1227,53 @@ input:checked + .slider:before {
 .fs-title div{
   pointer-events:none;
 }
+
+.temp-fs-title {
+  background-color: transparent;
+  width: 100%; 
+  box-sizing: border-box;
+  display: flex;
+  height: max-content; 
+  border: 0; 
+  color: var(--stone);  
+  font-family:'Inter';
+  text-align: left;
+  font-size: 14px;
+  font-weight: 400;
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.temp-fs-title img{
+  filter: invert(55%) sepia(0%) saturate(202%) hue-rotate(189deg) brightness(96%) contrast(83%);
+  order:0;
+  padding-left:3px;
+  pointer-events:none;
+}
+
+.temp-fs-title div{
+  pointer-events:none;
+}
+
+.temp-fs-input{
+  background-color:#343746;
+  border:0;
+  margin-left:4px;
+  color: var(--stone);
+  /* outline: none; */
+  width: 100%;;
+  margin-right:5px;
+  font-family:'Inter';
+  text-align: left;
+  font-size: 14px;
+  font-weight: 400;
+}
+
 .dir div{
   padding-left:5px;
 }

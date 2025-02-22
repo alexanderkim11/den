@@ -4,7 +4,7 @@ use sidebar::*;
 mod ide;
 use ide::*;
 
-use leptos::web_sys::{Element,HtmlElement, HtmlTextAreaElement};
+use leptos::web_sys::{Element,HtmlElement, HtmlTextAreaElement, HtmlInputElement};
 use js_sys::Array;
 use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
@@ -114,7 +114,7 @@ fn FileTab(
                     spawn_local(async move {
 
                         let mut saved_content = saved_file_contents.get_untracked();
-                        let mut cached_content = cached_file_contents.get_untracked();
+                        let cached_content = cached_file_contents.get_untracked();
 
                         let selected = selected_file.get_untracked();
                         if selected == inner_filepath_clone {
@@ -130,7 +130,7 @@ fn FileTab(
                                     let document = leptos::prelude::document();
                                     let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
                                     let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: result_element.value()}).unwrap();
-                                    let (error, message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();      
+                                    let (_error, _message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();      
                                 }
                             }
 

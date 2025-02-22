@@ -35,11 +35,12 @@ Built with Tauri + Leptos
                 - open_directory
 - File System:
     - **Reset FS default directory**
-    - **Add way to open new file directory**
         - Check for unsaved open files -> send warning if true
         - Reload window with new filesystem open
     - Add hover filepaths for file buttons
     - **Add way to create/delete files and directories**
+        - **Add check for conflicting file names**
+        - Add auto sorting to FS when files/directories are created
     - **Add screen if file cannot be found**
 
 - Environment:

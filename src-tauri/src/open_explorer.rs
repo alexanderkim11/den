@@ -35,7 +35,7 @@ pub fn recurse_walk_dir(folder_path: &Path) -> Vec<CustomDirEntry> {
         }
         return_vec.push(CustomDirEntry {
             name: entry_name,
-            path: path_string,
+            path: path_string.replace("\\","/"),
             type_of: entry_type_string,
             subpaths: subpaths_vec,
         });
@@ -62,7 +62,7 @@ pub fn open_explorer(handle: tauri::AppHandle, _code: String) -> String {
             let mut full_return_vec: Vec<CustomDirEntry> = Vec::new();
             full_return_vec.push(CustomDirEntry {
                 name: folder_path.file_name().unwrap().to_str().unwrap().to_string(),
-                path: folder_path.to_str().unwrap().to_string(),
+                path: folder_path.to_str().unwrap().replace("\\","/").to_string(),
                 type_of: "Directory".to_string(),
                 subpaths: this_folder,
             });
@@ -78,7 +78,8 @@ pub fn open_explorer(handle: tauri::AppHandle, _code: String) -> String {
 
 #[tauri::command]
 pub fn get_directory(_handle: tauri::AppHandle, directory: String) -> String {
-    let folder_path = Path::new(&directory);
+    let binding = directory.replace("\\","/");
+    let folder_path = Path::new(&binding);
     let this_folder = recurse_walk_dir(&folder_path);
 
     let mut full_return_vec: Vec<CustomDirEntry> = Vec::new();
