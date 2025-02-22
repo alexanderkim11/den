@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::fs::create_dir;
 use std::io::prelude::*;
 
 #[tauri::command]
@@ -28,6 +29,16 @@ pub fn write_file(_handle: tauri::AppHandle, filepath: String, contents: String)
         Err(e) => (true, e.to_string()),
     }
 }
+
+#[tauri::command]
+pub fn mkdir(_handle: tauri::AppHandle, path: String) -> (bool, String) {
+    let dir = create_dir(path);
+    match dir {
+        Ok(()) => (false, String::new()),
+        Err(e) => (true, e.to_string())
+    }
+}
+
 
 
 #[tauri::command]

@@ -59,6 +59,7 @@ pub fn run() {
             dialog::exit_warning,
             file::read_file,
             file::write_file,
+            file::mkdir,
             file::read_program_json,
             highlight::highlight,
             leo::execute,
