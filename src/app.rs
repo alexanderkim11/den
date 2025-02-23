@@ -99,7 +99,9 @@ fn FileTab(
             cached_content.insert(current_filepath, result_element.value());
             set_cached_file_contents.set(cached_content);
 
-            set_selected_file.set(target.id());
+            if selected_file.get_untracked() != target.id(){
+                set_selected_file.set(target.id());
+            }
         }>
             {filename.clone()}
             <button class="exit-button"
@@ -115,6 +117,7 @@ fn FileTab(
 
                         let mut saved_content = saved_file_contents.get_untracked();
                         let cached_content = cached_file_contents.get_untracked();
+                        let mut warning_result = String::new();
 
                         let selected = selected_file.get_untracked();
                         if selected == inner_filepath_clone {
@@ -124,9 +127,9 @@ fn FileTab(
                             if saved != result_element.value() {
 
                                 let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { code : "null"}).unwrap();
-                                let save = invoke("warning", args).await.as_bool().unwrap();
+                                warning_result = invoke("warning", args).await.as_string().unwrap();
         
-                                if save {
+                                if warning_result == "Save".to_string() {
                                     let document = leptos::prelude::document();
                                     let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
                                     let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: result_element.value()}).unwrap();
@@ -141,9 +144,9 @@ fn FileTab(
                             if saved != cached {
 
                                 let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { code : "null"}).unwrap();
-                                let save = invoke("warning", args).await.as_bool().unwrap();
+                                warning_result = invoke("warning", args).await.as_string().unwrap();
         
-                                if save {
+                                if warning_result == "Save".to_string() {
                                     let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: cached.clone()}).unwrap();
                                     let (error, message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();
                                     if !error {
@@ -158,28 +161,31 @@ fn FileTab(
                             }
                         }
 
-                        for index in 0..open_files.get_untracked().len(){
-                            let mut vec = open_files.get_untracked();
-                            if vec[index] == ((&inner_filepath_clone).to_string(),(&inner_filename_clone).to_string()){
-                                let mut saved_content = saved_file_contents.get_untracked();
-                                saved_content.remove(&inner_filepath_clone);
-                                // cached_content.remove(&inner_filepath_clone);
-    
-                                set_saved_file_contents.set(saved_content);
-                                // set_cached_file_contents.set(cached_content);
-    
-                                vec.remove(index);
-                                if vec.len() > 0 {
-                                    if index == vec.len(){
-                                        set_selected_file.set(vec[index-1].0.clone());
-                                    } else if index < vec.len() {
-                                        set_selected_file.set(vec[index].0.clone());
+                        if warning_result != "Cancel".to_string(){
+                            for index in 0..open_files.get_untracked().len(){
+                                let mut vec = open_files.get_untracked();
+                                if vec[index] == ((&inner_filepath_clone).to_string(),(&inner_filename_clone).to_string()){
+                                    let mut saved_content = saved_file_contents.get_untracked();
+                                    let mut cached_content = cached_file_contents.get_untracked();
+                                    saved_content.remove(&inner_filepath_clone);
+                                    cached_content.remove(&inner_filepath_clone);
+        
+                                    set_saved_file_contents.set(saved_content);
+                                    set_cached_file_contents.set(cached_content);
+        
+                                    vec.remove(index);
+                                    if vec.len() > 0 {
+                                        if index == vec.len(){
+                                            set_selected_file.set(vec[index-1].0.clone());
+                                        } else if index < vec.len() {
+                                            set_selected_file.set(vec[index].0.clone());
+                                        }
+                                    } else if vec.len() == 0 {
+                                        set_selected_file.set(String::new());
                                     }
-                                } else if vec.len() == 0 {
-                                    set_selected_file.set(String::new());
+                                    set_open_files.set(vec);
+                                    break;
                                 }
-                                set_open_files.set(vec);
-                                break;
                             }
                         }
                     });

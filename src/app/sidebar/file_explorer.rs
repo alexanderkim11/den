@@ -157,29 +157,6 @@ pub fn SidebarFileExplorer (
         
     }) as Box<dyn FnMut(_)>);
 
-       //Used for opening files
-    let open_file_closure_clone = Closure::wrap(Box::new(move |ev: Event| {
-        let title_element = ev.target().unwrap().dyn_into::<HtmlElement>().unwrap();
-        let dataset = title_element.dataset();
-        let filepath = dataset.get("filepath").unwrap();
-        let filename = Path::new(&filepath).file_name().unwrap().to_str().unwrap().to_string();
-
-
-        let current_filepath = selected_file.get_untracked();
-        let mut cached_content = cached_file_contents.get_untracked();
-
-        let document = leptos::prelude::document();
-        let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
-
-        // Cache content of starting file before switching focus to new file
-        cached_content.remove(&current_filepath);
-        cached_content.insert(current_filepath,result_element.value());
-        set_cached_file_contents.set(cached_content);
-
-        set_selected_file.set(filepath.clone());
-        set_open_files.update(|vec| if !vec.contains(&(filepath.clone(),filename.clone())){vec.push((filepath.clone(),filename.clone()))});
-        
-    }) as Box<dyn FnMut(_)>);
 
            //Used for opening files
     let open_file_closure_clone = Closure::wrap(Box::new(move |ev: Event| {

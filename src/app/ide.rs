@@ -280,38 +280,6 @@ pub fn IDE(
 
                 }
                 >
-                // {
-                //     move || {
-                //         let selected = selected_file.get();
-                //         let mut cached_contents = cached_file_contents.get_untracked();
-                //         if selected != String::new(){
-                //             spawn_local(
-                //                 async move {
-                //                     let cached_content = cached_contents.get(&selected).unwrap().to_string();
-                //                     let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &cached_content, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
-                //                     let highlighted = invoke("highlight", args).await.as_string().unwrap();
-                //                     set_highlighted_msg.set(highlighted);
-
-                //                     let document = leptos::prelude::document();
-                //                     let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
-                //                     result_element.set_value(&cached_content);
-
-                //                     let lines_html = get_lines(cached_content);
-                //                     set_lines_html.set(lines_html);
-
-                //                     let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                //                     let _ = result_element.style().remove_property("display");
-                //                 }
-                //             );            
-
-                //         } else {
-                //             let document = leptos::prelude::document();
-                //             let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                //             let _ = result_element.style().set_property("display","none");
-                //         }
-                //     }
-                    
-                // }
                 </textarea>
 
 
