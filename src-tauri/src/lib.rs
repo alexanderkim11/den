@@ -40,13 +40,13 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| match event {
-            tauri::WindowEvent::CloseRequested{api,..} => {
-                let app_handle = window.app_handle();
-                let exit : bool = dialog::exit_warning(app_handle.clone(),"null".to_string());
-                if !exit {
-                    api.prevent_close();
-                }
-            }
+            // tauri::WindowEvent::CloseRequested{api,..} => {
+            //     let app_handle = window.app_handle();
+            //     let exit : bool = dialog::exit_warning(app_handle.clone(),"null".to_string());
+            //     if !exit {
+            //         api.prevent_close();
+            //     }
+            // }
             _ => {}
         })
         .plugin(tauri_plugin_os::init())

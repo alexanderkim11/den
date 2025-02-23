@@ -726,6 +726,8 @@ pub fn SidebarFileExplorer (
                             let args = serde_wasm_bindgen::to_value(&UpdateStateRootDirArgs { directory : deserialized_return_val[0].path.clone()}).unwrap();
                             invoke("update_state_root_dir", args).await;
 
+                            set_fs_selected.set(deserialized_return_val[0].path.clone());
+
                             
                             let fs_html = generate_file_explorer_html(deserialized_return_val);
 
