@@ -6,23 +6,26 @@
 
 Built with Tauri + Leptos
 
+# DEPLOYMENT:
+    - Change state path to "./"
+
 # TODO:
 
 **BOLD** signifies priority tasking
 
 ## General:
-- Change blocking backend operations to non-blocking?
 - **Integrate Devnet support**
 - Work on Custom Titlebar with buttons
 - Need to figure out way to integrate LSP server for document-wide error checking
 - Testing framework?
 - Add way to open multiple windows/app instances
+- Figure out way to add warning message when exiting app
 
 ## Sidebar:
 - General:
     - Add hover names for sidebar icon buttons?
     - Persistant state between closing and reopening the app
-        - **Update state filepath**
+        - **Update state filepath to ./**
         - Persistant state is challenging due to little support for Leptos + Tauri combo
         - Need to save state each time any of the items change
         - State should be:
@@ -36,7 +39,8 @@ Built with Tauri + Leptos
 - File System:
     - Changing directories
         - **Check for unsaved open files -> send warning if true**
-        - Reload window with new filesystem open
+        - **Close all open files**
+        - Reload window with new filesystem open?
     - Add hover filepaths for file buttons
     - **Add way to create/delete files and directories**
         - **Add check for conflicting file and directory names**
@@ -58,10 +62,10 @@ Built with Tauri + Leptos
 - Compile
     - Add sub-icon on sidebar icon to indicator success,failure, or pending
     - **Ctrl + S on IDE should automatically compile a Leo program**
-- **Deploy and Execute:**
-    - Add indicator for current network
-    - Add functionality here
-    - Add deployed program interaction
+- Deploy and Execute:
+    - **Add indicator for current network**
+    - **Add functionality here**
+    - **Add deployed program interaction**
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
 - REST API:
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?

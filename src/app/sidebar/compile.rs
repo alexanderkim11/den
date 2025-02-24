@@ -8,13 +8,13 @@ use wasm_bindgen::prelude::*;
 use std::path::Path;
 use regex::Regex;
 
+use crate::app::{generate_file_explorer_html, CustomDirEntry};
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
     async fn invoke(cmd: &str, args: JsValue) -> JsValue;
 }
-
-
 
 /*
 ==============================================================================
@@ -30,43 +30,6 @@ pub struct Command<> {
 #[derive(Serialize, Deserialize)]
 pub struct GetDirArgs<> {
     pub directory : String
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct CustomDirEntry<> {
-    pub path: String,
-    pub name: String,
-    pub type_of: String,
-    pub subpaths : Vec<CustomDirEntry<>>,
-}
-
-
-// Recursively generate file explorer html
-pub fn generate_file_explorer_html(mut dir_entry: Vec<CustomDirEntry>) -> String {
-    let mut fs_html : String = "".to_string();
-    dir_entry.sort_unstable_by_key(|entry| (entry.type_of.clone(), entry.name.clone()));
-    for entry in dir_entry{
-        let entry_type = entry.type_of;
-        if entry_type == "Directory" {
-            let subpaths : Vec<CustomDirEntry> = entry.subpaths;
-            let fs_title = format!("{}{}{}{}{}", "<div name = \"title\" class=\"fs-title\"><img name = \"image\" id=\"", entry.path, "--img\" class=\"inactive\" src=\"public/chevron-right.svg\"/><div>", entry.name, "</div></div>");
-            let dir_children = format!("{}{}{}{}{}", "<div name = \"children\" id=\"",entry.path,"--children\" class=\"dir-children\">", generate_file_explorer_html(subpaths), "</div>");
-            fs_html = format!("{}{}{}{}{}", fs_html,"<div class=\"dir\">", fs_title, dir_children, "</div>");
-
-        } else if entry_type == "File" {
-            let extension = entry.path.split(".").collect::<Vec<&str>>();
-            if extension[extension.len()-1] == "leo"{
-                fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/leo.svg\" style=\" padding-left:2px; padding-top:1px;  padding-bottom:1px;  width:16px; height:15px;\"/><div style=\"padding-left:3.5px\">", entry.name, "</div></div></div>");
-            } else if extension[extension.len()-1] == "aleo"{
-                fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/aleo2.svg\" style=\"width:12px; height:13px; padding-top:2px; padding-left:5px; padding-bottom:2px; padding-right:2px;\"/><div>", entry.name, "</div></div></div>");
-            } else {
-                fs_html = format!("{}{}{}{}{}{}",fs_html,"<div class=\"file\"> <div name = \"title\" data-filepath=\"", entry.path, "\" class=\"fs-title\"><img src=\"public/file.svg\"/><div>", entry.name, "</div></div></div>");
-
-            }
-        }
-    }
-    return fs_html;
-
 }
 /*
 ==============================================================================

@@ -43,6 +43,7 @@ COMPONENTS
 pub fn SidebarRestApi (
     selected_activity_icon: ReadSignal<String>,
     current_environment_dropdown_item : ReadSignal<String>,
+    current_endpoint : ReadSignal<String>,
 
 ) -> impl IntoView {
 
@@ -244,8 +245,9 @@ pub fn SidebarRestApi (
       
                         let document = leptos::prelude::document();               
                         spawn_local(async move {
-                            let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
-                            let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "block".to_string(), "--latest".to_string(), "--network".to_string(), network ,"--endpoint".to_string(),"https://api.explorer.provable.com/v1".to_string()]}).unwrap();
+                            let network_item = current_environment_dropdown_item.get_untracked();
+                            let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};
+                            let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "block".to_string(), "--latest".to_string(), "--network".to_string(), network ,"--endpoint".to_string(),current_endpoint.get_untracked()]}).unwrap();
     
                             let (error, output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
 
@@ -288,9 +290,12 @@ pub fn SidebarRestApi (
                         <button id="get-latest-block-open-button" class="card-button" style="margin-right:10px;"
                         on:click:target=move|_ev| {
                             spawn_local(async move {
-                                let base_url : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"https://explorer.provable.com/block/latest".to_string()} else {"https://testnet.explorer.provable.com/block/latest".to_string()};
-                                let args = serde_wasm_bindgen::to_value(&URL{url:base_url}).unwrap();
-                                invoke("open_url", args).await;
+                                let network_item = current_environment_dropdown_item.get_untracked();
+                                if network_item != "devnet-button" {
+                                    let base_url : String = if network_item == "mainnet-button" {"https://explorer.provable.com/block/latest".to_string()} else {"https://testnet.explorer.provable.com/block/latest".to_string()};
+                                    let args = serde_wasm_bindgen::to_value(&URL{url:base_url}).unwrap();
+                                    invoke("open_url", args).await;                                   
+                                }
 
                             });
                         }
@@ -372,8 +377,9 @@ pub fn SidebarRestApi (
                             let _ = error.style().set_property("display", "none");
                             
                             spawn_local(async move {
-                                let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
-                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "block".to_string(), "--network".to_string(),network,"--endpoint".to_string(),"https://api.explorer.provable.com/v1".to_string(), value.clone()]}).unwrap();
+                                let network_item = current_environment_dropdown_item.get_untracked();
+                                let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};                                
+                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "block".to_string(), "--network".to_string(),network,"--endpoint".to_string(),current_endpoint.get_untracked(), value.clone()]}).unwrap();
         
                                 let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                                 if !error {
@@ -429,13 +435,16 @@ pub fn SidebarRestApi (
                             let document = leptos::prelude::document();
                             let current_input = document.query_selector("#get-block-by-height-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let value = current_input.value();
-                            let base_url : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"https://explorer.provable.com/block/".to_string()} else {"https://testnet.explorer.provable.com/block/".to_string()};
-                            let url = format!("{}{}",base_url, value);
-                            spawn_local(async move {
-                                let args = serde_wasm_bindgen::to_value(&URL{url:url}).unwrap();
-                                invoke("open_url", args).await;
-
-                            });
+                            let network_item = current_environment_dropdown_item.get_untracked();
+                            if network_item != "devnet-button" {
+                                let base_url : String = if network_item == "mainnet-button" {"https://explorer.provable.com/block/".to_string()} else {"https://testnet.explorer.provable.com/block/".to_string()};
+                                let url = format!("{}{}",base_url, value);
+                                spawn_local(async move {
+                                    let args = serde_wasm_bindgen::to_value(&URL{url:url}).unwrap();
+                                    invoke("open_url", args).await;
+    
+                                });                               
+                            }
                         }
                         >
                             Open
@@ -525,8 +534,9 @@ pub fn SidebarRestApi (
                             let _ = error.style().set_property("display", "none");
                             
                             spawn_local(async move {
-                                let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
-                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),network,"--endpoint".to_string(),"https://api.explorer.provable.com/v1".to_string(),"program".to_string(), value.clone()]}).unwrap();        
+                                let network_item = current_environment_dropdown_item.get_untracked();
+                                let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};                                
+                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),network,"--endpoint".to_string(),current_endpoint.get_untracked(),"program".to_string(), value.clone()]}).unwrap();        
                                 let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                                 if !error {
                                     let mut formatted_output = String::new();
@@ -580,13 +590,16 @@ pub fn SidebarRestApi (
                             let document = leptos::prelude::document();
                             let current_input = document.query_selector("#get-program-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let value = current_input.value();
-                            let base_url : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"https://explorer.provable.com/program/".to_string()} else {"https://testnet.explorer.provable.com/program/".to_string()};
-                            let url = format!("{}{}",base_url, value);
-                            spawn_local(async move {
-                                let args = serde_wasm_bindgen::to_value(&URL{url:url}).unwrap();
-                                invoke("open_url", args).await;
+                            let network_item = current_environment_dropdown_item.get_untracked();
+                            if network_item != "devnet-button" {
+                                let base_url : String = if network_item == "mainnet-button" {"https://explorer.provable.com/program/".to_string()} else {"https://testnet.explorer.provable.com/program/".to_string()};
+                                let url = format!("{}{}",base_url, value);
+                                spawn_local(async move {
+                                    let args = serde_wasm_bindgen::to_value(&URL{url:url}).unwrap();
+                                    invoke("open_url", args).await;
 
-                            });
+                                });
+                            }
                         }
                         >
                             Open
@@ -674,8 +687,9 @@ pub fn SidebarRestApi (
                             let _ = error.style().set_property("display", "none");
                             
                             spawn_local(async move {
-                                let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
-                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "transaction".to_string(), "--network".to_string(),network,"--endpoint".to_string(),"https://api.explorer.provable.com/v1".to_string(), value.clone()]}).unwrap();
+                                let network_item = current_environment_dropdown_item.get_untracked();
+                                let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};                                
+                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "transaction".to_string(), "--network".to_string(),network,"--endpoint".to_string(),current_endpoint.get_untracked(), value.clone()]}).unwrap();
         
                                 let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                                 if !error {
@@ -731,13 +745,16 @@ pub fn SidebarRestApi (
                             let document = leptos::prelude::document();
                             let current_input = document.query_selector("#get-transaction-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let value = current_input.value();
-                            let base_url : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"https://explorer.provable.com/transaction/".to_string()} else {"https://testnet.explorer.provable.com/transaction/".to_string()};
-                            let url = format!("{}{}",base_url, value);
-                            spawn_local(async move {
-                                let args = serde_wasm_bindgen::to_value(&URL{url:url}).unwrap();
-                                invoke("open_url", args).await;
+                            let network_item = current_environment_dropdown_item.get_untracked();
+                            if network_item != "devnet-button" {
+                                let base_url : String = if network_item == "mainnet-button" {"https://explorer.provable.com/transaction/".to_string()} else {"https://testnet.explorer.provable.com/transaction/".to_string()};
+                                let url = format!("{}{}",base_url, value);
+                                spawn_local(async move {
+                                    let args = serde_wasm_bindgen::to_value(&URL{url:url}).unwrap();
+                                    invoke("open_url", args).await;
 
-                            });
+                                });
+                            }
                         }
                         >
                             Open

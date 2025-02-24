@@ -1,10 +1,11 @@
-use leptos::web_sys::{Element,HtmlElement,HtmlInputElement};
+use leptos::web_sys::{Element,HtmlElement,HtmlInputElement, HtmlImageElement};
 use js_sys::Array;
 use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use indexmap::IndexMap;
+use std::collections::HashMap;
 
 use crate::app::CopyButton;
 
@@ -30,7 +31,15 @@ pub struct Command<> {
 #[derive(Serialize, Deserialize)]
 struct ReadProgramJsonArgs<> {
     filepath : String,
+    field: String,
 }
+
+#[derive(Serialize, Deserialize)]
+struct ReadFileArgs<> {
+    filepath: String
+}
+
+
 
 /*
 ==============================================================================
@@ -47,6 +56,8 @@ pub fn SidebarDeployExecute (
     compiled_project : ReadSignal<(String,String)>,
     set_compiled_project : WriteSignal<(String,String)>,
 
+    current_environment_dropdown_text : ReadSignal<String>,
+    current_endpoint : ReadSignal<String>,
 ) -> impl IntoView {
 
     /*
@@ -70,7 +81,7 @@ pub fn SidebarDeployExecute (
         move || {
             if compiled_project.get().1 != String::new() {
                 spawn_local(async move {
-                    let args = serde_wasm_bindgen::to_value(&ReadProgramJsonArgs { filepath : format!("{}{}", compiled_project.get().0, "/program.json")}).unwrap();
+                    let args = serde_wasm_bindgen::to_value(&ReadProgramJsonArgs { filepath : format!("{}{}", compiled_project.get_untracked().0, "/program.json"), field: "program".to_string()}).unwrap();
                     let program_id = invoke("read_program_json", args).await.as_string().unwrap();
                     set_compiled_program_id.set(program_id.replace("\"",""));
                 });                            
@@ -153,6 +164,26 @@ pub fn SidebarDeployExecute (
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "deploy-new-program-button" {"display: flex"} else {"display: none"}}>
                     <div id="deploy-program-card-body" class="card-body">
+                        <div class="field-title">{move || format!("{}{}","Network: ",current_environment_dropdown_text.get())}</div>
+                        
+                        // <div class="input-field">
+                        //     <div class="field-title">Program ID</div>
+                        //     <input id="deploy-input-program-id" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        // </div>
+
+
+                        <div class="input-field">
+                            <div class="field-title">Project</div>
+                            <div class="output-input-wrapper">
+                                <input id="deploy-input-project" value={move || compiled_project.get().1} placeholder="Compile a project first!" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                            </div>
+                        </div>
+                        <div class="input-field">
+                            <div class="field-title">Program ID</div>
+                            <div class="output-input-wrapper">
+                                <input id="deploy-input-program-id" value={move || compiled_program_id.get()} placeholder="Compile a project first!" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                            </div>
+                        </div>
 
                         <div class="input-field"  style="color:#e3e3e3;">
                             <div class="field-title">Account</div>
@@ -202,27 +233,6 @@ pub fn SidebarDeployExecute (
                                         }
                                     }/>
                                 </div>
-                            </div>
-                        </div>
-
-
-
-                        // <div class="input-field">
-                        //     <div class="field-title">Program ID</div>
-                        //     <input id="deploy-input-program-id" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                        // </div>
-
-
-                        <div class="input-field">
-                            <div class="field-title">Project</div>
-                            <div class="output-input-wrapper">
-                                <input id="deploy-input-project" value={move || compiled_project.get().1} placeholder="Project" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
-                            </div>
-                        </div>
-                        <div class="input-field">
-                            <div class="field-title">Program ID</div>
-                            <div class="output-input-wrapper">
-                                <input id="deploy-input-program-id" value={move || compiled_program_id.get()} placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
                             </div>
                         </div>
 
@@ -311,6 +321,7 @@ pub fn SidebarDeployExecute (
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "load-program-button" {"display: flex"} else {"display: none"}}>
                     <div id="load-program-card-body" class="card-body">
+                        <div class="field-title">{move || format!("{}{}","Network: ",current_environment_dropdown_text.get())}</div>
                         <div class="input-field">
                             <div class="field-title">Program ID</div>
                             <input id="load-program-input" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
@@ -327,7 +338,82 @@ pub fn SidebarDeployExecute (
                         if &value == "" {
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
-                            let _ = style.set_property("border", "1px solid #494e64");   
+                            let _ = style.set_property("border", "1px solid #494e64");
+
+                            /*
+                            Dependency Checking Order:
+                                1. Local
+                                    a. Look in ROOT/program.json
+                                    b. If exists, will be at path ROOT/program.json["path"]/build/main.aleo
+                                2. Query
+                                    a. Will look in .aleo/NETWORK if already cached
+                                    b. Else, will query from network
+                            */
+
+                            if compiled_project.get_untracked().0 != String::new() {
+
+                                spawn_local(async move {
+                                    let args = serde_wasm_bindgen::to_value(&ReadProgramJsonArgs { filepath : format!("{}{}", compiled_project.get_untracked().0, "/program.json"), field: "dependencies".to_string()}).unwrap();
+                                    let dependencies = invoke("read_program_json", args).await.as_string().unwrap();
+
+                                    let mut not_local = true;
+                                    if dependencies != String::new(){
+                                        let deserialized_return_val : Vec<HashMap<String,Option<String>>> = serde_json::from_str(&dependencies).expect("Error with decoding dir_entry");
+                                        for json in deserialized_return_val {
+                                            let name = json.get("name").unwrap().clone().unwrap();
+                                            if name == value{
+                                                let location = json.get("location").unwrap().clone().unwrap();
+                                                if location == "local" {
+                                                    let path = json.get("path").unwrap().clone().unwrap();
+                                                    let full_path = format!("{}{}{}{}", compiled_project.get_untracked().0, "/", path,"/build/main.aleo");
+                                                    let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: full_path}).unwrap();
+                                                    match invoke("read_file", args).await.as_string(){
+                                                        Some(contents) => {
+                                                            console_log(&contents);
+                                                        },
+                                                        None => {
+                                                            console_log("Error: File does not exist");
+                                                        }
+                                                    }
+                                                    
+                                                    
+                                                    not_local = false;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if not_local {
+                                        let network = current_environment_dropdown_text.get_untracked().to_string().to_lowercase();
+
+                                        let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),network,"--endpoint".to_string(),current_endpoint.get_untracked(),"program".to_string(), value.clone()]}).unwrap();        
+                                        let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                        if !error {
+                                            let mut formatted_output = String::new();
+                                            let split = output.split("\n\n").collect::<Vec<&str>>();
+                                            for item in &(split)[2..split.len()-3]{
+                                                if *item == "" {
+                                                    formatted_output = format!("{}{}", formatted_output, "\n");
+                                                } else {
+                                                    formatted_output = format!("{}{}{}", formatted_output, item, "\n");
+                                                }
+                                            }
+
+                                            console_log(&formatted_output);
+
+                                        } else {
+                                            console_log("error: this program does not exist");
+                                            // let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            // error.set_inner_html("Error: The program with this ID does not exist.");
+                                            // let _ = error.style().set_property("display", "block");
+                                            // let _ = this.class_list().remove(&new_val);
+                                        }
+                                    }
+
+                                });      
+                        }
+
                         }
                     }
                     >
@@ -336,8 +422,164 @@ pub fn SidebarDeployExecute (
                 </div>
             </div>
 
-            <div class="panel-divider"/>
-            
+            <div class="panel-divider" style="margin-bottom:0"/>
+
+            <div id="sample-program-card" class="program-card">
+                <div id="sample-program-dropdown-custom" class="program-custom-head">
+                    <div id="sample-program-dropdown-button" class="dropdown-button"> 
+                        <img src="public/chevron-right.svg" class="inactive" style="order:1; z-index: 2;"
+                        on:click:target=move|ev| 
+                        {
+                            let this = ev.target().dyn_into::<Element>().unwrap();
+                            let card = this.parent_element().unwrap().parent_element().unwrap().parent_element().unwrap();  
+                            let img = this.dyn_into::<HtmlImageElement>().unwrap();
+                            let content = card.children().item(1).unwrap().dyn_into::<HtmlElement>().unwrap();
+                            if img.class_name() == "inactive"{
+                                img.set_src("public/chevron-down.svg");
+                                img.set_class_name("active");
+                                card.set_class_name("program-card active");
+                                let _ = content.set_attribute("style","display: flex; border:0;");
+                            } else {
+                                img.set_src("public/chevron-right.svg");
+                                img.set_class_name("inactive");
+                                card.set_class_name("program-card");   
+                                let _ = content.set_attribute("style","display:none;");
+                            }
+                        }
+                        />
+                        <div class="buffer" style="order:2" inner_html={"credits.aleo (mainnet)"}></div>
+                        <img src="public/close.svg" name="image" style="order:3; z-index:2;"/>
+                    </div>
+                </div>
+
+                <div class="card-body-wrapper" style="display: none">
+                    <div id="sample-program-card-body" class="card-body">
+                        <div class="function-wrapper" id="">    
+                            <div class="input-field">
+                                <div class="output-input-wrapper">
+                                    <div class="program-function-button">transfer_public</div>
+                                    <input id="test-function" style=" border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px" placeholder="address, u64" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                    <img src="public/chevron-down.svg" style=" cursor: pointer; order:1; z-index: 2;"
+                                    on:click:target={move|ev|{
+                                        let this = ev.target().dyn_into::<Element>().unwrap();
+                                        let function_compressed = this.parent_element().unwrap().parent_element().unwrap();
+                                        let function_expanded = function_compressed.parent_element().unwrap().children().get_with_index(1).unwrap();
+                                    
+                                        let _ = function_compressed.set_attribute("style", "display:none;");
+                                        let _ = function_expanded.set_attribute("style", "");
+
+                                    }}
+                                    />
+                                
+                                </div>
+                            </div>
+
+                            <div class="function-expanded" style="display:none">
+                                <div class="function-expanded-header">
+                                    <div class="function-expanded-title">transfer_public</div>
+                                    // <div name="buffer" style="width:100%"></div>
+                                    <img src="public/chevron-up.svg" style=" cursor: pointer; order:2; z-index: 2; padding-bottom:4px;"
+                                    on:click:target={move|ev|{
+                                        let this = ev.target().dyn_into::<Element>().unwrap();
+                                        let function_expanded= this.parent_element().unwrap().parent_element().unwrap();
+                                        let function_compressed = function_expanded.parent_element().unwrap().children().get_with_index(0).unwrap();
+                                    
+                                        let _ = function_expanded.set_attribute("style", "display:none;");
+                                        let _ = function_compressed.set_attribute("style", "");
+                                    }}
+                                    />
+                                </div>
+                                <div class="function-expanded-fields-wrapper" >
+                                    <div class="function-expanded-field-wrapper">
+                                        <div class="function-expanded-field-label">{"r0: "}</div>
+                                        <input style="border-radius: 6px;" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                    </div>
+                                    <div class="function-expanded-field-wrapper">
+                                        <div class="function-expanded-field-label">{"r1: "}</div>
+                                        <input style="border-radius: 6px;" placeholder="u64" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                    </div>
+                                </div>
+                                <div class="function-expanded-execute-button-wrapper">
+                                    <div name="buffer" style="width:100%"/>
+                                    <div class="function-expanded-execute-button">Execute</div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="function-wrapper" id="">    
+                            <div class="input-field">
+                                <div class="output-input-wrapper">
+                                    <div class="program-mapping-button">accounts</div>
+                                    <input id="test-function" style=" border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                    <img src="public/chevron-down.svg" style=" cursor: pointer; order:1; z-index: 2;"
+                                    on:click:target={move|ev|{
+                                        let this = ev.target().dyn_into::<Element>().unwrap();
+                                        let function_compressed = this.parent_element().unwrap().parent_element().unwrap();
+                                        let function_expanded = function_compressed.parent_element().unwrap().children().get_with_index(1).unwrap();
+                                    
+                                        let _ = function_compressed.set_attribute("style", "display:none;");
+                                        let _ = function_expanded.set_attribute("style", "");
+
+                                    }}
+                                    />
+                                
+                                </div>
+                            </div>
+
+                            <div class="function-expanded" style="display:none">
+                                <div class="function-expanded-header">
+                                    <div class="function-expanded-title">accounts</div>
+                                    // <div name="buffer" style="width:100%"></div>
+                                    <img src="public/chevron-up.svg" style=" cursor: pointer; order:2; z-index: 2; padding-bottom:4px;"
+                                    on:click:target={move|ev|{
+                                        let this = ev.target().dyn_into::<Element>().unwrap();
+                                        let function_expanded= this.parent_element().unwrap().parent_element().unwrap();
+                                        let function_compressed = function_expanded.parent_element().unwrap().children().get_with_index(0).unwrap();
+                                    
+                                        let _ = function_expanded.set_attribute("style", "display:none;");
+                                        let _ = function_compressed.set_attribute("style", "");
+                                    }}
+                                    />
+                                </div>
+                                <div class="function-expanded-fields-wrapper" >
+                                    <div class="function-expanded-field-wrapper">
+                                        <div class="function-expanded-field-label" style="padding-top:7px;">{"key: "}</div>
+                                        <input style="border-radius: 6px;" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                    </div>
+
+                                </div>
+                                <div class="function-expanded-execute-button-wrapper">
+                                    <div name="buffer" style="width:100%"/>
+                                    <div class="function-expanded-query-button">Query</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        // <div class="input-field" >
+                        //     <div class="output-input-wrapper">
+                        //         <div class="program-mapping-button">accounts</div>
+                        //         <input id="test-mapping" style=" border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px" placeholder="u64" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                        //         <img src="public/chevron-down.svg" class="program-expand inactive" style="order:1; z-index: 2;"
+                        //         on:click:target={move|ev|{
+                        //             let this = ev.target().dyn_into::<Element>().unwrap();
+                        //             let img = this.dyn_into::<HtmlImageElement>().unwrap();
+                        //             if img.class_name() == "program-expand inactive"{
+                        //                 img.set_src("public/chevron-up.svg");
+                        //                 img.set_class_name("program-expand active");
+                        //             } else {
+                        //                 img.set_src("public/chevron-down.svg");
+                        //                 img.set_class_name("program-expand inactive");
+                        //             }
+                        //         }}
+                        //         />
+                            
+                        //     </div>
+                        // </div>
+
+                    </div>
+                </div>
+            </div>
 
         </div>
     }

@@ -82,7 +82,7 @@ pub fn get_directory(_handle: tauri::AppHandle, directory: String) -> String {
     let mut full_return_vec: Vec<CustomDirEntry> = Vec::new();
     full_return_vec.push(CustomDirEntry {
         name: folder_path.file_name().unwrap().to_str().unwrap().to_string(),
-        path: folder_path.to_str().unwrap().to_string(),
+        path: folder_path.to_str().unwrap().replace("\\","/").to_string(),
         type_of: "Directory".to_string(),
         subpaths: this_folder,
     });

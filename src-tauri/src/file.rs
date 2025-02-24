@@ -42,13 +42,14 @@ pub fn mkdir(_handle: tauri::AppHandle, path: String) -> (bool, String) {
 
 
 #[tauri::command]
-pub fn read_program_json(_handle: tauri::AppHandle, filepath: String) -> String {
-    println!("{}",filepath);
+pub fn read_program_json(_handle: tauri::AppHandle, filepath: String, field: String) -> String {
     let file = File::open(&filepath)
     .expect("File should open read only");
     let json: serde_json::Value = serde_json::from_reader(file)
         .expect("File should be proper JSON");
-    let first_name = json.get("program")
-        .expect("File should have program name");
-    return first_name.to_string()
+    let query = json.get(&field);
+    match query {
+        Some(val) => return val.to_string(),
+        None => return String::new()
+    }
 }

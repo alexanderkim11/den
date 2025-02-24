@@ -74,24 +74,24 @@ pub fn SidebarEnvironment (
                                     <img src="public/chevron-down.svg"/>
                                 </div>
                                 <div id="environment-dropdown-content" class="dropdown-content" style={move || if environment_dropdown_active.get() {"display: block"} else {"display: none"}}>
-                                    <div id="devnet-button" class={move || if current_environment_dropdown_item.get() == "devnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                                    on:click:target = move|ev| {
-                                        if current_environment_dropdown_item.get() != ev.target().id(){
-                                            set_current_environment_dropdown_item.set(ev.target().id());
-                                            set_current_environment_dropdown_text.set(ev.target().inner_html());
-                                            set_current_endpoint.set("http://localhost:3030".to_string());
+                                    // <div id="devnet-button" class={move || if current_environment_dropdown_item.get() == "devnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                                    // on:click:target = move|ev| {
+                                    //     if current_environment_dropdown_item.get() != ev.target().id(){
+                                    //         set_current_environment_dropdown_item.set(ev.target().id());
+                                    //         set_current_environment_dropdown_text.set(ev.target().inner_html());
+                                    //         set_current_endpoint.set("http://localhost:3030".to_string());
 
-                                            let document = leptos::prelude::document();
-                                            let target = document.query_selector("#environment-dropdown-button").unwrap().unwrap();
-                                            let new_val = Array::new();
-                                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                            let _ = target.class_list().remove(&new_val);
-                                            set_environment_dropdown_active.set(false);
-                                        }
-                                    }
-                                    >
-                                        Local Devnet
-                                    </div>
+                                    //         let document = leptos::prelude::document();
+                                    //         let target = document.query_selector("#environment-dropdown-button").unwrap().unwrap();
+                                    //         let new_val = Array::new();
+                                    //         new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    //         let _ = target.class_list().remove(&new_val);
+                                    //         set_environment_dropdown_active.set(false);
+                                    //     }
+                                    // }
+                                    // >
+                                    //     Local Devnet
+                                    // </div>
                                     <div id="testnet-button" class={move || if current_environment_dropdown_item.get() == "testnet-button" {"dropdown-item selected"} else {"dropdown-item"}}
                                     on:click:target = move|ev| {
                                         if current_environment_dropdown_item.get() != ev.target().id(){

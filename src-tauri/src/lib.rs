@@ -39,7 +39,7 @@ pub fn run() {
             //let store = app.store("state.json")?;
             Ok(())
         })
-        .on_window_event(|window, event| match event {
+        .on_window_event(|_window, event| match event {
             // tauri::WindowEvent::CloseRequested{api,..} => {
             //     let app_handle = window.app_handle();
             //     let exit : bool = dialog::exit_warning(app_handle.clone(),"null".to_string());

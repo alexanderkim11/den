@@ -323,9 +323,12 @@ pub fn App() -> impl IntoView {
     let (cached_file_contents, set_cached_file_contents) : (ReadSignal<HashMap<String,String>>,WriteSignal<HashMap<String,String>>) = signal(HashMap::new());
 
     let (environment_dropdown_active, set_environment_dropdown_active) = signal(false);
-    let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("devnet-button".to_string());
-    let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Local Devnet".to_string());
-    let (current_endpoint, set_current_endpoint) = signal("http://localhost:3030".to_string());
+    let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("testnet-button".to_string());
+    let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Testnet".to_string());
+    let (current_endpoint, set_current_endpoint) = signal("https://api.explorer.provable.com/v1".to_string());
+    // let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("devnet-button".to_string());
+    // let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Local Devnet".to_string());
+    // let (current_endpoint, set_current_endpoint) = signal("http://localhost:3030".to_string());
 
     let (accounts, set_accounts) : (ReadSignal<IndexMap<String,(String,String,String)>>,WriteSignal<IndexMap<String,(String,String,String)>>) = signal(IndexMap::new());
 
@@ -435,8 +438,8 @@ pub fn App() -> impl IntoView {
                 <SidebarAccount selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts/>
                 <SidebarRecords selected_activity_icon=selected_activity_icon/>
                 <SidebarCompile selected_activity_icon=selected_activity_icon selected_file=selected_file compiled_project=compiled_project set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item root=root set_root=set_root set_fs_html=set_fs_html/>
-                <SidebarDeployExecute selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts compiled_project=compiled_project set_compiled_project=set_compiled_project/>
-                <SidebarRestApi selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item/>
+                <SidebarDeployExecute selected_activity_icon=selected_activity_icon current_environment_dropdown_text=current_environment_dropdown_text current_endpoint=current_endpoint accounts=accounts set_accounts=set_accounts compiled_project=compiled_project set_compiled_project=set_compiled_project/>
+                <SidebarRestApi selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item current_endpoint=current_endpoint/>
             </div>
 
 
