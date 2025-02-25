@@ -5,7 +5,8 @@ use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use indexmap::IndexMap;
-use std::collections::HashMap;
+use regex::Regex;
+use leptos::ev::Event;
 
 use crate::app::CopyButton;
 
@@ -77,6 +78,8 @@ pub fn SidebarDeployExecute (
 
     let (compiled_program_id, set_compiled_program_id) = signal(String::new());
 
+    let (loaded_program, set_loaded_program) = signal((String::new(), String::new(), String::new()));
+
     Effect::new({
         move || {
             if compiled_project.get().1 != String::new() {
@@ -88,6 +91,466 @@ pub fn SidebarDeployExecute (
             }
         }
     });
+
+
+    
+
+    let program_compress_expand = Closure::wrap(Box::new(move |ev: Event| {
+        let this = ev.target().unwrap().dyn_into::<Element>().unwrap();
+        let card = this.parent_element().unwrap().parent_element().unwrap().parent_element().unwrap();  
+        let img = this.dyn_into::<HtmlImageElement>().unwrap();
+        let content = card.children().item(1).unwrap().dyn_into::<HtmlElement>().unwrap();
+        if img.class_name() == "inactive"{
+            img.set_src("public/chevron-down.svg");
+            img.set_class_name("active");
+            card.set_class_name("program-card active");
+            let _ = content.set_attribute("style","display: flex; border:0;");
+        } else {
+            img.set_src("public/chevron-right.svg");
+            img.set_class_name("inactive");
+            card.set_class_name("program-card");   
+            let _ = content.set_attribute("style","display:none;");
+        }
+    }) as Box<dyn FnMut(_)>);
+    
+    
+    
+    let function_compress = Closure::wrap(Box::new(move |ev: Event| {
+        let this = ev.target().unwrap().dyn_into::<Element>().unwrap();
+        let function_expanded= this.parent_element().unwrap().parent_element().unwrap();
+        let function_compressed = function_expanded.parent_element().unwrap().children().get_with_index(0).unwrap();
+    
+        let _ = function_expanded.set_attribute("style", "display:none;");
+        let _ = function_compressed.set_attribute("style", "");
+    }) as Box<dyn FnMut(_)>);
+    
+    
+    let function_expand = Closure::wrap(Box::new(move |ev: Event| {
+        let this = ev.target().unwrap().dyn_into::<Element>().unwrap();
+        let function_compressed = this.parent_element().unwrap().parent_element().unwrap();
+        let function_expanded = function_compressed.parent_element().unwrap().children().get_with_index(1).unwrap();
+    
+        let _ = function_compressed.set_attribute("style", "display:none;");
+        let _ = function_expanded.set_attribute("style", "");
+    }) as Box<dyn FnMut(_)>);
+    
+    Effect::new({
+        move || {
+            let program = loaded_program.get();
+            if program.2 != String::new() {
+                let document = leptos::prelude::document();
+                /*
+                ===========================
+                    PROGRAM START 
+                ===========================
+                */
+                let program_card = document.create_element("div").expect("Error creating program card");
+                program_card.set_class_name("program-card");
+                let program_title = format!("{}{}{}{}",program.0," (", program.1, ")");
+                program_card.set_id(&program_title);
+                
+                /*
+                ===========================
+                    HEADER CODE HERE
+                ===========================
+                */
+                
+                let program_custom_head = document.create_element("div").expect("Error creating program custom head");
+                program_custom_head.set_class_name("program-custom-head");
+                
+                let program_dropdown_button = document.create_element("div").expect("Error creating program dropdown button");
+                program_dropdown_button.set_class_name("dropdown-button");
+                
+                let header_img_expand = document.create_element("img").expect("Error creating header img expand element").dyn_into::<HtmlImageElement>().unwrap();
+                let _ = header_img_expand.set_src("public/chevron-right.svg");
+                header_img_expand.set_class_name("inactive");
+                let _ = header_img_expand.set_attribute("style","order:1; z-index: 2;");
+                let _ = header_img_expand.add_event_listener_with_callback("click", program_compress_expand.as_ref().unchecked_ref());
+                
+                
+                let buffer = document.create_element("div").expect("Error creating program header buffer element");
+                buffer.set_class_name("buffer");
+                let _ = buffer.set_attribute("style", "order:2");
+                let text = document.create_text_node(&program_title);
+                let _ = buffer.append_child(&text);
+                
+                let header_img_close = document.create_element("img").expect("Error creating header img close element").dyn_into::<HtmlImageElement>().unwrap();
+                let _ = header_img_close.set_src("public/close.svg");
+                header_img_close.set_class_name("inactive");
+                let _ = header_img_close.set_attribute("style","order:3; z-index: 2;");
+                //TODO: SET EVENT LISTENER HERE
+                
+                let _ = program_dropdown_button.append_child(&header_img_expand);
+                let _ = program_dropdown_button.append_child(&buffer);
+                let _ = program_dropdown_button.append_child(&header_img_close);
+                let _ = program_custom_head.append_child(&program_dropdown_button);
+                
+                /*
+                ===========================
+                END HEADER CODE 
+                ===========================
+                */
+                
+                let card_body_wrapper = document.create_element("div").expect("Error creating card body wrapper");
+                card_body_wrapper.set_class_name("card-body-wrapper");
+                let _ = card_body_wrapper.set_attribute("style","display:none");
+                
+                let card_body = document.create_element("div").expect("Error creating card body");
+                card_body.set_class_name("card-body");
+                
+                /*
+                ===========================
+                    FOR EVERY FUNCTION/MAPPING CODE HERE
+                ===========================
+                */
+                for section in program.2.split("\n\n"){
+                    let lines = section.split("\n").collect::<Vec<&str>>();
+                
+                    let mapping_re = Regex::new(r"mapping (?<mapping_name>.*):").unwrap();
+                
+                    match mapping_re.captures(lines[0]){
+                        Some(caps) => {
+                            let mapping_name = &caps["mapping_name"];
+                            let mapping_io_re = Regex::new(r"key as (?<type>.*)\.(?<visibility>.*);").unwrap();
+                            match mapping_io_re.captures(lines[1]){
+                                Some(caps2) => {
+                                    let full_type = format!("{}{}{}",&caps2["type"],".",&caps2["visibility"]);
+                                    /*
+                                    ===========================
+                                        IF MAPPING CODE HERE
+                                    ===========================
+                                    */
+                
+                                    /*
+                                    ===========================
+                                        MAPPING COMPRESSED
+                                    ===========================
+                                    */
+                
+                                    let function_wrapper = document.create_element("div").expect("Error creating function wrapper");
+                                    function_wrapper.set_class_name("function-wrapper");
+                
+                                    let input_field = document.create_element("div").expect("Error creating input field");
+                                    input_field.set_class_name("input-field");
+                
+                                    let output_input_wrapper = document.create_element("div").expect("Error creating output input wrapper");
+                                    output_input_wrapper.set_class_name("output-input-wrapper");
+                
+                                    let program_mapping_button = document.create_element("div").expect("Error creating program_function_button");
+                                    program_mapping_button.set_class_name("program-mapping-button");
+                                    let text = document.create_text_node(&mapping_name);
+                                    let _ = program_mapping_button.append_child(&text);
+                                    let compressed_input = document.create_element("input").expect("Error creating compressed function input element");
+                                    let _ = compressed_input.set_attribute("spellcheck", "false");
+                                    let _ = compressed_input.set_attribute("autocomplete", "off");
+                                    let _ = compressed_input.set_attribute("autocapitalize", "off");
+                                    let _ = compressed_input.set_attribute("placeholder",&full_type);
+                                    let _ = compressed_input.set_attribute("style","border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px");
+                                    let function_img_expand = document.create_element("img").expect("Error creating function_img_expand element").dyn_into::<HtmlImageElement>().unwrap();
+                                    let _ = function_img_expand.set_src("public/chevron-down.svg");
+                                    function_img_expand.set_class_name("inactive");
+                                    let _ = function_img_expand.set_attribute("style","cursor: pointer; order:1; z-index: 2;");
+                                    let _ = function_img_expand.add_event_listener_with_callback("click", function_expand.as_ref().unchecked_ref());
+                
+                
+                                    let _ = output_input_wrapper.append_child(&program_mapping_button);
+                                    let _ = output_input_wrapper.append_child(&compressed_input);
+                                    let _ = output_input_wrapper.append_child(&function_img_expand);
+                                    let _ = input_field.append_child(&output_input_wrapper);
+                
+                
+                                    /*
+                                    ===========================
+                                        MAPPING EXPANDED
+                                    ===========================
+                                    */
+                
+                                    let function_expanded = document.create_element("div").expect("Error creating function_expanded");
+                                    function_expanded.set_class_name("function-expanded");
+                                    let _ = function_expanded.set_attribute("style","display:none");
+                
+                                    let function_expanded_header = document.create_element("div").expect("Error creating function_expanded_header");
+                                    function_expanded_header.set_class_name("function-expanded-header");
+                
+                                    let function_expanded_title = document.create_element("div").expect("Error creating function_expanded_title");
+                                    function_expanded_title.set_class_name("function-expanded-title");
+                                    let text = document.create_text_node(&mapping_name);
+                                    let _ = function_expanded_title.append_child(&text);
+                                    let function_img_compress = document.create_element("img").expect("Error creating function_img_compress element").dyn_into::<HtmlImageElement>().unwrap();
+                                    let _ = function_img_compress.set_src("public/chevron-up.svg");
+                                    function_img_compress.set_class_name("inactive");
+                                    let _ = function_img_compress.set_attribute("style","cursor: pointer; order:2; z-index: 2; padding-bottom:4px;");
+                                    let _ = function_img_compress.add_event_listener_with_callback("click", function_compress.as_ref().unchecked_ref());
+                
+                
+                                    let _ = function_expanded_header.append_child(&function_expanded_title);
+                                    let _ = function_expanded_header.append_child(&function_img_compress);
+                
+                                    let function_expanded_fields_wrapper = document.create_element("div").expect("Error creating function_expanded_fields_wrapper");
+                                    function_expanded_fields_wrapper.set_class_name("function-expanded-fields-wrapper");
+                
+                                    /*
+                                    ===========================
+                                        MAPPING KEY
+                                    ===========================
+                                    */
+                
+                                    let function_expanded_field_wrapper = document.create_element("div").expect("Error creating function_expanded_field_wrapper");
+                                    function_expanded_field_wrapper.set_class_name("function-expanded-field-wrapper");
+                
+                                    let function_expanded_field_label = document.create_element("div").expect("Error creating function_expanded_field_label");
+                                    function_expanded_field_label.set_class_name("function-expanded-field-label");
+                                    let _ = function_expanded_field_label.set_attribute("style","padding-top:7px;");
+                
+                                    let text = document.create_text_node("key: ");
+                                    let _ = function_expanded_field_label.append_child(&text);
+                                    let function_expanded_field = document.create_element("input").expect("Error creating compressed function_expanded_field");
+                                    let _ = function_expanded_field.set_attribute("spellcheck", "false");
+                                    let _ = function_expanded_field.set_attribute("autocomplete", "off");
+                                    let _ = function_expanded_field.set_attribute("autocapitalize", "off");
+                                    let _ = function_expanded_field.set_attribute("placeholder",&full_type);
+                                    let _ = function_expanded_field.set_attribute("style","border-radius: 6px;");
+                
+                                    let _ = function_expanded_field_wrapper.append_child(&function_expanded_field_label);
+                                    let _ = function_expanded_field_wrapper.append_child(&function_expanded_field);
+                                    let _ = function_expanded_fields_wrapper.append_child(&function_expanded_field_wrapper);
+                
+                
+                                    /*
+                                    ===========================
+                                        FINALLY
+                                    ===========================
+                                    */
+                
+                                    let function_expanded_submit_button_wrapper = document.create_element("div").expect("Error creating function_expanded_submit_button_wrapper");
+                                    function_expanded_submit_button_wrapper.set_class_name("function-expanded-submit-button-wrapper");
+                
+                                    let buffer2 = document.create_element("div").expect("Error creating function_expanded_execute_button buffer");
+                                    let _ = buffer2.set_attribute("name","buffer");
+                                    let _ = buffer2.set_attribute("style","width:100%");
+                
+                                    let function_expanded_query_button = document.create_element("div").expect("Error creating function_expanded_query_button");
+                                    function_expanded_query_button.set_class_name("function-expanded-query-button");
+                
+                                    let text = document.create_text_node("Query");
+                                    let _ = function_expanded_query_button.append_child(&text);
+                
+                
+                
+                                    let _ = function_expanded_submit_button_wrapper.append_child(&buffer2);
+                                    let _ = function_expanded_submit_button_wrapper.append_child(&function_expanded_query_button);
+                
+                                    let _ = function_expanded.append_child(&function_expanded_header);
+                                    let _ = function_expanded.append_child(&function_expanded_fields_wrapper);
+                                    let _ = function_expanded.append_child(&function_expanded_submit_button_wrapper);
+                
+                
+                
+                                    /*
+                                    ===========================
+                                        END MAPPING EXPANDED
+                                    ===========================
+                                    */
+                
+                                    let _ = function_wrapper.append_child(&input_field);
+                                    let _ = function_wrapper.append_child(&function_expanded);
+                                    let _ = card_body.append_child(&function_wrapper);
+                
+                                    /*
+                                    ===========================
+                                        END IF MAPPING CODE HERE
+                                    ===========================
+                                    */
+                
+                                }
+                                None => {}
+                            }
+                        }
+                        None => {
+                            let function_re = Regex::new(r"function (?<function_name>.*):").unwrap(); 
+                            match function_re.captures(lines[0]){
+                                Some(caps) => {
+                                    let function_name = &caps["function_name"];
+                                    let input_re = Regex::new(r"input (?<input_number>r[0-9]*) as (?<type>.*)\.(?<visibility>.*);").unwrap(); 
+                                    let mut inputs : IndexMap<String,String> = IndexMap::new();
+                                    let mut one_line_types = String::new();
+                                    for function_line in &lines[1..]{
+                                        match input_re.captures(function_line){
+                                            Some(caps2) => {
+                                                inputs.insert(caps2["input_number"].to_string(),format!("{}{}{}",&caps2["type"],".",&caps2["visibility"]));
+                                                one_line_types = format!("{}{}{}{}{}",one_line_types, &caps2["type"],".",&caps2["visibility"],", ");
+                                            }
+                                            None => {
+                                                break;
+                                            }
+                                        }
+                                    }
+                
+                
+                
+                                    /*
+                                    ===========================
+                                        IF FUNCTION CODE HERE
+                                    ===========================
+                                    */
+                
+                                    /*
+                                    ===========================
+                                        FUNCTION COMPRESSED
+                                    ===========================
+                                    */
+                
+                                    let function_wrapper = document.create_element("div").expect("Error creating function wrapper");
+                                    function_wrapper.set_class_name("function-wrapper");
+                
+                                    let input_field = document.create_element("div").expect("Error creating input field");
+                                    input_field.set_class_name("input-field");
+                
+                                    let output_input_wrapper = document.create_element("div").expect("Error creating output input wrapper");
+                                    output_input_wrapper.set_class_name("output-input-wrapper");
+                
+                                    let program_function_button = document.create_element("div").expect("Error creating program_function_button");
+                                    program_function_button.set_class_name("program-function-button");
+                                    let text = document.create_text_node(&function_name);
+                                    let _ = program_function_button.append_child(&text);
+                
+                
+                                    let compressed_input = document.create_element("input").expect("Error creating compressed function input element");
+                                    let _ = compressed_input.set_attribute("spellcheck", "false");
+                                    let _ = compressed_input.set_attribute("autocomplete", "off");
+                                    let _ = compressed_input.set_attribute("autocapitalize", "off");
+                                    let _ = compressed_input.set_attribute("placeholder",&one_line_types);
+                                    let _ = compressed_input.set_attribute("style","border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px");
+                                    let function_img_expand = document.create_element("img").expect("Error creating function_img_expand element").dyn_into::<HtmlImageElement>().unwrap();
+                                    let _ = function_img_expand.set_src("public/chevron-down.svg");
+                                    function_img_expand.set_class_name("inactive");
+                                    let _ = function_img_expand.set_attribute("style","cursor: pointer; order:1; z-index: 2;");
+                                    let _ = function_img_expand.add_event_listener_with_callback("click", function_expand.as_ref().unchecked_ref());
+                
+                
+                                    let _ = output_input_wrapper.append_child(&program_function_button);
+                                    let _ = output_input_wrapper.append_child(&compressed_input);
+                                    let _ = output_input_wrapper.append_child(&function_img_expand);
+                                    let _ = input_field.append_child(&output_input_wrapper);
+                
+                
+                                    /*
+                                    ===========================
+                                        FUNCTION EXPANDED
+                                    ===========================
+                                    */
+                
+                                    let function_expanded = document.create_element("div").expect("Error creating function_expanded");
+                                    function_expanded.set_class_name("function-expanded");
+                                    let _ = function_expanded.set_attribute("style","display:none");
+                
+                                    let function_expanded_header = document.create_element("div").expect("Error creating function_expanded_header");
+                                    function_expanded_header.set_class_name("function-expanded-header");
+                
+                                    let function_expanded_title = document.create_element("div").expect("Error creating function_expanded_title");
+                                    function_expanded_title.set_class_name("function-expanded-title");
+                                    let text = document.create_text_node(&function_name);
+                                    let _ = function_expanded_title.append_child(&text);
+                                    let function_img_compress = document.create_element("img").expect("Error creating function_img_compress element").dyn_into::<HtmlImageElement>().unwrap();
+                                    let _ = function_img_compress.set_src("public/chevron-up.svg");
+                                    function_img_compress.set_class_name("inactive");
+                                    let _ = function_img_compress.set_attribute("style", "cursor: pointer; order:2; z-index: 2; padding-bottom:4px;");
+                                    let _ = function_img_compress.add_event_listener_with_callback("click", function_compress.as_ref().unchecked_ref());
+                
+                
+                                    let _ = function_expanded_header.append_child(&function_expanded_title);
+                                    let _ = function_expanded_header.append_child(&function_img_compress);
+                
+                
+                
+                                    let function_expanded_fields_wrapper = document.create_element("div").expect("Error creating function_expanded_fields_wrapper");
+                                    function_expanded_fields_wrapper.set_class_name("function-expanded-fields-wrapper");
+                
+                                    /*
+                                    ===========================
+                                        FOR EVERY FIELD IN FUNCTION EXPANDED
+                                    ===========================
+                                    */
+                                    for (input_number, input_type) in inputs {
+                                        let function_expanded_field_wrapper = document.create_element("div").expect("Error creating function_expanded_field_wrapper");
+                                        function_expanded_field_wrapper.set_class_name("function-expanded-field-wrapper");
+                
+                                        let function_expanded_field_label = document.create_element("div").expect("Error creating function_expanded_field_label");
+                                        function_expanded_field_label.set_class_name("function-expanded-field-label");
+                                        let text = document.create_text_node(&format!("{}{}", input_number, ": "));
+                                        let _ = function_expanded_field_label.append_child(&text);
+                                        let function_expanded_field = document.create_element("input").expect("Error creating compressed function_expanded_field");
+                                        let _ = function_expanded_field.set_attribute("spellcheck", "false");
+                                        let _ = function_expanded_field.set_attribute("autocomplete", "off");
+                                        let _ = function_expanded_field.set_attribute("autocapitalize", "off");
+                                        let _ = function_expanded_field.set_attribute("placeholder",&input_type);
+                                        let _ = function_expanded_field.set_attribute("style","border-radius: 6px;");
+                
+                                        let _ = function_expanded_field_wrapper.append_child(&function_expanded_field_label);
+                                        let _ = function_expanded_field_wrapper.append_child(&function_expanded_field);
+                                        let _ = function_expanded_fields_wrapper.append_child(&function_expanded_field_wrapper);
+                
+                                    }
+                                    /*
+                                    ===========================
+                                        FINALLY
+                                    ===========================
+                                    */
+                
+                                    let function_expanded_submit_button_wrapper = document.create_element("div").expect("Error creating function_expanded_submit_button_wrapper");
+                                    function_expanded_submit_button_wrapper.set_class_name("function-expanded-submit-button-wrapper");
+                
+                                    let buffer2 = document.create_element("div").expect("Error creating function_expanded_execute_button buffer");
+                                    let _ = buffer2.set_attribute("name","buffer");
+                                    let _ = buffer2.set_attribute("style","width:100%");
+                
+                                    let function_expanded_execute_button = document.create_element("div").expect("Error creating function_expanded_execute_button");
+                                    function_expanded_execute_button.set_class_name("function-expanded-execute-button");
+                                    let text = document.create_text_node("Execute");
+                                    let _ = function_expanded_execute_button.append_child(&text);
+                
+                
+                                    let _ = function_expanded_submit_button_wrapper.append_child(&buffer2);
+                                    let _ = function_expanded_submit_button_wrapper.append_child(&function_expanded_execute_button);
+                
+                                    let _ = function_expanded.append_child(&function_expanded_header);
+                                    let _ = function_expanded.append_child(&function_expanded_fields_wrapper);
+                                    let _ = function_expanded.append_child(&function_expanded_submit_button_wrapper);
+                
+                
+                                    /*
+                                    ===========================
+                                        END FUNCTION EXPANDED
+                                    ===========================
+                                    */
+                
+                                    let _ = function_wrapper.append_child(&input_field);
+                                    let _ = function_wrapper.append_child(&function_expanded);
+                                    let _ = card_body.append_child(&function_wrapper);
+                
+                                    /*
+                                    ===========================
+                                        END IF FUNCTION CODE HERE
+                                    ===========================
+                                    */
+                
+                
+                                }
+                                None => {}
+                            }
+                        }
+                    }
+                }
+                let _ = card_body_wrapper.append_child(&card_body);
+                let _ = program_card.append_child(&program_custom_head);
+                let _ = program_card.append_child(&card_body_wrapper);
+                
+                let programs = document.query_selector(".programs-wrapper").unwrap().unwrap();
+                let _ = programs.append_child(&program_card);
+            }
+        }
+    });
+
 
     /*
     ==============================================================================
@@ -350,69 +813,72 @@ pub fn SidebarDeployExecute (
                                     b. Else, will query from network
                             */
 
-                            if compiled_project.get_untracked().0 != String::new() {
+                            let mut not_local = true;
+                            spawn_local(async move {
+                                // if compiled_project.get_untracked().0 != String::new() {
+                                // if false {
+                                //     let args = serde_wasm_bindgen::to_value(&ReadProgramJsonArgs { filepath : format!("{}{}", compiled_project.get_untracked().0, "/program.json"), field: "dependencies".to_string()}).unwrap();
+                                //     let dependencies = invoke("read_program_json", args).await.as_string().unwrap();
 
-                                spawn_local(async move {
-                                    let args = serde_wasm_bindgen::to_value(&ReadProgramJsonArgs { filepath : format!("{}{}", compiled_project.get_untracked().0, "/program.json"), field: "dependencies".to_string()}).unwrap();
-                                    let dependencies = invoke("read_program_json", args).await.as_string().unwrap();
-
-                                    let mut not_local = true;
-                                    if dependencies != String::new(){
-                                        let deserialized_return_val : Vec<HashMap<String,Option<String>>> = serde_json::from_str(&dependencies).expect("Error with decoding dir_entry");
-                                        for json in deserialized_return_val {
-                                            let name = json.get("name").unwrap().clone().unwrap();
-                                            if name == value{
-                                                let location = json.get("location").unwrap().clone().unwrap();
-                                                if location == "local" {
-                                                    let path = json.get("path").unwrap().clone().unwrap();
-                                                    let full_path = format!("{}{}{}{}", compiled_project.get_untracked().0, "/", path,"/build/main.aleo");
-                                                    let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: full_path}).unwrap();
-                                                    match invoke("read_file", args).await.as_string(){
-                                                        Some(contents) => {
-                                                            console_log(&contents);
-                                                        },
-                                                        None => {
-                                                            console_log("Error: File does not exist");
-                                                        }
-                                                    }
+                                //     if dependencies != String::new(){
+                                //         let deserialized_return_val : Vec<HashMap<String,Option<String>>> = serde_json::from_str(&dependencies).expect("Error with decoding dir_entry");
+                                //         for json in deserialized_return_val {
+                                //             let name = json.get("name").unwrap().clone().unwrap();
+                                //             if name == value{
+                                //                 let location = json.get("location").unwrap().clone().unwrap();
+                                //                 if location == "local" {
+                                //                     let path = json.get("path").unwrap().clone().unwrap();
+                                //                     let full_path = format!("{}{}{}{}", compiled_project.get_untracked().0, "/", path,"/build/main.aleo");
+                                //                     let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: full_path}).unwrap();
+                                //                     match invoke("read_file", args).await.as_string(){
+                                //                         Some(contents) => {
+                                //                             console_log(&contents);
+                                //                         },
+                                //                         None => {
+                                //                             console_log("Error: File does not exist");
+                                //                         }
+                                //                     }
                                                     
                                                     
-                                                    not_local = false;
-                                                    break;
-                                                }
+                                //                     not_local = false;
+                                //                     break;
+                                //                 }
+                                //             }
+                                //         }
+                                //     }
+                                // }
+
+
+
+
+                                if not_local {
+                                    let network = current_environment_dropdown_text.get_untracked().to_string().to_lowercase();
+
+                                    let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked(),"program".to_string(), value.clone()]}).unwrap();        
+                                    let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                    if !error {
+                                        let mut formatted_output = String::new();
+                                        let split = output.split("\n\n").collect::<Vec<&str>>();
+                                        for item in &(split)[2..split.len()-3]{
+                                            if *item == "" {
+                                                formatted_output = format!("{}{}", formatted_output, "\n");
+                                            } else {
+                                                formatted_output = format!("{}{}{}", formatted_output, item, "\n");
                                             }
                                         }
+
+                                        set_loaded_program.set((value.clone(), network.clone(), formatted_output));
+                                        
+                                    } else {
+                                        console_log("error: this program does not exist");
+                                        // let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        // error.set_inner_html("Error: The program with this ID does not exist.");
+                                        // let _ = error.style().set_property("display", "block");
+                                        // let _ = this.class_list().remove(&new_val);
                                     }
+                                }
+                            });
 
-                                    if not_local {
-                                        let network = current_environment_dropdown_text.get_untracked().to_string().to_lowercase();
-
-                                        let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),network,"--endpoint".to_string(),current_endpoint.get_untracked(),"program".to_string(), value.clone()]}).unwrap();        
-                                        let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
-                                        if !error {
-                                            let mut formatted_output = String::new();
-                                            let split = output.split("\n\n").collect::<Vec<&str>>();
-                                            for item in &(split)[2..split.len()-3]{
-                                                if *item == "" {
-                                                    formatted_output = format!("{}{}", formatted_output, "\n");
-                                                } else {
-                                                    formatted_output = format!("{}{}{}", formatted_output, item, "\n");
-                                                }
-                                            }
-
-                                            console_log(&formatted_output);
-
-                                        } else {
-                                            console_log("error: this program does not exist");
-                                            // let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                            // error.set_inner_html("Error: The program with this ID does not exist.");
-                                            // let _ = error.style().set_property("display", "block");
-                                            // let _ = this.class_list().remove(&new_val);
-                                        }
-                                    }
-
-                                });      
-                        }
 
                         }
                     }
@@ -423,164 +889,142 @@ pub fn SidebarDeployExecute (
             </div>
 
             <div class="panel-divider" style="margin-bottom:0"/>
-
-            <div id="sample-program-card" class="program-card">
-                <div id="sample-program-dropdown-custom" class="program-custom-head">
-                    <div id="sample-program-dropdown-button" class="dropdown-button"> 
-                        <img src="public/chevron-right.svg" class="inactive" style="order:1; z-index: 2;"
-                        on:click:target=move|ev| 
-                        {
-                            let this = ev.target().dyn_into::<Element>().unwrap();
-                            let card = this.parent_element().unwrap().parent_element().unwrap().parent_element().unwrap();  
-                            let img = this.dyn_into::<HtmlImageElement>().unwrap();
-                            let content = card.children().item(1).unwrap().dyn_into::<HtmlElement>().unwrap();
-                            if img.class_name() == "inactive"{
-                                img.set_src("public/chevron-down.svg");
-                                img.set_class_name("active");
-                                card.set_class_name("program-card active");
-                                let _ = content.set_attribute("style","display: flex; border:0;");
-                            } else {
-                                img.set_src("public/chevron-right.svg");
-                                img.set_class_name("inactive");
-                                card.set_class_name("program-card");   
-                                let _ = content.set_attribute("style","display:none;");
+            <div class="programs-wrapper">
+                <div id="sample-program-card" class="program-card">
+                    <div id="sample-program-dropdown-custom" class="program-custom-head">
+                        <div id="sample-program-dropdown-button" class="dropdown-button"> 
+                            <img src="public/chevron-right.svg" class="inactive" style="order:1; z-index: 2;"
+                            on:click:target=move|ev| 
+                            {
+                                let this = ev.target().dyn_into::<Element>().unwrap();
+                                let card = this.parent_element().unwrap().parent_element().unwrap().parent_element().unwrap();  
+                                let img = this.dyn_into::<HtmlImageElement>().unwrap();
+                                let content = card.children().item(1).unwrap().dyn_into::<HtmlElement>().unwrap();
+                                if img.class_name() == "inactive"{
+                                    img.set_src("public/chevron-down.svg");
+                                    img.set_class_name("active");
+                                    card.set_class_name("program-card active");
+                                    let _ = content.set_attribute("style","display: flex; border:0;");
+                                } else {
+                                    img.set_src("public/chevron-right.svg");
+                                    img.set_class_name("inactive");
+                                    card.set_class_name("program-card");   
+                                    let _ = content.set_attribute("style","display:none;");
+                                }
                             }
-                        }
-                        />
-                        <div class="buffer" style="order:2" inner_html={"credits.aleo (mainnet)"}></div>
-                        <img src="public/close.svg" name="image" style="order:3; z-index:2;"/>
+                            />
+                            <div class="buffer" style="order:2" inner_html={"sample.aleo (mainnet)"}></div>
+                            <img src="public/close.svg" name="image" style="order:3; z-index:2;"/>
+                        </div>
                     </div>
-                </div>
 
-                <div class="card-body-wrapper" style="display: none">
-                    <div id="sample-program-card-body" class="card-body">
-                        <div class="function-wrapper" id="">    
-                            <div class="input-field">
-                                <div class="output-input-wrapper">
-                                    <div class="program-function-button">transfer_public</div>
-                                    <input id="test-function" style=" border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px" placeholder="address, u64" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                    <img src="public/chevron-down.svg" style=" cursor: pointer; order:1; z-index: 2;"
-                                    on:click:target={move|ev|{
-                                        let this = ev.target().dyn_into::<Element>().unwrap();
-                                        let function_compressed = this.parent_element().unwrap().parent_element().unwrap();
-                                        let function_expanded = function_compressed.parent_element().unwrap().children().get_with_index(1).unwrap();
+                    <div class="card-body-wrapper" style="display: none">
+                        <div id="sample-program-card-body" class="card-body">
+                            <div class="function-wrapper">    
+                                <div class="input-field">
+                                    <div class="output-input-wrapper">
+                                        <div class="program-function-button">transfer_public</div>
+                                        <input name="test-function" style=" border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px" placeholder="address, u64" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                        <img src="public/chevron-down.svg" style=" cursor: pointer; order:1; z-index: 2;"
+                                        on:click:target={move|ev|{
+                                            let this = ev.target().dyn_into::<Element>().unwrap();
+                                            let function_compressed = this.parent_element().unwrap().parent_element().unwrap();
+                                            let function_expanded = function_compressed.parent_element().unwrap().children().get_with_index(1).unwrap();
+                                        
+                                            let _ = function_compressed.set_attribute("style", "display:none;");
+                                            let _ = function_expanded.set_attribute("style", "");
+
+                                        }}
+                                        />
                                     
-                                        let _ = function_compressed.set_attribute("style", "display:none;");
-                                        let _ = function_expanded.set_attribute("style", "");
+                                    </div>
+                                </div>
 
-                                    }}
-                                    />
-                                
+                                <div class="function-expanded" style="display:none">
+                                    <div class="function-expanded-header">
+                                        <div class="function-expanded-title">transfer_public</div>
+                                        <img src="public/chevron-up.svg" style=" cursor: pointer; order:2; z-index: 2; padding-bottom:4px;"
+                                        on:click:target={move|ev|{
+                                            let this = ev.target().dyn_into::<Element>().unwrap();
+                                            let function_expanded= this.parent_element().unwrap().parent_element().unwrap();
+                                            let function_compressed = function_expanded.parent_element().unwrap().children().get_with_index(0).unwrap();
+                                        
+                                            let _ = function_expanded.set_attribute("style", "display:none;");
+                                            let _ = function_compressed.set_attribute("style", "");
+                                        }}
+                                        />
+                                    </div>
+                                    <div class="function-expanded-fields-wrapper" >
+                                        <div class="function-expanded-field-wrapper">
+                                            <div class="function-expanded-field-label">{"r0: "}</div>
+                                            <input style="border-radius: 6px;" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                        </div>
+                                        <div class="function-expanded-field-wrapper">
+                                            <div class="function-expanded-field-label">{"r1: "}</div>
+                                            <input style="border-radius: 6px;" placeholder="u64" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                        </div>
+                                    </div>
+                                    <div class="function-expanded-submit-button-wrapper">
+                                        <div name="buffer" style="width:100%"/>
+                                        <div class="function-expanded-execute-button">Execute</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="function-expanded" style="display:none">
-                                <div class="function-expanded-header">
-                                    <div class="function-expanded-title">transfer_public</div>
-                                    // <div name="buffer" style="width:100%"></div>
-                                    <img src="public/chevron-up.svg" style=" cursor: pointer; order:2; z-index: 2; padding-bottom:4px;"
-                                    on:click:target={move|ev|{
-                                        let this = ev.target().dyn_into::<Element>().unwrap();
-                                        let function_expanded= this.parent_element().unwrap().parent_element().unwrap();
-                                        let function_compressed = function_expanded.parent_element().unwrap().children().get_with_index(0).unwrap();
+
+                            <div class="function-wrapper" >    
+                                <div class="input-field">
+                                    <div class="output-input-wrapper">
+                                        <div class="program-mapping-button">accounts</div>
+                                        <input id="test-function" style=" border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                        <img src="public/chevron-down.svg" style=" cursor: pointer; order:1; z-index: 2;"
+                                        on:click:target={move|ev|{
+                                            let this = ev.target().dyn_into::<Element>().unwrap();
+                                            let function_compressed = this.parent_element().unwrap().parent_element().unwrap();
+                                            let function_expanded = function_compressed.parent_element().unwrap().children().get_with_index(1).unwrap();
+                                        
+                                            let _ = function_compressed.set_attribute("style", "display:none;");
+                                            let _ = function_expanded.set_attribute("style", "");
+
+                                        }}
+                                        />
                                     
-                                        let _ = function_expanded.set_attribute("style", "display:none;");
-                                        let _ = function_compressed.set_attribute("style", "");
-                                    }}
-                                    />
-                                </div>
-                                <div class="function-expanded-fields-wrapper" >
-                                    <div class="function-expanded-field-wrapper">
-                                        <div class="function-expanded-field-label">{"r0: "}</div>
-                                        <input style="border-radius: 6px;" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                    </div>
-                                    <div class="function-expanded-field-wrapper">
-                                        <div class="function-expanded-field-label">{"r1: "}</div>
-                                        <input style="border-radius: 6px;" placeholder="u64" spellcheck="false" autocomplete="off" autocapitalize="off"/>
                                     </div>
                                 </div>
-                                <div class="function-expanded-execute-button-wrapper">
-                                    <div name="buffer" style="width:100%"/>
-                                    <div class="function-expanded-execute-button">Execute</div>
+
+                                <div class="function-expanded" style="display:none">
+                                    <div class="function-expanded-header">
+                                        <div class="function-expanded-title">accounts</div>
+                                        <img src="public/chevron-up.svg" style=" cursor: pointer; order:2; z-index: 2; padding-bottom:4px;"
+                                        on:click:target={move|ev|{
+                                            let this = ev.target().dyn_into::<Element>().unwrap();
+                                            let function_expanded= this.parent_element().unwrap().parent_element().unwrap();
+                                            let function_compressed = function_expanded.parent_element().unwrap().children().get_with_index(0).unwrap();
+                                        
+                                            let _ = function_expanded.set_attribute("style", "display:none;");
+                                            let _ = function_compressed.set_attribute("style", "");
+                                        }}
+                                        />
+                                    </div>
+                                    <div class="function-expanded-fields-wrapper" >
+                                        <div class="function-expanded-field-wrapper">
+                                            <div class="function-expanded-field-label" style="padding-top:7px;">{"key: "}</div>
+                                            <input style="border-radius: 6px;" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                        </div>
+
+                                    </div>
+                                    <div class="function-expanded-submit-button-wrapper">
+                                        <div name="buffer" style="width:100%"/>
+                                        <div class="function-expanded-query-button">Query</div>
+                                    </div>
                                 </div>
                             </div>
+
+
                         </div>
-
-
-                        <div class="function-wrapper" id="">    
-                            <div class="input-field">
-                                <div class="output-input-wrapper">
-                                    <div class="program-mapping-button">accounts</div>
-                                    <input id="test-function" style=" border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                    <img src="public/chevron-down.svg" style=" cursor: pointer; order:1; z-index: 2;"
-                                    on:click:target={move|ev|{
-                                        let this = ev.target().dyn_into::<Element>().unwrap();
-                                        let function_compressed = this.parent_element().unwrap().parent_element().unwrap();
-                                        let function_expanded = function_compressed.parent_element().unwrap().children().get_with_index(1).unwrap();
-                                    
-                                        let _ = function_compressed.set_attribute("style", "display:none;");
-                                        let _ = function_expanded.set_attribute("style", "");
-
-                                    }}
-                                    />
-                                
-                                </div>
-                            </div>
-
-                            <div class="function-expanded" style="display:none">
-                                <div class="function-expanded-header">
-                                    <div class="function-expanded-title">accounts</div>
-                                    // <div name="buffer" style="width:100%"></div>
-                                    <img src="public/chevron-up.svg" style=" cursor: pointer; order:2; z-index: 2; padding-bottom:4px;"
-                                    on:click:target={move|ev|{
-                                        let this = ev.target().dyn_into::<Element>().unwrap();
-                                        let function_expanded= this.parent_element().unwrap().parent_element().unwrap();
-                                        let function_compressed = function_expanded.parent_element().unwrap().children().get_with_index(0).unwrap();
-                                    
-                                        let _ = function_expanded.set_attribute("style", "display:none;");
-                                        let _ = function_compressed.set_attribute("style", "");
-                                    }}
-                                    />
-                                </div>
-                                <div class="function-expanded-fields-wrapper" >
-                                    <div class="function-expanded-field-wrapper">
-                                        <div class="function-expanded-field-label" style="padding-top:7px;">{"key: "}</div>
-                                        <input style="border-radius: 6px;" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                    </div>
-
-                                </div>
-                                <div class="function-expanded-execute-button-wrapper">
-                                    <div name="buffer" style="width:100%"/>
-                                    <div class="function-expanded-query-button">Query</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        // <div class="input-field" >
-                        //     <div class="output-input-wrapper">
-                        //         <div class="program-mapping-button">accounts</div>
-                        //         <input id="test-mapping" style=" border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px" placeholder="u64" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                        //         <img src="public/chevron-down.svg" class="program-expand inactive" style="order:1; z-index: 2;"
-                        //         on:click:target={move|ev|{
-                        //             let this = ev.target().dyn_into::<Element>().unwrap();
-                        //             let img = this.dyn_into::<HtmlImageElement>().unwrap();
-                        //             if img.class_name() == "program-expand inactive"{
-                        //                 img.set_src("public/chevron-up.svg");
-                        //                 img.set_class_name("program-expand active");
-                        //             } else {
-                        //                 img.set_src("public/chevron-down.svg");
-                        //                 img.set_class_name("program-expand inactive");
-                        //             }
-                        //         }}
-                        //         />
-                            
-                        //     </div>
-                        // </div>
-
                     </div>
                 </div>
             </div>
-
         </div>
     }
 }

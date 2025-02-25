@@ -875,7 +875,7 @@
   order: 0;
   display:flex;
   
-  color:var(--lime);
+  color:var(--stone);
 }
 
 
@@ -883,6 +883,11 @@
 .program-custom-head .dropdown-button img {
   float:right;
   order:1;
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
 }
 
 .program-custom-head .dropdown-button img:hover {
@@ -1084,7 +1089,7 @@
 
 }
 
-.function-expanded-execute-button-wrapper{
+.function-expanded-submit-button-wrapper{
   display:flex;
   width:100%;
   flex-direction:row;
