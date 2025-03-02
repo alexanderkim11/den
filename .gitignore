@@ -4,4 +4,4 @@
 temp.md
 /src-tauri/.aleo/registry/*
 /src-tauri/.amareleo/*/
-/src-tauri/.amareleo-tmp-ledger-1-0/
+/src-tauri/.amareleo-tmp-ledger-1-0/*
