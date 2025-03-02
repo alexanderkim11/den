@@ -43,11 +43,6 @@ struct LoadThemeArgs<'a> {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct PlaceholderArgs<'a> {
-    pub code: &'a str,
-}
-
-#[derive(Serialize, Deserialize)]
 struct WriteFileArgs<> {
     filepath : String,
     contents : String
@@ -55,7 +50,7 @@ struct WriteFileArgs<> {
 
 
 #[derive(Serialize, Deserialize)]
-pub struct GetStateAccountsArgs<> {
+pub struct PlaceholderArgs<> {
     pub placeholder : String,
 }
 
@@ -126,7 +121,7 @@ fn FileTab(
                             let saved = saved_content.get(&inner_filepath_clone).unwrap().to_string();
                             if saved != result_element.value() {
 
-                                let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { code : "null"}).unwrap();
+                                let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { placeholder : String::new()}).unwrap();
                                 warning_result = invoke("warning", args).await.as_string().unwrap();
         
                                 if warning_result == "Save".to_string() {
@@ -143,7 +138,7 @@ fn FileTab(
                             let saved = saved_content.get(&inner_filepath_clone).unwrap().to_string();
                             if saved != cached {
 
-                                let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { code : "null"}).unwrap();
+                                let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { placeholder : String::new()}).unwrap();
                                 warning_result = invoke("warning", args).await.as_string().unwrap();
         
                                 if warning_result == "Save".to_string() {
@@ -318,19 +313,20 @@ pub fn App() -> impl IntoView {
     let (selected_file, set_selected_file) = signal(String::new());
     let (open_files, set_open_files) : (ReadSignal<Vec<(String,String)>>,WriteSignal<Vec<(String,String)>>) = signal(Vec::new());
 
-    // HashMap<String,(String, i32, i32, i32)> == filepath --> (contents, scroll_left, scroll_top, cursor_pos)
+    // TODO: HashMap<String,(String, i32, i32, i32)> == filepath --> (contents, scroll_left, scroll_top, cursor_pos)
     let (saved_file_contents, set_saved_file_contents) : (ReadSignal<HashMap<String,String>>,WriteSignal<HashMap<String,String>>) = signal(HashMap::new());
     let (cached_file_contents, set_cached_file_contents) : (ReadSignal<HashMap<String,String>>,WriteSignal<HashMap<String,String>>) = signal(HashMap::new());
 
     let (environment_dropdown_active, set_environment_dropdown_active) = signal(false);
-    let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("testnet-button".to_string());
-    let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Testnet".to_string());
-    let (current_endpoint, set_current_endpoint) = signal("https://api.explorer.provable.com/v1".to_string());
-    // let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("devnet-button".to_string());
-    // let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Local Devnet".to_string());
-    // let (current_endpoint, set_current_endpoint) = signal("http://localhost:3030".to_string());
+    // let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("testnet-button".to_string());
+    // let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Testnet".to_string());
+    // let (current_endpoint, set_current_endpoint) = signal("https://api.explorer.provable.com/v1".to_string());
+    let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("devnet-button".to_string());
+    let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Local Devnet".to_string());
+    let (current_endpoint, set_current_endpoint) = signal("http://localhost:3030".to_string());
 
-    let (accounts, set_accounts) : (ReadSignal<IndexMap<String,(String,String,String)>>,WriteSignal<IndexMap<String,(String,String,String)>>) = signal(IndexMap::new());
+    // IndexMap from Name --> (private key, view key, address)
+    let (accounts, set_accounts) : (ReadSignal<(IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>)>,WriteSignal<(IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>)>) = signal((IndexMap::new(),IndexMap::new()));
 
     let (compiled_project, set_compiled_project) = signal((String::new(),String::new()));
     let (root, set_root) = signal(String::new());
@@ -351,12 +347,15 @@ pub fn App() -> impl IntoView {
     });
 
     spawn_local(async move {
-        let args = serde_wasm_bindgen::to_value(&GetStateAccountsArgs { placeholder: "null".to_string()}).unwrap();
-        let saved_accounts : IndexMap<String,(String,String,String)> = serde_wasm_bindgen::from_value(invoke("get_state_accounts", args).await).unwrap();
-        set_accounts.set(saved_accounts);
+        let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { placeholder : String::new()}).unwrap();
+        let (dev_accounts,saved_accounts) : (IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>) = serde_wasm_bindgen::from_value(invoke("get_state_accounts", args).await).unwrap();
+        set_accounts.set((dev_accounts,saved_accounts));
     });
     
-
+    spawn_local(async move {
+        let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { placeholder : String::new()}).unwrap();
+        invoke("start_dev_node", args).await;
+    });
     
     /*
     ==============================================================================
@@ -421,10 +420,12 @@ pub fn App() -> impl IntoView {
                 <SidebarIcon id="file-explorer-tab-button".to_string() img_src="public/files.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="account-tab-button".to_string()  img_src="public/account.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
                 <SidebarIcon id="records-tab-button".to_string() style="padding:8px;".to_string() img_src="public/checklist.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
+                <SidebarIcon id="rest-api-tab-button".to_string() style="padding:8px;".to_string()  img_src="public/debug-disconnect.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon/>
                 <SidebarIcon id="compile-tab-button".to_string()  img_src="public/extensions.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />                
                 <SidebarIcon id="deploy-execute-tab-button".to_string() style="padding:8px;".to_string()  img_src="public/play-circle.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
-                <SidebarIcon id="rest-api-tab-button".to_string() style="padding:8px;".to_string()  img_src="public/debug-disconnect.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon/>
-
+                <SidebarIcon id="history-tab-button".to_string() style="padding:8px;".to_string()  img_src="public/history.svg".to_string() selected_activity_icon=selected_activity_icon set_selected_activity_icon=set_selected_activity_icon />
+ 
+ 
                 <div id ="empty-space"></div>
                 <button id ="settings-tab-button">
                     <img src="public/gear.svg"/>
@@ -435,11 +436,13 @@ pub fn App() -> impl IntoView {
             <div class="sidebar-details" style="display: flex; flex-basis: 300px;">
                 <SidebarEnvironment selected_activity_icon=selected_activity_icon environment_dropdown_active=environment_dropdown_active set_environment_dropdown_active=set_environment_dropdown_active current_environment_dropdown_item=current_environment_dropdown_item set_current_environment_dropdown_item=set_current_environment_dropdown_item current_environment_dropdown_text=current_environment_dropdown_text set_current_environment_dropdown_text=set_current_environment_dropdown_text current_endpoint=current_endpoint set_current_endpoint=set_current_endpoint/>
                 <SidebarFileExplorer selected_activity_icon=selected_activity_icon fs_html=fs_html set_fs_html=set_fs_html selected_file=selected_file set_selected_file=set_selected_file set_open_files=set_open_files cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents root=root set_root=set_root/>
-                <SidebarAccount selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts/>
+                <SidebarAccount selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts current_environment_dropdown_item=current_environment_dropdown_item/>
                 <SidebarRecords selected_activity_icon=selected_activity_icon/>
-                <SidebarCompile selected_activity_icon=selected_activity_icon selected_file=selected_file compiled_project=compiled_project set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item root=root set_root=set_root set_fs_html=set_fs_html/>
-                <SidebarDeployExecute selected_activity_icon=selected_activity_icon current_environment_dropdown_text=current_environment_dropdown_text current_endpoint=current_endpoint accounts=accounts set_accounts=set_accounts compiled_project=compiled_project set_compiled_project=set_compiled_project/>
                 <SidebarRestApi selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item current_endpoint=current_endpoint/>
+                <SidebarCompile selected_activity_icon=selected_activity_icon selected_file=selected_file compiled_project=compiled_project set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item root=root set_root=set_root set_fs_html=set_fs_html/>
+                <SidebarDeployExecute selected_activity_icon=selected_activity_icon current_environment_dropdown_text=current_environment_dropdown_text current_endpoint=current_endpoint accounts=accounts set_accounts=set_accounts compiled_project=compiled_project set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item/>
+                <SidebarHistory selected_activity_icon=selected_activity_icon/>
+            
             </div>
 
 

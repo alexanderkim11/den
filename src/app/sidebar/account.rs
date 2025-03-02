@@ -53,7 +53,7 @@ pub struct VerifyMessageArgs<> {
 
 #[derive(Serialize, Deserialize)]
 pub struct UpdateStateAccountsArgs<> {
-    pub updatedAccounts : IndexMap<String,(String,String,String)>,
+    pub updatedAccounts : (IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>),
 }
 
 /*
@@ -65,8 +65,9 @@ COMPONENTS
 #[component]
 pub fn SidebarAccount (
     selected_activity_icon: ReadSignal<String>,
-    accounts : ReadSignal<IndexMap<String,(String,String,String)>>,
-    set_accounts : WriteSignal<IndexMap<String,(String,String,String)>>,
+    accounts : ReadSignal<(IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>)>,
+    set_accounts : WriteSignal<(IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>)>,
+    current_environment_dropdown_item : ReadSignal<String>,
 ) -> impl IntoView {
 
     /*
@@ -84,6 +85,8 @@ pub fn SidebarAccount (
     let (saved_accounts_dropdown_active, set_saved_accounts_dropdown_active) = signal(false);
     let (saved_accounts_dropdown_item, set_saved_accounts_dropdown_item) = signal(String::new());
     let (saved_accounts_dropdown_text, set_saved_accounts_dropdown_text) = signal("--".to_string());
+
+    let (network_accounts, set_network_accounts) = signal(IndexMap::new());
 
     /*
     ==============================================================================
@@ -103,15 +106,33 @@ pub fn SidebarAccount (
         return false;
     }
 
+
+    
+
     /*
     ==============================================================================
     MAIN VIEW
     ==============================================================================
     */
+    
+
+    Effect::new({
+        move || {
+            let network_item = current_environment_dropdown_item.get();
+            if network_item == "devnet-button" {
+                set_network_accounts.set(accounts.get().0);
+            } else {
+                set_network_accounts.set(accounts.get().1);
+            }
+        }
+    });
+
+    let network_item = current_environment_dropdown_item.get_untracked();
+    let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};
 
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#account-tab-button" {"display: flex;"} else {"display: none;"}}>
-            <div class="sidebar-title">Account</div>
+            <div class="sidebar-title">Accounts</div>
             <div id="account-card" class="card">
 
                 <div id="account-dropdown-custom" class="dropdown-custom-head" style="z-index:3">
@@ -264,13 +285,13 @@ pub fn SidebarAccount (
                                     <img src="public/chevron-down.svg"/>
                                 </div>
                                 <div id="saved-accounts-dropdown-content" class="dropdown-content" style={move || if saved_accounts_dropdown_active.get() {"display: block"} else {"display: none"}}>
-                                    <div id="placeholder-button" class="dropdown-item-placeholder" style={move || if accounts.get().len() == 0 {"display: block; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {"display: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"}}
+                                    <div id="placeholder-button" class="dropdown-item-placeholder" style={move || if network_accounts.get().len() == 0 {"display: block; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {"display: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"}}
                                     >
                                         Please load an account first!
                                     </div>
-                                    <For each=move || accounts.get() key=|(key,_)| key.to_string() children=move |(name,_)| {
+                                    <For each=move || network_accounts.get() key=|(key,_)| key.to_string() children=move |(name,_)| {
                                         view! {
-                                            <div id=name class={ let name_clone = name.clone(); move || { let id = saved_accounts_dropdown_item.get(); if id == name_clone  {"dropdown-item selected"} else {"dropdown-item"}}} style={ let name_clone = name.clone(); move || { let accounts_map = accounts.get(); if accounts_map.len() != 0 {let final_item = &accounts_map.get_index(accounts_map.len()-1).unwrap(); if final_item.0.to_string() == name_clone {"border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {""}} else {""}}}
+                                            <div id=name class={ let name_clone = name.clone(); move || { let id = saved_accounts_dropdown_item.get(); if id == name_clone  {"dropdown-item selected"} else {"dropdown-item"}}} style={ let name_clone = name.clone(); move || { let accounts_map = network_accounts.get(); if accounts_map.len() != 0 {let final_item = &accounts_map.get_index(accounts_map.len()-1).unwrap(); if final_item.0.to_string() == name_clone {"border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {""}} else {""}}}
                                             on:click:target = move|ev| {
                                                 let current_item = saved_accounts_dropdown_item.get();
                                                 if current_item != ev.target().id(){
@@ -284,7 +305,7 @@ pub fn SidebarAccount (
                                                     let _ = target.class_list().remove(&new_val);
                                                     set_saved_accounts_dropdown_active.set(false);
 
-                                                    let map = accounts.get();
+                                                    let map = network_accounts.get();
                                                     let (pk,vk,address) = map.get(&saved_accounts_dropdown_item.get()).unwrap();
                             
                                                     let document = leptos::prelude::document();
@@ -356,9 +377,17 @@ pub fn SidebarAccount (
                         vk_output_element.set_value("");
                         address_output_element.set_value("");
 
-                        let mut untracked_accounts = accounts.get_untracked();
+                        let mut untracked_accounts = network_accounts.get_untracked();
                         untracked_accounts.shift_remove(&name);
-                        set_accounts.set(untracked_accounts);
+                        set_network_accounts.set(untracked_accounts);
+
+                        let network_item = current_environment_dropdown_item.get_untracked();
+                        let current_accounts = accounts.get_untracked();
+                        if network_item == "devnet-button" {
+                            set_accounts.set((network_accounts.get_untracked(),current_accounts.1));
+                        } else {
+                            set_accounts.set((current_accounts.0,network_accounts.get_untracked()));
+                        }
 
                         spawn_local(async move {
                             let args = serde_wasm_bindgen::to_value(&UpdateStateAccountsArgs { updatedAccounts: accounts.get_untracked()}).unwrap();
@@ -452,7 +481,7 @@ pub fn SidebarAccount (
                             let name = current_input.value();
                             let target = current_input.dyn_into::<HtmlElement>().unwrap();
                             let style = target.style();
-                            let mut untracked_accounts = accounts.get_untracked();
+                            let mut untracked_accounts = network_accounts.get_untracked();
 
                             let pk_output_element = document.query_selector("#create-new-account-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let vk_output_element = document.query_selector("#create-new-account-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -482,7 +511,16 @@ pub fn SidebarAccount (
                                 let _ = style.set_property("border", "1px solid #494e64"); 
 
                                 untracked_accounts.insert(name,(pk,vk,address));
-                                set_accounts.set(untracked_accounts);
+                                set_network_accounts.set(untracked_accounts);
+
+                                let network_item = current_environment_dropdown_item.get_untracked();
+                                let current_accounts = accounts.get_untracked();
+                                if network_item == "devnet-button" {
+                                    set_accounts.set((network_accounts.get_untracked(),current_accounts.1));
+                                } else {
+                                    set_accounts.set((current_accounts.0,network_accounts.get_untracked()));
+                                }
+        
 
                                 spawn_local(async move {
                                     let args = serde_wasm_bindgen::to_value(&UpdateStateAccountsArgs { updatedAccounts: accounts.get_untracked()}).unwrap();
@@ -639,7 +677,7 @@ pub fn SidebarAccount (
                             let target = current_name_input.dyn_into::<HtmlElement>().unwrap();
                             let style = target.style();
 
-                            let mut untracked_accounts = accounts.get_untracked();
+                            let mut untracked_accounts = network_accounts.get_untracked();
 
                             let pk_output_element = document.query_selector("#load-account-from-pk-output-pk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                             let vk_output_element = document.query_selector("#load-account-from-pk-output-vk").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -667,7 +705,16 @@ pub fn SidebarAccount (
                                 let _ = style.set_property("border", "1px solid #494e64");
 
                                 untracked_accounts.insert(name,(pk,vk,address));
-                                set_accounts.set(untracked_accounts);
+                                set_network_accounts.set(untracked_accounts);
+
+                                let network_item = current_environment_dropdown_item.get_untracked();
+                                let current_accounts = accounts.get_untracked();
+                                if network_item == "devnet-button" {
+                                    set_accounts.set((network_accounts.get_untracked(),current_accounts.1));
+                                } else {
+                                    set_accounts.set((current_accounts.0,network_accounts.get_untracked()));
+                                }
+        
 
                                 spawn_local(async move {
                                     let args = serde_wasm_bindgen::to_value(&UpdateStateAccountsArgs { updatedAccounts: accounts.get_untracked()}).unwrap();

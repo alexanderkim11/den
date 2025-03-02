@@ -19,6 +19,9 @@ pub use deploy_execute::*;
 pub mod rest_api;
 pub use rest_api::*;
 
+pub mod history;
+pub use history::*;
+
 
 use leptos::web_sys::{HtmlElement,HtmlInputElement, HtmlTextAreaElement};
 use leptos::task::spawn_local;

@@ -1,7 +1,7 @@
 use rfd::{MessageButtons, MessageDialog};
 
 #[tauri::command]
-pub fn warning(_handle: tauri::AppHandle, _code: String) -> String {
+pub fn warning(_handle: tauri::AppHandle, _placeholder: String) -> String {
     let warning = MessageDialog::new()
         .set_title("Warning")
         .set_level(rfd::MessageLevel::Warning)
@@ -19,7 +19,7 @@ pub fn warning(_handle: tauri::AppHandle, _code: String) -> String {
 }
 
 #[tauri::command]
-pub fn exit_warning(_handle: tauri::AppHandle, _code: String) -> bool {
+pub fn exit_warning(_handle: tauri::AppHandle, _placeholder: String) -> bool {
     let warning = MessageDialog::new()
         .set_title("Warning")
         .set_level(rfd::MessageLevel::Warning)

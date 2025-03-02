@@ -246,7 +246,7 @@ pub fn SidebarRestApi (
                         let document = leptos::prelude::document();               
                         spawn_local(async move {
                             let network_item = current_environment_dropdown_item.get_untracked();
-                            let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};
+                            let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else  {"testnet".to_string()};
                             let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "block".to_string(), "--latest".to_string(), "--network".to_string(), network ,"--endpoint".to_string(),current_endpoint.get_untracked()]}).unwrap();
     
                             let (error, output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
@@ -378,7 +378,7 @@ pub fn SidebarRestApi (
                             
                             spawn_local(async move {
                                 let network_item = current_environment_dropdown_item.get_untracked();
-                                let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};                                
+                                let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else  {"testnet".to_string()};                                
                                 let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "block".to_string(), "--network".to_string(),network,"--endpoint".to_string(),current_endpoint.get_untracked(), value.clone()]}).unwrap();
         
                                 let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
@@ -535,7 +535,7 @@ pub fn SidebarRestApi (
                             
                             spawn_local(async move {
                                 let network_item = current_environment_dropdown_item.get_untracked();
-                                let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};                                
+                                let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};                                
                                 let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),network,"--endpoint".to_string(),current_endpoint.get_untracked(),"program".to_string(), value.clone()]}).unwrap();        
                                 let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                                 if !error {
@@ -688,7 +688,7 @@ pub fn SidebarRestApi (
                             
                             spawn_local(async move {
                                 let network_item = current_environment_dropdown_item.get_untracked();
-                                let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};                                
+                                let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()} ;                                
                                 let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "transaction".to_string(), "--network".to_string(),network,"--endpoint".to_string(),current_endpoint.get_untracked(), value.clone()]}).unwrap();
         
                                 let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();

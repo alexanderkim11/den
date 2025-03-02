@@ -52,13 +52,15 @@ COMPONENTS
 #[component]
 pub fn SidebarDeployExecute (
     selected_activity_icon: ReadSignal<String>,
-    accounts : ReadSignal<IndexMap<String,(String,String,String)>>,
-    set_accounts : WriteSignal<IndexMap<String,(String,String,String)>>,
+    accounts : ReadSignal<(IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>)>,
+    set_accounts : WriteSignal<(IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>)>,
     compiled_project : ReadSignal<(String,String)>,
     set_compiled_project : WriteSignal<(String,String)>,
 
     current_environment_dropdown_text : ReadSignal<String>,
+    current_environment_dropdown_item : ReadSignal<String>,
     current_endpoint : ReadSignal<String>,
+    
 ) -> impl IntoView {
 
     /*
@@ -78,7 +80,9 @@ pub fn SidebarDeployExecute (
 
     let (compiled_program_id, set_compiled_program_id) = signal(String::new());
 
-    let (loaded_program, set_loaded_program) = signal((String::new(), String::new(), String::new()));
+    let (new_loaded_program, set_new_loaded_program) = signal((String::new(), String::new(), String::new()));
+
+    let (network_accounts, set_network_accounts) = signal(IndexMap::new());
 
     Effect::new({
         move || {
@@ -133,10 +137,117 @@ pub fn SidebarDeployExecute (
         let _ = function_compressed.set_attribute("style", "display:none;");
         let _ = function_expanded.set_attribute("style", "");
     }) as Box<dyn FnMut(_)>);
+
+
+    let function_call = Closure::wrap(Box::new(move |ev: Event| {
+        let this = ev.target().unwrap().dyn_into::<Element>().unwrap();
+        let function_wrapper = this.parent_element().unwrap().parent_element().unwrap().parent_element().unwrap();
+
+        let function_name = function_wrapper.get_attribute("name").unwrap();
+        let function_type = function_wrapper.get_attribute("function_type").unwrap();
+        let program_name = function_wrapper.get_attribute("program_name").unwrap();
+
+        if function_type == "function" {
+            let mut inputs : Vec<String> = Vec::new();
+
+            let children = function_wrapper.children();
+            let function_compressed = children.get_with_index(0).unwrap().dyn_into::<HtmlElement>().unwrap();
+            let compressed_style_display = function_compressed.style().get_property_value("display").expect("Error getting display property");
+            if compressed_style_display == String::new(){
+                let function_compressed_input = function_compressed.children().get_with_index(0).unwrap().children().get_with_index(1).unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                let val = function_compressed_input.value();
+                let temp_inputs = val.split(",").collect::<Vec<&str>>();
+                for input in temp_inputs{
+                    inputs.push(input.to_string());
+                }
+            } else {
+                //Function compressed style is set to display:none, use function expanded inputs
+                let function_expanded = children.get_with_index(1).unwrap().dyn_into::<HtmlElement>().unwrap();
+                let expanded_style_display = function_expanded.style().get_property_value("display").expect("Error getting display property");
+                assert!(expanded_style_display == String::new());
+
+                let function_expanded_fields_wrapper = function_expanded.children().get_with_index(1).unwrap();
+                let function_expanded_fields_wrapper_children = function_expanded_fields_wrapper.children();
+
+                for index in 0..function_expanded_fields_wrapper_children.length(){
+                    let function_expanded_field_wrapper = function_expanded_fields_wrapper_children.get_with_index(index).unwrap();
+                    let input = function_expanded_field_wrapper.children().get_with_index(1).unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                    let val = input.value();
+                    inputs.push(val);
+
+                }
+            }
+
+            //console_log(&input);
+
+            // TODO: CHECK FOR FEE AND PRIVATE RECORD FIELD HERE
+
+            // leo execute FUNCTION_NAME [INPUTS] --broadcast --endpoint ENDPOINT --network NETWORK --no-build --private-key PRIVATE_KEY [--fee FEE] [--record RECORD]
+            spawn_local(async move {
+                let current_env = current_environment_dropdown_text.get_untracked().to_string().to_lowercase();
+                let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
+                //let args = serde_wasm_bindgen::to_value(&Command { command : vec!["execute".to_string(),"execute".to_string(),"execute".to_string(),"--broadcast".to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked(),"program".to_string(), value.clone()]}).unwrap();        
+                // let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+            });    
+
+        } else if function_type == "mapping" {
+            let input : String;
+
+            let children = function_wrapper.children();
+            let function_output = children.get_with_index(2).unwrap().dyn_into::<Element>().unwrap();
+            let function_error = children.get_with_index(3).unwrap().dyn_into::<Element>().unwrap();
+            function_output.set_inner_html("");
+            let _ = function_output.set_attribute("style","display:none");
+            function_error.set_inner_html("");
+            let _ = function_error.set_attribute("style","display:none");
+
+
+            let function_compressed = children.get_with_index(0).unwrap().dyn_into::<HtmlElement>().unwrap();
+            let compressed_style_display = function_compressed.style().get_property_value("display").expect("Error getting display property");
+            if compressed_style_display == String::new(){
+                let function_compressed_input = function_compressed.children().get_with_index(0).unwrap().children().get_with_index(1).unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                input = function_compressed_input.value();
+            } else {
+                //Function compressed style is set to display:none, use function expanded inputs
+                let function_expanded = children.get_with_index(1).unwrap().dyn_into::<HtmlElement>().unwrap();
+                let expanded_style_display = function_expanded.style().get_property_value("display").expect("Error getting display property");
+                assert!(expanded_style_display == String::new());
+
+                let function_expanded_input = function_expanded.children().get_with_index(1).unwrap().children().get_with_index(0).unwrap().children().get_with_index(1).unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                input = function_expanded_input.value();
+            }
+
+            spawn_local(async move {
+                let current_env = current_environment_dropdown_text.get_untracked().to_string().to_lowercase();
+                let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
+                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"program".to_string(),program_name,"--mapping-value".to_string(),function_name, input, "--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked(), "-q".to_string()]}).unwrap();        
+                let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                if !error {
+                    let function_output = children.get_with_index(2).unwrap().dyn_into::<Element>().unwrap();
+                    function_output.set_inner_html(&format!("{}{}", "Output: ", output));
+                    let _ = function_output.set_attribute("style","");
+
+                    // let error_element = document.query_selector("#load-account-from-pk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                    // error_element.set_inner_html("Error: Invalid private key");
+                    // let _ = error_element.style().set_property("display", "block");
+                    // let _ = this.class_list().remove(&new_val);
+
+                    // let this = ev.target().dyn_into::<Element>().unwrap();
+                    // let new_val = Array::new();
+                    // new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                    // let _ = this.class_list().add(&new_val);
+                } else {
+                    let function_error = children.get_with_index(3).unwrap().dyn_into::<Element>().unwrap();
+                    function_error.set_inner_html("Error: Value not found");
+                    let _ = function_error.set_attribute("style","");
+                }
+            });   
+        }
+    }) as Box<dyn FnMut(_)>);
     
     Effect::new({
         move || {
-            let program = loaded_program.get();
+            let program = new_loaded_program.get();
             if program.2 != String::new() {
                 let document = leptos::prelude::document();
                 /*
@@ -229,6 +340,9 @@ pub fn SidebarDeployExecute (
                 
                                     let function_wrapper = document.create_element("div").expect("Error creating function wrapper");
                                     function_wrapper.set_class_name("function-wrapper");
+                                    let _ = function_wrapper.set_attribute("program_name", &program.0);
+                                    let _ = function_wrapper.set_attribute("name",&mapping_name);
+                                    let _ = function_wrapper.set_attribute("function_type","mapping");
                 
                                     let input_field = document.create_element("div").expect("Error creating input field");
                                     input_field.set_class_name("input-field");
@@ -240,12 +354,16 @@ pub fn SidebarDeployExecute (
                                     program_mapping_button.set_class_name("program-mapping-button");
                                     let text = document.create_text_node(&mapping_name);
                                     let _ = program_mapping_button.append_child(&text);
+                                    let _ = program_mapping_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
+
+
                                     let compressed_input = document.create_element("input").expect("Error creating compressed function input element");
                                     let _ = compressed_input.set_attribute("spellcheck", "false");
                                     let _ = compressed_input.set_attribute("autocomplete", "off");
                                     let _ = compressed_input.set_attribute("autocapitalize", "off");
                                     let _ = compressed_input.set_attribute("placeholder",&full_type);
                                     let _ = compressed_input.set_attribute("style","border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px");
+                                    
                                     let function_img_expand = document.create_element("img").expect("Error creating function_img_expand element").dyn_into::<HtmlImageElement>().unwrap();
                                     let _ = function_img_expand.set_src("public/chevron-down.svg");
                                     function_img_expand.set_class_name("inactive");
@@ -334,7 +452,8 @@ pub fn SidebarDeployExecute (
                 
                                     let text = document.create_text_node("Query");
                                     let _ = function_expanded_query_button.append_child(&text);
-                
+                                    let _ = function_expanded_query_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
+
                 
                 
                                     let _ = function_expanded_submit_button_wrapper.append_child(&buffer2);
@@ -351,9 +470,26 @@ pub fn SidebarDeployExecute (
                                         END MAPPING EXPANDED
                                     ===========================
                                     */
+
+
+                                    let function_output = document.create_element("div").expect("Error creating function_output");
+                                    let _ = function_output.set_attribute("class","function-output-title");
+                                    let _ = function_output.set_attribute("style","display:none;");
+
+                                    let function_error = document.create_element("div").expect("Error creating function_error");
+                                    let _ = function_error.set_attribute("class","function-error-title");
+                                    let _ = function_error.set_attribute("style","display:none;");
+
+
+
                 
                                     let _ = function_wrapper.append_child(&input_field);
                                     let _ = function_wrapper.append_child(&function_expanded);
+                                    let _ = function_wrapper.append_child(&function_output);
+                                    let _ = function_wrapper.append_child(&function_error);
+
+                                
+
                                     let _ = card_body.append_child(&function_wrapper);
                 
                                     /*
@@ -402,6 +538,9 @@ pub fn SidebarDeployExecute (
                 
                                     let function_wrapper = document.create_element("div").expect("Error creating function wrapper");
                                     function_wrapper.set_class_name("function-wrapper");
+                                    let _ = function_wrapper.set_attribute("name",&function_name);
+                                    let _ = function_wrapper.set_attribute("function_type","function");
+                                    let _ = function_wrapper.set_attribute("program_name", &program.0);
                 
                                     let input_field = document.create_element("div").expect("Error creating input field");
                                     input_field.set_class_name("input-field");
@@ -413,7 +552,8 @@ pub fn SidebarDeployExecute (
                                     program_function_button.set_class_name("program-function-button");
                                     let text = document.create_text_node(&function_name);
                                     let _ = program_function_button.append_child(&text);
-                
+                                    let _ = program_function_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
+
                 
                                     let compressed_input = document.create_element("input").expect("Error creating compressed function input element");
                                     let _ = compressed_input.set_attribute("spellcheck", "false");
@@ -421,6 +561,7 @@ pub fn SidebarDeployExecute (
                                     let _ = compressed_input.set_attribute("autocapitalize", "off");
                                     let _ = compressed_input.set_attribute("placeholder",&one_line_types);
                                     let _ = compressed_input.set_attribute("style","border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px");
+                                    
                                     let function_img_expand = document.create_element("img").expect("Error creating function_img_expand element").dyn_into::<HtmlImageElement>().unwrap();
                                     let _ = function_img_expand.set_src("public/chevron-down.svg");
                                     function_img_expand.set_class_name("inactive");
@@ -508,6 +649,8 @@ pub fn SidebarDeployExecute (
                                     function_expanded_execute_button.set_class_name("function-expanded-execute-button");
                                     let text = document.create_text_node("Execute");
                                     let _ = function_expanded_execute_button.append_child(&text);
+                                    let _ = function_expanded_execute_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
+
                 
                 
                                     let _ = function_expanded_submit_button_wrapper.append_child(&buffer2);
@@ -558,11 +701,125 @@ pub fn SidebarDeployExecute (
     ==============================================================================
     */
 
+
+    Effect::new({
+        move || {
+            let network_item = current_environment_dropdown_item.get();
+            if network_item == "devnet-button" {
+                set_network_accounts.set(accounts.get().0);
+            } else {
+                set_network_accounts.set(accounts.get().1);
+            }
+        }
+    });
+
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#deploy-execute-tab-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">
                 Deploy and Execute
             </div>
+
+            <div id="stuff-card" style="color:#e3e3e3;" class="card">
+                <div id="stuff-card-head" class="card-head" >
+                    <div class="title" style="-webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;">
+                        Funding
+                    </div>
+                </div>
+                <div class="card-body-wrapper">
+                    <div id="stuff-card-body" class="card-body">
+                        <div class="input-field"  style="color:#e3e3e3;">
+                            <div class="field-title">{move || format!("{}{}","Network: ",current_environment_dropdown_text.get())}</div>
+                            <div class="field-title">Account</div>
+                            <div id="deploy-accounts-dropdown-custom" class="dropdown-custom">
+                                <div id="deploy-accounts-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                                {
+                                    let this = ev.target().dyn_into::<Element>().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    if this.class_list().contains("show"){
+                                        let _ = this.class_list().remove(&new_val);
+                                        set_deploy_accounts_dropdown_active.set(false);
+                                    } else {
+                                        let _ = this.class_list().add(&new_val);
+                                        set_deploy_accounts_dropdown_active.set(true);
+                                    }
+                                }> 
+                                    <div class="buffer" inner_html={move || deploy_accounts_dropdown_text.get()}></div>
+                                    <img src="public/chevron-down.svg"/>
+                                </div>
+                                <div id="deploy-accounts-dropdown-content" class="dropdown-content" style={move || if deploy_accounts_dropdown_active.get() {"display: block"} else {"display: none"}}>
+                                    <div id="placeholder-button" class="dropdown-item-placeholder" style={move || if network_accounts.get().len() == 0 {"display: block; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {"display: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"}}
+                                    >
+                                        Please load an account first!
+                                    </div>
+                                    <For each=move || network_accounts.get() key=|(key,_)| key.to_string() children=move |(name,_)| {
+                                        view! {
+                                            <div id=name class={ let name_clone = name.clone(); move || { let id = deploy_accounts_dropdown_item.get(); if id == name_clone  {"dropdown-item selected"} else {"dropdown-item"}}} style={ let name_clone = name.clone(); move || { let accounts_map = network_accounts.get(); if accounts_map.len() != 0 {let final_item = &accounts_map.get_index(accounts_map.len()-1).unwrap(); if final_item.0.to_string() == name_clone {"border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {""}} else {""}}}
+                                            on:click:target = move|ev| {
+                                                let current_item = deploy_accounts_dropdown_item.get();
+                                                if current_item != ev.target().id(){
+                                                    set_deploy_accounts_dropdown_item.set(ev.target().id());
+                                                    set_deploy_accounts_dropdown_text.set(ev.target().inner_html());
+                    
+                                                    let document = leptos::prelude::document();
+                                                    let target = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap();
+                                                    let new_val = Array::new();
+                                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                                    let _ = target.class_list().remove(&new_val);
+                                                    set_deploy_accounts_dropdown_active.set(false);
+                                                }
+                                            }
+
+                                            >
+                                                {name.clone()}
+                                            </div>                                     
+                                        }
+                                    }/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-field">
+                            <div class="field-title">Fee</div>
+                            <div class="output-input-wrapper">
+                                <input id="deploy-input-fee" style=" border-top-right-radius: 0px; border-bottom-right-radius: 0px;" placeholder="Fee" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                <div class="card-button-estimate-fee">Estimate Fee</div>
+                            </div>
+                        </div>
+
+                        <div class="switch-wrapper">
+                            <div class="field-title" style="order:0; padding:0; margin-right:15px; padding-top:2.5px; padding-bottom:2.5px;">Private Fee</div>
+                            <label class="switch" style="order:1;">
+                                <input type="checkbox"
+                                on:change:target = move|ev|{
+                                    let document = leptos::prelude::document();
+                                                    
+                                    let value = ev.target().checked();
+                                    let private_fee_input_field = document.query_selector("#private-fee-input-field").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    if value {
+                                        let _ = private_fee_input_field.style().set_property("display", "block");
+                                    } else  {
+                                        let _ = private_fee_input_field.style().set_property("display", "none");
+                                    }         
+                                }
+                                />
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+
+
+                        <div class="input-field" id="private-fee-input-field" style="padding-top:10px; display: none;">
+                            <div style="order:0" class="field-title">Fee Record</div>
+
+                            <div class="output-textarea-wrapper" style="height:70px;">
+                                <textarea style="order:0; white-space: pre-wrap; background-color:transparent; height: " id="private-fee-input" placeholder="Fee Record" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
 
             
             <div id="deploy-and-execute-card" class="card">
@@ -648,134 +905,98 @@ pub fn SidebarDeployExecute (
                             </div>
                         </div>
 
-                        <div class="input-field"  style="color:#e3e3e3;">
-                            <div class="field-title">Account</div>
-                            <div id="deploy-accounts-dropdown-custom" class="dropdown-custom">
-                                <div id="deploy-accounts-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
-                                {
-                                    let this = ev.target().dyn_into::<Element>().unwrap();
-                                    let new_val = Array::new();
-                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    if this.class_list().contains("show"){
-                                        let _ = this.class_list().remove(&new_val);
-                                        set_deploy_accounts_dropdown_active.set(false);
-                                    } else {
-                                        let _ = this.class_list().add(&new_val);
-                                        set_deploy_accounts_dropdown_active.set(true);
-                                    }
-                                }> 
-                                    <div class="buffer" inner_html={move || deploy_accounts_dropdown_text.get()}></div>
-                                    <img src="public/chevron-down.svg"/>
-                                </div>
-                                <div id="deploy-accounts-dropdown-content" class="dropdown-content" style={move || if deploy_accounts_dropdown_active.get() {"display: block"} else {"display: none"}}>
-                                    <div id="placeholder-button" class="dropdown-item-placeholder" style={move || if accounts.get().len() == 0 {"display: block; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {"display: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"}}
-                                    >
-                                        Please load an account first!
-                                    </div>
-                                    <For each=move || accounts.get() key=|(key,_)| key.to_string() children=move |(name,_)| {
-                                        view! {
-                                            <div id=name class={ let name_clone = name.clone(); move || { let id = deploy_accounts_dropdown_item.get(); if id == name_clone  {"dropdown-item selected"} else {"dropdown-item"}}} style={ let name_clone = name.clone(); move || { let accounts_map = accounts.get(); if accounts_map.len() != 0 {let final_item = &accounts_map.get_index(accounts_map.len()-1).unwrap(); if final_item.0.to_string() == name_clone {"border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {""}} else {""}}}
-                                            on:click:target = move|ev| {
-                                                let current_item = deploy_accounts_dropdown_item.get();
-                                                if current_item != ev.target().id(){
-                                                    set_deploy_accounts_dropdown_item.set(ev.target().id());
-                                                    set_deploy_accounts_dropdown_text.set(ev.target().inner_html());
-                    
-                                                    let document = leptos::prelude::document();
-                                                    let target = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap();
-                                                    let new_val = Array::new();
-                                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                                    let _ = target.class_list().remove(&new_val);
-                                                    set_deploy_accounts_dropdown_active.set(false);
-                                                }
-                                            }
-
-                                            >
-                                                {name.clone()}
-                                            </div>                                     
-                                        }
-                                    }/>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="input-field">
-                            <div class="field-title">Fee</div>
-                            <div class="output-input-wrapper">
-                                <input id="deploy-input-fee" style=" border-top-right-radius: 0px; border-bottom-right-radius: 0px;" placeholder="Fee" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                <div class="card-button-estimate-fee">Estimate Fee</div>
-                            </div>
-                        </div>
-
-                        <div class="switch-wrapper">
-                            <div class="field-title" style="order:0; padding:0; margin-right:15px; padding-top:2.5px; padding-bottom:2.5px;">Private Fee</div>
-                            <label class="switch" style="order:1;">
-                                <input type="checkbox"
-                                on:change:target = move|ev|{
-                                    let document = leptos::prelude::document();
-                                                    
-                                    let value = ev.target().checked();
-                                    let private_fee_input_field = document.query_selector("#private-fee-input-field").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                    if value {
-                                        let _ = private_fee_input_field.style().set_property("display", "block");
-                                    } else  {
-                                        let _ = private_fee_input_field.style().set_property("display", "none");
-                                    }         
-                                }
-                                />
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-
-
-                        <div class="input-field" id="private-fee-input-field" style="padding-top:10px; display: none;">
-                            <div style="order:0" class="field-title">Fee Record</div>
-
-                            <div class="output-textarea-wrapper" style="height:70px;">
-                                <textarea style="order:0; white-space: pre-wrap; background-color:transparent; height: " id="private-fee-input" placeholder="Fee Record" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                            </div>
-                        </div>
-
                     </div>
                     <div class="card-divider"/>
+
                     <button id="deploy-button" class="card-button"
                     on:click:target=move|_ev| {
                         let document = leptos::prelude::document();
                                                     
-                        // let current_program_id_input = document.query_selector("#deploy-input-program-id").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let current_project_input = document.query_selector("#deploy-input-project").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                        let current_program_id_input = document.query_selector("#deploy-input-program-id").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                         let current_fee_input = document.query_selector("#deploy-input-fee").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
 
-                        // let program_id = current_program_id_input.value().clone();
+                        let project = current_project_input.value().clone();
+                        let program_id = current_program_id_input.value().clone();
                         let fee = current_fee_input.value().clone();
 
-                        // let target1 = current_program_id_input.dyn_into::<HtmlElement>().unwrap();
-                        let target2 = current_fee_input.dyn_into::<HtmlElement>().unwrap();
-                        let target3 = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                        let target1 = current_project_input.dyn_into::<HtmlElement>().unwrap();
+                        let target2 = current_program_id_input.dyn_into::<HtmlElement>().unwrap();
+                        let target3 = current_fee_input.dyn_into::<HtmlElement>().unwrap();
+                        let target4 = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
 
-                        // let style1 = target2.style();
+                        let style1 = target1.style();
                         let style2 = target2.style();
                         let style3 = target3.style();
+                        let style4 = target4.style();
 
-                        // if &program_id== "" {
-                        //     let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
-                        // } else {
-                        //     let _ = style1.set_property("border", "1px solid #494e64");   
-                        // }
+                        if &project == "" {
+                            let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
+                        } else {
+                            let _ = style1.set_property("border", "1px solid #494e64");   
+                        }
 
-                        if &fee == "" {
+                        if &program_id == "" {
                             let _ = style2.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
                             let _ = style2.set_property("border", "1px solid #494e64");   
                         }
 
-                        if deploy_accounts_dropdown_item.get() == String::new(){
+                        if &fee == "" {
                             let _ = style3.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
-                            let _ = style3.set_property("border", "1px solid #494e64");   
+                            let _ = style4.set_property("border", "1px solid #494e64");   
                         }
 
+                        if deploy_accounts_dropdown_item.get() == String::new(){
+                            let _ = style4.set_property("border", "1px solid var(--grapefruit)");   
+                        } else {
+                            let _ = style4.set_property("border", "1px solid #494e64");   
+                        }
 
-                        // leo deploy --no-build --private-key XXX --base-fee XXX --record XXX --endpoint XXX --network XXX --path XXX
+                        if &project != "" && &program_id != "" && &fee != "" && deploy_accounts_dropdown_item.get() != String::new(){
+                            let _ = style1.set_property("border", "1px solid #494e64");  
+                            let _ = style2.set_property("border", "1px solid #494e64");  
+                            let _ = style3.set_property("border", "1px solid #494e64");  
+                            let _ = style4.set_property("border", "1px solid #494e64");
+
+                            //Set deploy button to disabled/pending  
+                            spawn_local(async move {
+                                let current_env = if current_environment_dropdown_text.get_untracked() == "Local Devnet" {"local".to_string()} else {current_environment_dropdown_text.get_untracked().to_string().to_lowercase()};
+                                let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
+                                
+                                let accounts_map = network_accounts.get_untracked();
+                                let account = accounts_map.get(&deploy_accounts_dropdown_item.get_untracked()).unwrap();
+                                let pk = account.0.clone();
+                                // TODO: CHECK FOR PRIVATE RECORD FIELD HERE
+
+                                let command = vec!["deploy".to_string(), "--yes".to_string(), "--path".to_string(),compiled_project.get_untracked().0.clone(), "--private-key".to_string(), pk,"--base-fee".to_string(),fee,"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()];
+                                let args = serde_wasm_bindgen::to_value(&Command { command : command}).unwrap();        
+                                let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                if !error {
+                                    let compiled_file = format!("{}{}",compiled_project.get_untracked().0.clone(),"/build/main.aleo");
+                                    let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: compiled_file}).unwrap();
+                                    match invoke("read_file", args).await.as_string(){
+                                        Some(contents) => {
+                                            let mut formatted_output = String::new();
+                                            let split = contents.split("\n").collect::<Vec<&str>>();
+                                            for item in &(split)[2..split.len()]{
+                                                if *item == "" {
+                                                    formatted_output = format!("{}{}", formatted_output, "\n");
+                                                } else {
+                                                    formatted_output = format!("{}{}{}", formatted_output, item, "\n");
+                                                }
+                                            }
+                                            set_new_loaded_program.set((program_id, current_env.clone(), formatted_output));
+                                        },
+                                        None => {
+                                            console_log("Error: File does not exist");
+                                        }
+                                    }
+                                }
+                            })
+                        }
+        
                     }
                     >
                         Deploy
@@ -788,6 +1009,7 @@ pub fn SidebarDeployExecute (
                         <div class="input-field">
                             <div class="field-title">Program ID</div>
                             <input id="load-program-input" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div id="load-program-input-error" class="error-title" style="display:none;"></div>
                         </div>
                     </div>
                     <div class="card-divider"/>
@@ -802,6 +1024,8 @@ pub fn SidebarDeployExecute (
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
                             let _ = style.set_property("border", "1px solid #494e64");
+                            let error = document.query_selector("#load-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
 
                             /*
                             Dependency Checking Order:
@@ -847,15 +1071,14 @@ pub fn SidebarDeployExecute (
                                 //         }
                                 //     }
                                 // }
-
-
-
-
                                 if not_local {
-                                    let network = current_environment_dropdown_text.get_untracked().to_string().to_lowercase();
+                                    let current_env = if current_environment_dropdown_text.get_untracked() == "Local Devnet" {"local".to_string()} else {current_environment_dropdown_text.get_untracked().to_string().to_lowercase()};
 
-                                    let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked(),"program".to_string(), value.clone()]}).unwrap();        
+                                    let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
+
+                                    let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"program".to_string(), value.clone() ,"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()]}).unwrap();        
                                     let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                    console_log(&vec!["query".to_string(), "program".to_string(), value.clone(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()].join(" "));
                                     if !error {
                                         let mut formatted_output = String::new();
                                         let split = output.split("\n\n").collect::<Vec<&str>>();
@@ -867,14 +1090,12 @@ pub fn SidebarDeployExecute (
                                             }
                                         }
 
-                                        set_loaded_program.set((value.clone(), network.clone(), formatted_output));
+                                        set_new_loaded_program.set((value.clone(), current_env.clone(), formatted_output));
                                         
                                     } else {
-                                        console_log("error: this program does not exist");
-                                        // let error = document.query_selector("#get-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                        // error.set_inner_html("Error: The program with this ID does not exist.");
-                                        // let _ = error.style().set_property("display", "block");
-                                        // let _ = this.class_list().remove(&new_val);
+                                        let error = document.query_selector("#load-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        error.set_inner_html("Error: The program with this ID does not exist.");
+                                        let _ = error.style().set_property("display", "block");
                                     }
                                 }
                             });
@@ -888,143 +1109,10 @@ pub fn SidebarDeployExecute (
                 </div>
             </div>
 
+
             <div class="panel-divider" style="margin-bottom:0"/>
-            <div class="programs-wrapper">
-                <div id="sample-program-card" class="program-card">
-                    <div id="sample-program-dropdown-custom" class="program-custom-head">
-                        <div id="sample-program-dropdown-button" class="dropdown-button"> 
-                            <img src="public/chevron-right.svg" class="inactive" style="order:1; z-index: 2;"
-                            on:click:target=move|ev| 
-                            {
-                                let this = ev.target().dyn_into::<Element>().unwrap();
-                                let card = this.parent_element().unwrap().parent_element().unwrap().parent_element().unwrap();  
-                                let img = this.dyn_into::<HtmlImageElement>().unwrap();
-                                let content = card.children().item(1).unwrap().dyn_into::<HtmlElement>().unwrap();
-                                if img.class_name() == "inactive"{
-                                    img.set_src("public/chevron-down.svg");
-                                    img.set_class_name("active");
-                                    card.set_class_name("program-card active");
-                                    let _ = content.set_attribute("style","display: flex; border:0;");
-                                } else {
-                                    img.set_src("public/chevron-right.svg");
-                                    img.set_class_name("inactive");
-                                    card.set_class_name("program-card");   
-                                    let _ = content.set_attribute("style","display:none;");
-                                }
-                            }
-                            />
-                            <div class="buffer" style="order:2" inner_html={"sample.aleo (mainnet)"}></div>
-                            <img src="public/close.svg" name="image" style="order:3; z-index:2;"/>
-                        </div>
-                    </div>
 
-                    <div class="card-body-wrapper" style="display: none">
-                        <div id="sample-program-card-body" class="card-body">
-                            <div class="function-wrapper">    
-                                <div class="input-field">
-                                    <div class="output-input-wrapper">
-                                        <div class="program-function-button">transfer_public</div>
-                                        <input name="test-function" style=" border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px" placeholder="address, u64" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                        <img src="public/chevron-down.svg" style=" cursor: pointer; order:1; z-index: 2;"
-                                        on:click:target={move|ev|{
-                                            let this = ev.target().dyn_into::<Element>().unwrap();
-                                            let function_compressed = this.parent_element().unwrap().parent_element().unwrap();
-                                            let function_expanded = function_compressed.parent_element().unwrap().children().get_with_index(1).unwrap();
-                                        
-                                            let _ = function_compressed.set_attribute("style", "display:none;");
-                                            let _ = function_expanded.set_attribute("style", "");
-
-                                        }}
-                                        />
-                                    
-                                    </div>
-                                </div>
-
-                                <div class="function-expanded" style="display:none">
-                                    <div class="function-expanded-header">
-                                        <div class="function-expanded-title">transfer_public</div>
-                                        <img src="public/chevron-up.svg" style=" cursor: pointer; order:2; z-index: 2; padding-bottom:4px;"
-                                        on:click:target={move|ev|{
-                                            let this = ev.target().dyn_into::<Element>().unwrap();
-                                            let function_expanded= this.parent_element().unwrap().parent_element().unwrap();
-                                            let function_compressed = function_expanded.parent_element().unwrap().children().get_with_index(0).unwrap();
-                                        
-                                            let _ = function_expanded.set_attribute("style", "display:none;");
-                                            let _ = function_compressed.set_attribute("style", "");
-                                        }}
-                                        />
-                                    </div>
-                                    <div class="function-expanded-fields-wrapper" >
-                                        <div class="function-expanded-field-wrapper">
-                                            <div class="function-expanded-field-label">{"r0: "}</div>
-                                            <input style="border-radius: 6px;" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                        </div>
-                                        <div class="function-expanded-field-wrapper">
-                                            <div class="function-expanded-field-label">{"r1: "}</div>
-                                            <input style="border-radius: 6px;" placeholder="u64" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                        </div>
-                                    </div>
-                                    <div class="function-expanded-submit-button-wrapper">
-                                        <div name="buffer" style="width:100%"/>
-                                        <div class="function-expanded-execute-button">Execute</div>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                            <div class="function-wrapper" >    
-                                <div class="input-field">
-                                    <div class="output-input-wrapper">
-                                        <div class="program-mapping-button">accounts</div>
-                                        <input id="test-function" style=" border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                        <img src="public/chevron-down.svg" style=" cursor: pointer; order:1; z-index: 2;"
-                                        on:click:target={move|ev|{
-                                            let this = ev.target().dyn_into::<Element>().unwrap();
-                                            let function_compressed = this.parent_element().unwrap().parent_element().unwrap();
-                                            let function_expanded = function_compressed.parent_element().unwrap().children().get_with_index(1).unwrap();
-                                        
-                                            let _ = function_compressed.set_attribute("style", "display:none;");
-                                            let _ = function_expanded.set_attribute("style", "");
-
-                                        }}
-                                        />
-                                    
-                                    </div>
-                                </div>
-
-                                <div class="function-expanded" style="display:none">
-                                    <div class="function-expanded-header">
-                                        <div class="function-expanded-title">accounts</div>
-                                        <img src="public/chevron-up.svg" style=" cursor: pointer; order:2; z-index: 2; padding-bottom:4px;"
-                                        on:click:target={move|ev|{
-                                            let this = ev.target().dyn_into::<Element>().unwrap();
-                                            let function_expanded= this.parent_element().unwrap().parent_element().unwrap();
-                                            let function_compressed = function_expanded.parent_element().unwrap().children().get_with_index(0).unwrap();
-                                        
-                                            let _ = function_expanded.set_attribute("style", "display:none;");
-                                            let _ = function_compressed.set_attribute("style", "");
-                                        }}
-                                        />
-                                    </div>
-                                    <div class="function-expanded-fields-wrapper" >
-                                        <div class="function-expanded-field-wrapper">
-                                            <div class="function-expanded-field-label" style="padding-top:7px;">{"key: "}</div>
-                                            <input style="border-radius: 6px;" placeholder="address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                        </div>
-
-                                    </div>
-                                    <div class="function-expanded-submit-button-wrapper">
-                                        <div name="buffer" style="width:100%"/>
-                                        <div class="function-expanded-query-button">Query</div>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div class="programs-wrapper"></div>
         </div>
     }
 }

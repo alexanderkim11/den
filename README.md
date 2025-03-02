@@ -7,25 +7,24 @@
 Built with Tauri + Leptos
 
 # DEPLOYMENT:
-    - Change state path to "./"
+    1. Change state path to "./"
 
 # TODO:
 
 **BOLD** signifies priority tasking
 
 ## General:
-- **Integrate Devnet support**
-- Work on Custom Titlebar with buttons
+- **Work on Custom Titlebar with buttons**
 - Need to figure out way to integrate LSP server for document-wide error checking
 - Testing framework?
 - Add way to open multiple windows/app instances
 - Figure out way to add warning message when exiting app
+- Integrate Git
 
 ## Sidebar:
 - General:
     - Add hover names for sidebar icon buttons?
     - Persistant state between closing and reopening the app
-        - **Update state filepath to ./**
         - Persistant state is challenging due to little support for Leptos + Tauri combo
         - Need to save state each time any of the items change
         - State should be:
@@ -52,6 +51,7 @@ Built with Tauri + Leptos
     - Add more features?
     - Add way to edit API endpoint
 - Account
+    - **Reset Saved Accounts Tab when Environment is changed**
     - Add authentication/authorization for accounts when either loading from persistant state or creating transactions?
     - Add background async function to periodically scan and update saved account balances, also should run whenever transactions are sent out
     - Saved Accounts
@@ -63,16 +63,27 @@ Built with Tauri + Leptos
     - Add sub-icon on sidebar icon to indicator success,failure, or pending
     - **Ctrl + S on IDE should automatically compile a Leo program**
 - Deploy and Execute:
-    - **Add indicator for current network**
-    - **Add functionality here**
-    - **Add deployed program interaction**
+    - **Add Deploy Functionality**
+        - **Add fee estimation functionality**
+        - **Add support for private fee**
+    - Load Program
+        - **Check if program is already loaded for the selected network
+    - Deployed/Loaded Program:
+        - **Add function/mapping interaction**
+        - **SEPARATE ASYNC FUNCTIONS FROM REGULAR FUNCTIONS?**
+        - Figure out how compressed and expanded inputs are connected/separated and rest when function is switched between compressed and expanded
+        -
+
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
 - REST API:
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
-    - Reset all output fields when environment is changed
+    - **Reset all output fields when environment is changed**
     - Get Account Balance:
         - Is there a better way to do this other than brute-force searching for record?
         - **Add functionality and output**
+
+- Transaction History:
+    - **add this**
 
 ## Editor
 - Dynamic error checking (red squiggle with error description) (See LSP task above)

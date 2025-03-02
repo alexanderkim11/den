@@ -12,8 +12,9 @@ mod test;
 mod state;
 
 use tauri::{Builder, Manager};
+use tauri_plugin_shell::process::CommandChild;
 
-// use std::sync::Mutex;
+use std::sync::Mutex;
 // use indexmap::IndexMap;
 // use tauri_plugin_store::StoreExt;
 
@@ -30,23 +31,38 @@ use tauri::{Builder, Manager};
 // //   saved_files: HashMap<String,String>,
 // }
 
+
+#[derive(Default)]
+struct AppState {
+    amareleo: Option<CommandChild>,
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     Builder::default()
         .plugin(tauri_plugin_store::Builder::default().build())
-        .setup(|_app| {
-            // This loads the store from disk
-            //let store = app.store("state.json")?;
+        .setup(|app| {
+            app.manage(Mutex::new(AppState::default()));
             Ok(())
         })
-        .on_window_event(|_window, event| match event {
-            // tauri::WindowEvent::CloseRequested{api,..} => {
-            //     let app_handle = window.app_handle();
-            //     let exit : bool = dialog::exit_warning(app_handle.clone(),"null".to_string());
-            //     if !exit {
-            //         api.prevent_close();
-            //     }
-            // }
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested{api,..} => {
+                let app_handle = window.app_handle();
+                let state = app_handle.state::<Mutex<AppState>>();
+                let mut state = state.lock().unwrap();
+                let amareleo = state.amareleo.take();
+                match amareleo{
+                    Some(process) => {
+                        let _ = process.kill();
+                    }
+                    None => {}
+                }
+                // let exit : bool = dialog::exit_warning(app_handle.clone(),"null".to_string());
+                // if !exit {
+                //     api.prevent_close();
+                // }
+            }
             _ => {}
         })
         .plugin(tauri_plugin_os::init())
@@ -76,6 +92,7 @@ pub fn run() {
             state::get_state_root_dir,
             state::update_state_accounts,
             state::update_state_root_dir,
+            state:: start_dev_node,
             test::test,
             url::open_url,
         ])

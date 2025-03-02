@@ -177,7 +177,7 @@ pub fn SidebarRecords (
                             let _ = style2.set_property("border", "1px solid #494e64");   
                             let _ = style3.set_property("border", "1px solid #494e64");  
                             spawn_local(async move{
-                                let args = serde_wasm_bindgen::to_value(&DecryptRecordArgs{network: "Mainnet".to_string(), ciphertext : ciphertext, viewkey : vk}).unwrap();
+                                let args = serde_wasm_bindgen::to_value(&DecryptRecordArgs{network: "mainnet".to_string(), ciphertext : ciphertext, viewkey : vk}).unwrap();
                                 let (error,plaintext) : (bool, String) = serde_wasm_bindgen::from_value(invoke("decrypt_record", args).await).unwrap();
                                 if !error {
                                     let output_element = document.query_selector("#decrypt-record-output").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
