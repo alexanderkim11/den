@@ -119,6 +119,9 @@ pub fn SidebarAccount (
     Effect::new({
         move || {
             let network_item = current_environment_dropdown_item.get();
+            set_saved_accounts_dropdown_active.set(false);
+            set_saved_accounts_dropdown_item.set(String::new());
+            set_saved_accounts_dropdown_text.set("--".to_string());
             if network_item == "devnet-button" {
                 set_network_accounts.set(accounts.get().0);
             } else {
@@ -127,8 +130,8 @@ pub fn SidebarAccount (
         }
     });
 
-    let network_item = current_environment_dropdown_item.get_untracked();
-    let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};
+    // let network_item = current_environment_dropdown_item.get_untracked();
+    // let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else if network_item == "testnet-button" {"testnet".to_string()} else {"devnet".to_string()};
 
     view! {
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#account-tab-button" {"display: flex;"} else {"display: none;"}}>

@@ -8,7 +8,7 @@ use indexmap::IndexMap;
 use regex::Regex;
 use leptos::ev::Event;
 
-use crate::app::CopyButton;
+// use crate::app::CopyButton;
 
 
 #[wasm_bindgen]
@@ -972,7 +972,7 @@ pub fn SidebarDeployExecute (
 
                                 let command = vec!["deploy".to_string(), "--yes".to_string(), "--path".to_string(),compiled_project.get_untracked().0.clone(), "--private-key".to_string(), pk,"--base-fee".to_string(),fee,"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()];
                                 let args = serde_wasm_bindgen::to_value(&Command { command : command}).unwrap();        
-                                let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                let (error,_output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                                 if !error {
                                     let compiled_file = format!("{}{}",compiled_project.get_untracked().0.clone(),"/build/main.aleo");
                                     let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: compiled_file}).unwrap();

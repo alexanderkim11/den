@@ -51,7 +51,6 @@ Built with Tauri + Leptos
     - Add more features?
     - Add way to edit API endpoint
 - Account
-    - **Reset Saved Accounts Tab when Environment is changed**
     - Add authentication/authorization for accounts when either loading from persistant state or creating transactions?
     - Add background async function to periodically scan and update saved account balances, also should run whenever transactions are sent out
     - Saved Accounts

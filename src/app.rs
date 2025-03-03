@@ -4,7 +4,7 @@ use sidebar::*;
 mod ide;
 use ide::*;
 
-use leptos::web_sys::{Element,HtmlElement, HtmlTextAreaElement, HtmlInputElement};
+use leptos::web_sys::{Element,HtmlElement, HtmlTextAreaElement};
 use js_sys::Array;
 use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
@@ -222,7 +222,6 @@ fn FileTab(
                         }
 
 
-                        let selected = selected_file.get_untracked();
                         let document = leptos::prelude::document();
                         let mut hasher = DefaultHasher::new();
                         format!("{}{}", filepath_clone,"-saved").hash(&mut hasher);      
@@ -439,7 +438,7 @@ pub fn App() -> impl IntoView {
                 <SidebarAccount selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts current_environment_dropdown_item=current_environment_dropdown_item/>
                 <SidebarRecords selected_activity_icon=selected_activity_icon/>
                 <SidebarRestApi selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item current_endpoint=current_endpoint/>
-                <SidebarCompile selected_activity_icon=selected_activity_icon selected_file=selected_file compiled_project=compiled_project set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item root=root set_root=set_root set_fs_html=set_fs_html/>
+                <SidebarCompile selected_activity_icon=selected_activity_icon selected_file=selected_file set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item root=root set_fs_html=set_fs_html/>
                 <SidebarDeployExecute selected_activity_icon=selected_activity_icon current_environment_dropdown_text=current_environment_dropdown_text current_endpoint=current_endpoint accounts=accounts set_accounts=set_accounts compiled_project=compiled_project set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item/>
                 <SidebarHistory selected_activity_icon=selected_activity_icon/>
             
@@ -476,7 +475,7 @@ pub fn App() -> impl IntoView {
                             }
                         }/>
                     </div>
-                    <IDE lines_html=lines_html set_lines_html=set_lines_html sl=sl set_sl=set_sl st=st set_st=set_st highlighted_msg=highlighted_msg set_highlighted_msg=set_highlighted_msg syntax_set=syntax_set theme=theme selected_file=selected_file saved_file_contents=saved_file_contents set_saved_file_contents=set_saved_file_contents cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents/>
+                    <IDE lines_html=lines_html set_lines_html=set_lines_html sl=sl set_sl=set_sl st=st set_st=set_st highlighted_msg=highlighted_msg set_highlighted_msg=set_highlighted_msg syntax_set=syntax_set theme=theme selected_file=selected_file saved_file_contents=saved_file_contents set_saved_file_contents=set_saved_file_contents cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item set_fs_html=set_fs_html root=root/>
                 </div>
                 <div class = "terminal">
                     //TODO: Start this

@@ -86,11 +86,11 @@ pub fn update_state_accounts(handle: tauri::AppHandle, updatedAccounts : (IndexM
     let state = handle.store("C:\\Users\\r0ami\\Home\\state.json").expect("Error loading state!");
     //let state = handle.store("./").expect("Error loading state!");
 
-    let mut dev_accounts : IndexMap<String,(String,String,String)> = IndexMap::new();
-    dev_accounts.insert("Account 0".to_string(),("APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH".to_string(),"AViewKey1mSnpFFC8Mj4fXbK5YiWgZ3mjiV8CxA79bYNa8ymUpTrw".to_string(),"aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px".to_string()));
-    dev_accounts.insert("Account 1".to_string(),("APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh".to_string(),"AViewKey1pTzjTxeAYuDpACpz2k72xQoVXvfY4bJHrjeAQp6Ywe5g".to_string(),"aleo1s3ws5tra87fjycnjrwsjcrnw2qxr8jfqqdugnf0xzqqw29q9m5pqem2u4t".to_string()));
-    dev_accounts.insert("Account 2".to_string(),("APrivateKey1zkp2GUmKbVsuc1NSj28pa1WTQuZaK5f1DQJAT6vPcHyWokG".to_string(),"AViewKey1u2X98p6HDbsv36ZQRL3RgxgiqYFr4dFzciMiZCB3MY7A".to_string(),"aleo1ashyu96tjwe63u0gtnnv8z5lhapdu4l5pjsl2kha7fv7hvz2eqxs5dz0rg".to_string()));
-    dev_accounts.insert("Account 3".to_string(),("APrivateKey1zkpBjpEgLo4arVUkQmcLdKQMiAKGaHAQVVwmF8HQby8vdYs".to_string(),"AViewKey1iKKSsdnatHcm27goNC7SJxhqQrma1zkq91dfwBdxiADq".to_string(),"aleo12ux3gdauck0v60westgcpqj7v8rrcr3v346e4jtq04q7kkt22czsh808v2".to_string()));
+    // let mut dev_accounts : IndexMap<String,(String,String,String)> = IndexMap::new();
+    // dev_accounts.insert("Account 0".to_string(),("APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH".to_string(),"AViewKey1mSnpFFC8Mj4fXbK5YiWgZ3mjiV8CxA79bYNa8ymUpTrw".to_string(),"aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px".to_string()));
+    // dev_accounts.insert("Account 1".to_string(),("APrivateKey1zkp2RWGDcde3efb89rjhME1VYA8QMxcxep5DShNBR6n8Yjh".to_string(),"AViewKey1pTzjTxeAYuDpACpz2k72xQoVXvfY4bJHrjeAQp6Ywe5g".to_string(),"aleo1s3ws5tra87fjycnjrwsjcrnw2qxr8jfqqdugnf0xzqqw29q9m5pqem2u4t".to_string()));
+    // dev_accounts.insert("Account 2".to_string(),("APrivateKey1zkp2GUmKbVsuc1NSj28pa1WTQuZaK5f1DQJAT6vPcHyWokG".to_string(),"AViewKey1u2X98p6HDbsv36ZQRL3RgxgiqYFr4dFzciMiZCB3MY7A".to_string(),"aleo1ashyu96tjwe63u0gtnnv8z5lhapdu4l5pjsl2kha7fv7hvz2eqxs5dz0rg".to_string()));
+    // dev_accounts.insert("Account 3".to_string(),("APrivateKey1zkpBjpEgLo4arVUkQmcLdKQMiAKGaHAQVVwmF8HQby8vdYs".to_string(),"AViewKey1iKKSsdnatHcm27goNC7SJxhqQrma1zkq91dfwBdxiADq".to_string(),"aleo12ux3gdauck0v60westgcpqj7v8rrcr3v346e4jtq04q7kkt22czsh808v2".to_string()));
 
 
     let accounts = state.get("accounts");

@@ -1,5 +1,5 @@
 use leptos::ev::Event;
-use leptos::web_sys::{HtmlElement, HtmlTextAreaElement, HtmlButtonElement};
+use leptos::web_sys::{Element, HtmlElement, HtmlTextAreaElement, HtmlButtonElement};
 use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -7,9 +7,11 @@ use syntect::{highlighting::Theme, parsing::SyntaxSet};
 use wasm_bindgen::prelude::*;
 use std::cmp;
 use std::collections::HashMap;
+use std::path::Path;
+use js_sys::Array;
+use regex::Regex;
 
-
-
+use crate::app::{generate_file_explorer_html, CustomDirEntry};
 
 #[wasm_bindgen]
 extern "C" {
@@ -42,6 +44,17 @@ struct WriteFileArgs<> {
     filepath : String,
     contents : String
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct Command<> {
+    pub command : Vec<String>
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct GetDirArgs<> {
+    pub directory : String
+}
+
 /*
 ==============================================================================
 HELPER FUNCTIONS
@@ -114,7 +127,11 @@ pub fn IDE(
     saved_file_contents: ReadSignal<HashMap<String,String>>, 
     set_saved_file_contents: WriteSignal<HashMap<String,String>>,
     cached_file_contents: ReadSignal<HashMap<String,String>>, 
-    set_cached_file_contents: WriteSignal<HashMap<String,String>>
+    set_cached_file_contents: WriteSignal<HashMap<String,String>>,
+    set_compiled_project : WriteSignal<(String,String)>,
+    current_environment_dropdown_item : ReadSignal<String>,
+    set_fs_html : WriteSignal<String>,
+    root : ReadSignal<String>,
 ) -> impl IntoView {
 
 
@@ -209,6 +226,7 @@ pub fn IDE(
 
                         let document = leptos::prelude::document();
                         let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+
                         
                         if &result_element.value() != current_saved_file_content{
                             spawn_local(
@@ -231,6 +249,77 @@ pub fn IDE(
                                     }
                                 }
                             );
+                        }
+
+                        //Compile file if main.leo
+
+                        let selected_filepath = selected_file.get().replace("\\", "/");
+                        let path = Path::new(&selected_filepath);
+                        let filename = path.file_name();
+
+                        let document = leptos::prelude::document();
+                        match filename {
+                            Some(name) => {
+                                if name.to_str().unwrap() == "main.leo" {
+                                    let src = path.parent().unwrap();
+                                    let project_root = src.parent().unwrap();
+                                    let compile_project_root = (project_root.to_str().unwrap().to_string(),project_root.file_name().unwrap().to_str().unwrap().to_string());
+                                    
+                                    let target = document.query_selector("#compiler-output").unwrap().unwrap();
+                                    let _ = target.set_class_name("compile-output-message");
+                                    target.set_inner_html("");
+            
+                                    let this = target.dyn_into::<Element>().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                                    let _ = this.class_list().add(&new_val);
+            
+                                    spawn_local(async move{
+                                        let target = document.query_selector("#compiler-output").unwrap().unwrap();
+
+                                        let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
+                                        let args = serde_wasm_bindgen::to_value(&Command { command : vec!["build".to_string(), "--path".to_string(), compile_project_root.0.clone(), "--network".to_string(), network ,"--endpoint".to_string(),"https://api.explorer.provable.com/v1".to_string()]}).unwrap();
+                
+                                        let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+            
+                                        if !error {
+                                            let args = serde_wasm_bindgen::to_value(&GetDirArgs { directory : root.get_untracked()}).unwrap();
+                                            let return_val = invoke("get_directory", args).await.as_string().unwrap();
+                                            let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
+                                            let html_fs = generate_file_explorer_html(deserialized_return_val);
+                                            set_fs_html.set(html_fs);
+            
+                                            let _ = target.set_class_name("compile-output-message success");
+                                            let output = format!("{}{}{}", "\u{2713} Compiled '", compile_project_root.1.clone(), "' into Aleo instructions!");
+                                            target.set_inner_html(&output);
+            
+                                            set_compiled_project.set(compile_project_root);
+            
+                                        } else {
+                                            let _ = target.set_class_name("compile-output-message failure");
+                                            
+                                            let split = output.split("\n").collect::<Vec<&str>>();
+                                            let error_msg = split[0];
+            
+                                            let re = Regex::new(r"Error \[(?<error_code>[a-zA-Z0-9]*)\]:(?<explanation>.*)").unwrap();
+                                            match re.captures(error_msg) {
+                                                Some(caps) => {
+                                                    let response = format!("{}{}{}{}","Error ".to_string(), caps["error_code"].to_string(), ":",  caps["explanation"].to_string());
+                                                    target.set_inner_html(&response);
+                                                },
+                                                None => {
+                                                    target.set_inner_html("Unknown Error");
+                                                }
+                                            }
+            
+                                        }
+                                        let _ = this.class_list().remove(&new_val);
+                                    });
+                        
+                                
+                                } 
+                            },
+                            None => {}
                         }
                     }
                     set_key_pressed.set(key_pressed_map);

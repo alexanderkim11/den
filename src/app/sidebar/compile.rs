@@ -41,11 +41,9 @@ COMPONENTS
 pub fn SidebarCompile (
     selected_activity_icon: ReadSignal<String>,
     selected_file : ReadSignal<String>,
-    compiled_project : ReadSignal<(String,String)>,
     set_compiled_project : WriteSignal<(String,String)>,
     current_environment_dropdown_item : ReadSignal<String>,
     root : ReadSignal<String>,
-    set_root : WriteSignal<String>,
     set_fs_html : WriteSignal<String>,
 ) -> impl IntoView {
 
@@ -174,12 +172,8 @@ pub fn SidebarCompile (
                                 let args = serde_wasm_bindgen::to_value(&GetDirArgs { directory : root.get_untracked()}).unwrap();
                                 let return_val = invoke("get_directory", args).await.as_string().unwrap();
                                 let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
-                                let fs_html = generate_file_explorer_html(deserialized_return_val);
-    
-                                let document = leptos::prelude::document();
-                                let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                let _ = element.style().set_property("display", "none");
-                                set_fs_html.set(fs_html);
+                                let html_fs = generate_file_explorer_html(deserialized_return_val);
+                                set_fs_html.set(html_fs);
 
                                 let document = leptos::prelude::document();
                                 let target = document.query_selector("#compiler-output").unwrap().unwrap();
@@ -219,13 +213,13 @@ pub fn SidebarCompile (
                     {Effect::new(move |_| {
                         let selected_filepath = selected_file.get().replace("\\", "/");
                         let path = Path::new(&selected_filepath);
-                        let extension = path.extension();
+                        let filename = path.file_name();
 
                         let document = leptos::prelude::document();
                         let target = document.query_selector("#compile-button").unwrap().unwrap().dyn_into::<HtmlButtonElement>().unwrap();
-                        match extension {
-                            Some(ext) => {
-                                if ext.to_str().unwrap() == "leo" {
+                        match filename {
+                            Some(name) => {
+                                if name.to_str().unwrap() == "main.leo" {
                                     let src = path.parent().unwrap();
                                     let project_root = src.parent().unwrap();
                                     

@@ -317,6 +317,8 @@ pub fn SidebarFileExplorer (
 
 
                 //Open newly created file in IDE, set as selected
+
+                //Refresh File System Html
             });
         }
     
@@ -695,12 +697,12 @@ pub fn SidebarFileExplorer (
                             set_fs_selected.set(deserialized_return_val[0].path.clone());
 
                             
-                            let fs_html = generate_file_explorer_html(deserialized_return_val);
+                            let html_fs = generate_file_explorer_html(deserialized_return_val);
 
                             let document = leptos::prelude::document();
                             let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = element.style().set_property("display", "none");
-                            set_fs_html.set(fs_html);
+                            set_fs_html.set(html_fs);
 
                             let element2 = document.query_selector("#refresh-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = element2.style().set_property("display", "flex");
@@ -726,15 +728,12 @@ pub fn SidebarFileExplorer (
                     let root_dir = root.get_untracked();
                     if root_dir != "".to_string() {
                         spawn_local(async move{
+                            set_fs_html.set(String::new());  //Stopgap solution until problem with updating fs html when new files/dirs are created is fixed           
                             let args = serde_wasm_bindgen::to_value(&GetDirArgs { directory : root.get_untracked()}).unwrap();
                             let return_val = invoke("get_directory", args).await.as_string().unwrap();
                             let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
-                            let fs_html = generate_file_explorer_html(deserialized_return_val);
-
-                            let document = leptos::prelude::document();
-                            let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                            let _ = element.style().set_property("display", "none");
-                            set_fs_html.set(fs_html);
+                            let html_fs = generate_file_explorer_html(deserialized_return_val);
+                            set_fs_html.set(html_fs);
                         });
                     }
                 }
@@ -830,11 +829,11 @@ pub fn SidebarFileExplorer (
                         let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
                         
                         
-                        let fs_html = generate_file_explorer_html(deserialized_return_val);
+                        let html_fs = generate_file_explorer_html(deserialized_return_val);
                         let document = leptos::prelude::document();
                         let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                         let _ = element.style().set_property("display", "none");
-                        set_fs_html.set(fs_html);
+                        set_fs_html.set(html_fs);
     
                         let element2 = document.query_selector("#refresh-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                         let _ = element2.style().set_property("display", "flex");
