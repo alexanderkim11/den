@@ -926,7 +926,7 @@
   align-self: center; 
   text-align: center;
   border:0; 
-  color:var(--tangerine);
+  color:var(--lime);
   box-sizing: border-box;
   height:34px;
 
@@ -936,7 +936,7 @@
 
   border-top-left-radius: 5px;
   border-bottom-left-radius: 5px;
-  border: 2px solid var(--tangerine); /* Green */
+  border: 2px solid var(--lime); /* Green */
   padding:7px;
   padding-top:8px;
 
@@ -959,6 +959,50 @@
 }
 
 .program-function-button:hover {
+  background-color:var(--lime);
+  color:var(--coal);  
+  cursor: pointer;
+  transition:all .3s ease;
+}
+
+
+.program-async-function-button {
+  width: fit-content; 
+  align-self: center; 
+  text-align: center;
+  border:0; 
+  color:var(--tangerine);
+  box-sizing: border-box;
+  height:34px;
+
+  font-family:'Inter'; 
+  font-size: 12px; 
+  font-weight: 400; 
+
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+  border: 2px solid var(--tangerine); /* Green */
+  padding:7px;
+  padding-top:8px;
+
+  background-color: var(--coal);
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+
+
+  flex: 0 0 103px;
+  transition:all .3s ease;
+  margin:0; 
+  white-space: nowrap; 
+  align-items: center;
+  vertical-align:middle;
+  overflow:hidden;
+}
+
+.program-async-function-button:hover {
   background-color:var(--tangerine);
   color:var(--coal);  
   cursor: pointer;
@@ -1119,6 +1163,42 @@
   width: fit-content; 
   text-align: center;
   border:0; 
+  color:var(--lime);
+  box-sizing: border-box;
+
+  font-family:'Inter'; 
+  font-size: 12px; 
+  font-weight: 400; 
+
+  border-radius: 6px;
+  border: 2px solid var(--lime); /* Green */
+  padding:7px;
+  padding-top:8px;
+
+  background-color: var(--coal);
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+
+  transition:all .3s ease;
+  margin:0; 
+}
+
+
+.function-expanded-execute-button:hover {
+  background-color:var(--lime);
+  color:var(--coal);  
+  cursor: pointer;
+  transition:all .3s ease;
+}
+
+
+.function-expanded-async-execute-button {
+  width: fit-content; 
+  text-align: center;
+  border:0; 
   color:var(--tangerine);
   box-sizing: border-box;
 
@@ -1143,7 +1223,7 @@
 }
 
 
-.function-expanded-execute-button:hover {
+.function-expanded-async-execute-button:hover {
   background-color:var(--tangerine);
   color:var(--coal);  
   cursor: pointer;
@@ -1381,7 +1461,7 @@ input:checked + .slider:before {
   height: 100%;
 
   padding-left: 10px;
-  padding-right: 10px;
+  padding-right: 5px;
   border-top: 1px solid transparent;
   background-color: #1f212a;
   color: var(--stone);

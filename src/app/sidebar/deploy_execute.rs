@@ -117,6 +117,11 @@ pub fn SidebarDeployExecute (
         }
     }) as Box<dyn FnMut(_)>);
     
+    let program_close = Closure::wrap(Box::new(move |ev: Event| {
+        let this = ev.target().unwrap().dyn_into::<Element>().unwrap();
+        let card = this.parent_element().unwrap().parent_element().unwrap().parent_element().unwrap();  
+        card.remove();
+    }) as Box<dyn FnMut(_)>);
     
     
     let function_compress = Closure::wrap(Box::new(move |ev: Event| {
@@ -147,8 +152,8 @@ pub fn SidebarDeployExecute (
         let function_type = function_wrapper.get_attribute("function_type").unwrap();
         let program_name = function_wrapper.get_attribute("program_name").unwrap();
 
-        if function_type == "function" {
-            let mut inputs : Vec<String> = Vec::new();
+        if function_type == "async-function"  || function_type == "function" {
+            let mut inputs : Vec<(String,String)> = Vec::new();
 
             let children = function_wrapper.children();
             let function_compressed = children.get_with_index(0).unwrap().dyn_into::<HtmlElement>().unwrap();
@@ -156,9 +161,17 @@ pub fn SidebarDeployExecute (
             if compressed_style_display == String::new(){
                 let function_compressed_input = function_compressed.children().get_with_index(0).unwrap().children().get_with_index(1).unwrap().dyn_into::<HtmlInputElement>().unwrap();
                 let val = function_compressed_input.value();
+                let types = function_compressed_input.placeholder();
                 let temp_inputs = val.split(",").collect::<Vec<&str>>();
-                for input in temp_inputs{
-                    inputs.push(input.to_string());
+                let temp_types = types.split(",").collect::<Vec<&str>>();
+                for index in 0..temp_inputs.len(){
+                    let input = temp_inputs[index].trim().to_string();
+                    if index < temp_types.len(){
+                        let input_type = temp_types[index].trim().to_string();
+                        inputs.push((input,input_type));
+                    } else {
+                        inputs.push((input,String::new()));
+                    }
                 }
             } else {
                 //Function compressed style is set to display:none, use function expanded inputs
@@ -173,25 +186,90 @@ pub fn SidebarDeployExecute (
                     let function_expanded_field_wrapper = function_expanded_fields_wrapper_children.get_with_index(index).unwrap();
                     let input = function_expanded_field_wrapper.children().get_with_index(1).unwrap().dyn_into::<HtmlInputElement>().unwrap();
                     let val = input.value();
-                    inputs.push(val);
+                    let input_type = input.placeholder();
+                    inputs.push((val,input_type));
 
                 }
             }
 
-            //console_log(&input);
+            // TODO: CHECK FOR PRIVATE RECORD FIELD HERE
 
-            // TODO: CHECK FOR FEE AND PRIVATE RECORD FIELD HERE
+            // TODO: CHECK IF ACCOUNTS AND FEE FIELDS ARE SET
+
+            // TODO: CHECK IF THERE ARE ANY INPUTS
 
             // leo execute FUNCTION_NAME [INPUTS] --broadcast --endpoint ENDPOINT --network NETWORK --no-build --private-key PRIVATE_KEY [--fee FEE] [--record RECORD]
             spawn_local(async move {
-                let current_env = current_environment_dropdown_text.get_untracked().to_string().to_lowercase();
+                let document = leptos::prelude::document();
+
+                //let current_env = current_environment_dropdown_text.get_untracked().to_string().to_lowercase();
                 let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
-                //let args = serde_wasm_bindgen::to_value(&Command { command : vec!["execute".to_string(),"execute".to_string(),"execute".to_string(),"--broadcast".to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked(),"program".to_string(), value.clone()]}).unwrap();        
-                // let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                
+                let accounts_map = network_accounts.get_untracked();
+                let account : &(String, String, String) = accounts_map.get(&deploy_accounts_dropdown_item.get_untracked()).unwrap();
+                let pk = account.0.clone();
+                let current_fee_input = document.query_selector("#deploy-input-fee").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                let fee = current_fee_input.value().clone();
+                let fee_in_microcredits : u64 = fee.parse::<u64>().expect("Failed to parse string to integer") * 1000000;
+                //TODO: handle parsing fee better
+
+
+                let mut formatted_inputs : Vec<String> = Vec::new();
+
+                let input_type_re = Regex::new(r"(?<raw_type>.*)\.(public|private)").unwrap();
+                let algebra_primitives = ["i8", "i16", "i32", "i64", "i128","u8", "u16", "u32", "u64", "u128","scalar","field","group"];
+                for input in inputs {
+                    let raw_input : String;
+                    let input_value = input.0;
+                    let input_type = input.1;
+                    match input_type_re.captures(&input_type){
+                        Some(caps) => {
+                            let raw_type = &caps["raw_type"];
+                            if algebra_primitives.contains(&raw_type){
+                                let input_value_re = Regex::new(&format!("{}{}","[0-9]+",raw_type)).unwrap();
+                                match input_value_re.captures(&input_value){
+                                    Some(_) => {
+                                        raw_input = input_value;
+                                    },
+                                    None => {
+                                        raw_input = format!("{}{}",input_value,raw_type);
+                                    }
+                                }
+                            } else {
+                                raw_input = input_value;
+                            }
+                        },
+                        None => {
+                            if input_type != String::new() {
+                                raw_input = input_value;
+                            } else {
+                                panic!("Error: no type matches.  This is a bug.")
+                            }
+                        }
+                    }
+                    formatted_inputs.push(raw_input);
+                }
+
+                let mut command = vec!["execute".to_string(), function_name];
+                command.append(&mut formatted_inputs);
+                command.append(&mut vec!["--program".to_string(),program_name,"--broadcast".to_string(),"--yes".to_string(),"--private-key".to_string(), pk,"--base-fee".to_string(),fee_in_microcredits.to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()]);
+                let args = serde_wasm_bindgen::to_value(&Command { command : command}).unwrap();        
+                let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                if !error {
+                    let function_output = children.get_with_index(2).unwrap().dyn_into::<Element>().unwrap();
+                    function_output.set_inner_html(&format!("{}{}", "Output: ", output));
+                    let _ = function_output.set_attribute("style","");
+                } else {
+                    console_log(&output);
+                    let function_error = children.get_with_index(3).unwrap().dyn_into::<Element>().unwrap();
+                    function_error.set_inner_html("Error: Value not found");
+                    let _ = function_error.set_attribute("style","");
+                }
             });    
 
-        } else if function_type == "mapping" {
+        }  else if function_type == "mapping" {
             let input : String;
+            let input_type : String;
 
             let children = function_wrapper.children();
             let function_output = children.get_with_index(2).unwrap().dyn_into::<Element>().unwrap();
@@ -207,6 +285,7 @@ pub fn SidebarDeployExecute (
             if compressed_style_display == String::new(){
                 let function_compressed_input = function_compressed.children().get_with_index(0).unwrap().children().get_with_index(1).unwrap().dyn_into::<HtmlInputElement>().unwrap();
                 input = function_compressed_input.value();
+                input_type = function_compressed_input.placeholder();
             } else {
                 //Function compressed style is set to display:none, use function expanded inputs
                 let function_expanded = children.get_with_index(1).unwrap().dyn_into::<HtmlElement>().unwrap();
@@ -215,27 +294,43 @@ pub fn SidebarDeployExecute (
 
                 let function_expanded_input = function_expanded.children().get_with_index(1).unwrap().children().get_with_index(0).unwrap().children().get_with_index(1).unwrap().dyn_into::<HtmlInputElement>().unwrap();
                 input = function_expanded_input.value();
+                input_type = function_expanded_input.placeholder();
             }
 
+            let input_type_re = Regex::new(r"(?<raw_type>.*)\.(public|private)").unwrap();
+            let raw_input : String;
+            match input_type_re.captures(&input_type){
+                Some(caps) => {
+                    let raw_type = &caps["raw_type"];
+                    let algebra_primitives = ["i8", "i16", "i32", "i64", "i128","u8", "u16", "u32", "u64", "u128","scalar","field","group"];
+                    if algebra_primitives.contains(&raw_type){
+                        let input_value_re = Regex::new(&format!("{}{}","[0-9]+",raw_type)).unwrap();
+                        match input_value_re.captures(&input){
+                            Some(_) => {
+                                raw_input = input;
+                            },
+                            None => {
+                                raw_input = format!("{}{}",input,raw_type);
+                            }
+                        }
+                    } else {
+                        raw_input = input;
+                    }
+                },
+                None => {
+                    panic!("Error: no type matches.  This is a bug.")
+                }
+            }
+
+
             spawn_local(async move {
-                let current_env = current_environment_dropdown_text.get_untracked().to_string().to_lowercase();
                 let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
-                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"program".to_string(),program_name,"--mapping-value".to_string(),function_name, input, "--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked(), "-q".to_string()]}).unwrap();        
+                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"program".to_string(),program_name,"--mapping-value".to_string(),function_name, raw_input, "--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked(), "-q".to_string()]}).unwrap();        
                 let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                 if !error {
                     let function_output = children.get_with_index(2).unwrap().dyn_into::<Element>().unwrap();
                     function_output.set_inner_html(&format!("{}{}", "Output: ", output));
                     let _ = function_output.set_attribute("style","");
-
-                    // let error_element = document.query_selector("#load-account-from-pk-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                    // error_element.set_inner_html("Error: Invalid private key");
-                    // let _ = error_element.style().set_property("display", "block");
-                    // let _ = this.class_list().remove(&new_val);
-
-                    // let this = ev.target().dyn_into::<Element>().unwrap();
-                    // let new_val = Array::new();
-                    // new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
-                    // let _ = this.class_list().add(&new_val);
                 } else {
                     let function_error = children.get_with_index(3).unwrap().dyn_into::<Element>().unwrap();
                     function_error.set_inner_html("Error: Value not found");
@@ -244,6 +339,7 @@ pub fn SidebarDeployExecute (
             });   
         }
     }) as Box<dyn FnMut(_)>);
+
     
     Effect::new({
         move || {
@@ -289,7 +385,7 @@ pub fn SidebarDeployExecute (
                 let _ = header_img_close.set_src("public/close.svg");
                 header_img_close.set_class_name("inactive");
                 let _ = header_img_close.set_attribute("style","order:3; z-index: 2;");
-                //TODO: SET EVENT LISTENER HERE
+                let _ = header_img_close.add_event_listener_with_callback("click", program_close.as_ref().unchecked_ref());
                 
                 let _ = program_dropdown_button.append_child(&header_img_expand);
                 let _ = program_dropdown_button.append_child(&buffer);
@@ -314,375 +410,407 @@ pub fn SidebarDeployExecute (
                     FOR EVERY FUNCTION/MAPPING CODE HERE
                 ===========================
                 */
-                for section in program.2.split("\n\n"){
+                let sections = program.2.split("\n\n").collect::<Vec<&str>>();
+                let mut section_index = 0;
+                while section_index < sections.len(){
+                    let section = sections[section_index];
                     let lines = section.split("\n").collect::<Vec<&str>>();
+                    let section_re = Regex::new(r"(?<section_type>(function|finalize|mapping)) (?<section_name>.*):").unwrap();
                 
-                    let mapping_re = Regex::new(r"mapping (?<mapping_name>.*):").unwrap();
-                
-                    match mapping_re.captures(lines[0]){
+                    match section_re.captures(lines[0]){
                         Some(caps) => {
-                            let mapping_name = &caps["mapping_name"];
-                            let mapping_io_re = Regex::new(r"key as (?<type>.*)\.(?<visibility>.*);").unwrap();
-                            match mapping_io_re.captures(lines[1]){
-                                Some(caps2) => {
-                                    let full_type = format!("{}{}{}",&caps2["type"],".",&caps2["visibility"]);
-                                    /*
-                                    ===========================
-                                        IF MAPPING CODE HERE
-                                    ===========================
-                                    */
-                
-                                    /*
-                                    ===========================
-                                        MAPPING COMPRESSED
-                                    ===========================
-                                    */
-                
-                                    let function_wrapper = document.create_element("div").expect("Error creating function wrapper");
-                                    function_wrapper.set_class_name("function-wrapper");
-                                    let _ = function_wrapper.set_attribute("program_name", &program.0);
-                                    let _ = function_wrapper.set_attribute("name",&mapping_name);
-                                    let _ = function_wrapper.set_attribute("function_type","mapping");
-                
-                                    let input_field = document.create_element("div").expect("Error creating input field");
-                                    input_field.set_class_name("input-field");
-                
-                                    let output_input_wrapper = document.create_element("div").expect("Error creating output input wrapper");
-                                    output_input_wrapper.set_class_name("output-input-wrapper");
-                
-                                    let program_mapping_button = document.create_element("div").expect("Error creating program_function_button");
-                                    program_mapping_button.set_class_name("program-mapping-button");
-                                    let text = document.create_text_node(&mapping_name);
-                                    let _ = program_mapping_button.append_child(&text);
-                                    let _ = program_mapping_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
-
-
-                                    let compressed_input = document.create_element("input").expect("Error creating compressed function input element");
-                                    let _ = compressed_input.set_attribute("spellcheck", "false");
-                                    let _ = compressed_input.set_attribute("autocomplete", "off");
-                                    let _ = compressed_input.set_attribute("autocapitalize", "off");
-                                    let _ = compressed_input.set_attribute("placeholder",&full_type);
-                                    let _ = compressed_input.set_attribute("style","border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px");
-                                    
-                                    let function_img_expand = document.create_element("img").expect("Error creating function_img_expand element").dyn_into::<HtmlImageElement>().unwrap();
-                                    let _ = function_img_expand.set_src("public/chevron-down.svg");
-                                    function_img_expand.set_class_name("inactive");
-                                    let _ = function_img_expand.set_attribute("style","cursor: pointer; order:1; z-index: 2;");
-                                    let _ = function_img_expand.add_event_listener_with_callback("click", function_expand.as_ref().unchecked_ref());
-                
-                
-                                    let _ = output_input_wrapper.append_child(&program_mapping_button);
-                                    let _ = output_input_wrapper.append_child(&compressed_input);
-                                    let _ = output_input_wrapper.append_child(&function_img_expand);
-                                    let _ = input_field.append_child(&output_input_wrapper);
-                
-                
-                                    /*
-                                    ===========================
-                                        MAPPING EXPANDED
-                                    ===========================
-                                    */
-                
-                                    let function_expanded = document.create_element("div").expect("Error creating function_expanded");
-                                    function_expanded.set_class_name("function-expanded");
-                                    let _ = function_expanded.set_attribute("style","display:none");
-                
-                                    let function_expanded_header = document.create_element("div").expect("Error creating function_expanded_header");
-                                    function_expanded_header.set_class_name("function-expanded-header");
-                
-                                    let function_expanded_title = document.create_element("div").expect("Error creating function_expanded_title");
-                                    function_expanded_title.set_class_name("function-expanded-title");
-                                    let text = document.create_text_node(&mapping_name);
-                                    let _ = function_expanded_title.append_child(&text);
-                                    let function_img_compress = document.create_element("img").expect("Error creating function_img_compress element").dyn_into::<HtmlImageElement>().unwrap();
-                                    let _ = function_img_compress.set_src("public/chevron-up.svg");
-                                    function_img_compress.set_class_name("inactive");
-                                    let _ = function_img_compress.set_attribute("style","cursor: pointer; order:2; z-index: 2; padding-bottom:4px;");
-                                    let _ = function_img_compress.add_event_listener_with_callback("click", function_compress.as_ref().unchecked_ref());
-                
-                
-                                    let _ = function_expanded_header.append_child(&function_expanded_title);
-                                    let _ = function_expanded_header.append_child(&function_img_compress);
-                
-                                    let function_expanded_fields_wrapper = document.create_element("div").expect("Error creating function_expanded_fields_wrapper");
-                                    function_expanded_fields_wrapper.set_class_name("function-expanded-fields-wrapper");
-                
-                                    /*
-                                    ===========================
-                                        MAPPING KEY
-                                    ===========================
-                                    */
-                
-                                    let function_expanded_field_wrapper = document.create_element("div").expect("Error creating function_expanded_field_wrapper");
-                                    function_expanded_field_wrapper.set_class_name("function-expanded-field-wrapper");
-                
-                                    let function_expanded_field_label = document.create_element("div").expect("Error creating function_expanded_field_label");
-                                    function_expanded_field_label.set_class_name("function-expanded-field-label");
-                                    let _ = function_expanded_field_label.set_attribute("style","padding-top:7px;");
-                
-                                    let text = document.create_text_node("key: ");
-                                    let _ = function_expanded_field_label.append_child(&text);
-                                    let function_expanded_field = document.create_element("input").expect("Error creating compressed function_expanded_field");
-                                    let _ = function_expanded_field.set_attribute("spellcheck", "false");
-                                    let _ = function_expanded_field.set_attribute("autocomplete", "off");
-                                    let _ = function_expanded_field.set_attribute("autocapitalize", "off");
-                                    let _ = function_expanded_field.set_attribute("placeholder",&full_type);
-                                    let _ = function_expanded_field.set_attribute("style","border-radius: 6px;");
-                
-                                    let _ = function_expanded_field_wrapper.append_child(&function_expanded_field_label);
-                                    let _ = function_expanded_field_wrapper.append_child(&function_expanded_field);
-                                    let _ = function_expanded_fields_wrapper.append_child(&function_expanded_field_wrapper);
-                
-                
-                                    /*
-                                    ===========================
-                                        FINALLY
-                                    ===========================
-                                    */
-                
-                                    let function_expanded_submit_button_wrapper = document.create_element("div").expect("Error creating function_expanded_submit_button_wrapper");
-                                    function_expanded_submit_button_wrapper.set_class_name("function-expanded-submit-button-wrapper");
-                
-                                    let buffer2 = document.create_element("div").expect("Error creating function_expanded_execute_button buffer");
-                                    let _ = buffer2.set_attribute("name","buffer");
-                                    let _ = buffer2.set_attribute("style","width:100%");
-                
-                                    let function_expanded_query_button = document.create_element("div").expect("Error creating function_expanded_query_button");
-                                    function_expanded_query_button.set_class_name("function-expanded-query-button");
-                
-                                    let text = document.create_text_node("Query");
-                                    let _ = function_expanded_query_button.append_child(&text);
-                                    let _ = function_expanded_query_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
-
-                
-                
-                                    let _ = function_expanded_submit_button_wrapper.append_child(&buffer2);
-                                    let _ = function_expanded_submit_button_wrapper.append_child(&function_expanded_query_button);
-                
-                                    let _ = function_expanded.append_child(&function_expanded_header);
-                                    let _ = function_expanded.append_child(&function_expanded_fields_wrapper);
-                                    let _ = function_expanded.append_child(&function_expanded_submit_button_wrapper);
-                
-                
-                
-                                    /*
-                                    ===========================
-                                        END MAPPING EXPANDED
-                                    ===========================
-                                    */
-
-
-                                    let function_output = document.create_element("div").expect("Error creating function_output");
-                                    let _ = function_output.set_attribute("class","function-output-title");
-                                    let _ = function_output.set_attribute("style","display:none;");
-
-                                    let function_error = document.create_element("div").expect("Error creating function_error");
-                                    let _ = function_error.set_attribute("class","function-error-title");
-                                    let _ = function_error.set_attribute("style","display:none;");
-
-
-
-                
-                                    let _ = function_wrapper.append_child(&input_field);
-                                    let _ = function_wrapper.append_child(&function_expanded);
-                                    let _ = function_wrapper.append_child(&function_output);
-                                    let _ = function_wrapper.append_child(&function_error);
-
-                                
-
-                                    let _ = card_body.append_child(&function_wrapper);
-                
-                                    /*
-                                    ===========================
-                                        END IF MAPPING CODE HERE
-                                    ===========================
-                                    */
-                
-                                }
-                                None => {}
-                            }
-                        }
-                        None => {
-                            let function_re = Regex::new(r"function (?<function_name>.*):").unwrap(); 
-                            match function_re.captures(lines[0]){
-                                Some(caps) => {
-                                    let function_name = &caps["function_name"];
-                                    let input_re = Regex::new(r"input (?<input_number>r[0-9]*) as (?<type>.*)\.(?<visibility>.*);").unwrap(); 
-                                    let mut inputs : IndexMap<String,String> = IndexMap::new();
-                                    let mut one_line_types = String::new();
-                                    for function_line in &lines[1..]{
-                                        match input_re.captures(function_line){
-                                            Some(caps2) => {
-                                                inputs.insert(caps2["input_number"].to_string(),format!("{}{}{}",&caps2["type"],".",&caps2["visibility"]));
-                                                one_line_types = format!("{}{}{}{}{}",one_line_types, &caps2["type"],".",&caps2["visibility"],", ");
-                                            }
-                                            None => {
-                                                break;
-                                            }
-                                        }
-                                    }
-                
-                
-                
-                                    /*
-                                    ===========================
-                                        IF FUNCTION CODE HERE
-                                    ===========================
-                                    */
-                
-                                    /*
-                                    ===========================
-                                        FUNCTION COMPRESSED
-                                    ===========================
-                                    */
-                
-                                    let function_wrapper = document.create_element("div").expect("Error creating function wrapper");
-                                    function_wrapper.set_class_name("function-wrapper");
-                                    let _ = function_wrapper.set_attribute("name",&function_name);
-                                    let _ = function_wrapper.set_attribute("function_type","function");
-                                    let _ = function_wrapper.set_attribute("program_name", &program.0);
-                
-                                    let input_field = document.create_element("div").expect("Error creating input field");
-                                    input_field.set_class_name("input-field");
-                
-                                    let output_input_wrapper = document.create_element("div").expect("Error creating output input wrapper");
-                                    output_input_wrapper.set_class_name("output-input-wrapper");
-                
-                                    let program_function_button = document.create_element("div").expect("Error creating program_function_button");
-                                    program_function_button.set_class_name("program-function-button");
-                                    let text = document.create_text_node(&function_name);
-                                    let _ = program_function_button.append_child(&text);
-                                    let _ = program_function_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
-
-                
-                                    let compressed_input = document.create_element("input").expect("Error creating compressed function input element");
-                                    let _ = compressed_input.set_attribute("spellcheck", "false");
-                                    let _ = compressed_input.set_attribute("autocomplete", "off");
-                                    let _ = compressed_input.set_attribute("autocapitalize", "off");
-                                    let _ = compressed_input.set_attribute("placeholder",&one_line_types);
-                                    let _ = compressed_input.set_attribute("style","border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px");
-                                    
-                                    let function_img_expand = document.create_element("img").expect("Error creating function_img_expand element").dyn_into::<HtmlImageElement>().unwrap();
-                                    let _ = function_img_expand.set_src("public/chevron-down.svg");
-                                    function_img_expand.set_class_name("inactive");
-                                    let _ = function_img_expand.set_attribute("style","cursor: pointer; order:1; z-index: 2;");
-                                    let _ = function_img_expand.add_event_listener_with_callback("click", function_expand.as_ref().unchecked_ref());
-                
-                
-                                    let _ = output_input_wrapper.append_child(&program_function_button);
-                                    let _ = output_input_wrapper.append_child(&compressed_input);
-                                    let _ = output_input_wrapper.append_child(&function_img_expand);
-                                    let _ = input_field.append_child(&output_input_wrapper);
-                
-                
-                                    /*
-                                    ===========================
-                                        FUNCTION EXPANDED
-                                    ===========================
-                                    */
-                
-                                    let function_expanded = document.create_element("div").expect("Error creating function_expanded");
-                                    function_expanded.set_class_name("function-expanded");
-                                    let _ = function_expanded.set_attribute("style","display:none");
-                
-                                    let function_expanded_header = document.create_element("div").expect("Error creating function_expanded_header");
-                                    function_expanded_header.set_class_name("function-expanded-header");
-                
-                                    let function_expanded_title = document.create_element("div").expect("Error creating function_expanded_title");
-                                    function_expanded_title.set_class_name("function-expanded-title");
-                                    let text = document.create_text_node(&function_name);
-                                    let _ = function_expanded_title.append_child(&text);
-                                    let function_img_compress = document.create_element("img").expect("Error creating function_img_compress element").dyn_into::<HtmlImageElement>().unwrap();
-                                    let _ = function_img_compress.set_src("public/chevron-up.svg");
-                                    function_img_compress.set_class_name("inactive");
-                                    let _ = function_img_compress.set_attribute("style", "cursor: pointer; order:2; z-index: 2; padding-bottom:4px;");
-                                    let _ = function_img_compress.add_event_listener_with_callback("click", function_compress.as_ref().unchecked_ref());
-                
-                
-                                    let _ = function_expanded_header.append_child(&function_expanded_title);
-                                    let _ = function_expanded_header.append_child(&function_img_compress);
-                
-                
-                
-                                    let function_expanded_fields_wrapper = document.create_element("div").expect("Error creating function_expanded_fields_wrapper");
-                                    function_expanded_fields_wrapper.set_class_name("function-expanded-fields-wrapper");
-                
-                                    /*
-                                    ===========================
-                                        FOR EVERY FIELD IN FUNCTION EXPANDED
-                                    ===========================
-                                    */
-                                    for (input_number, input_type) in inputs {
+                            let section_type = &caps["section_type"];
+                            if section_type == "mapping"{
+                                let mapping_name = &caps["section_name"];
+                                let mapping_io_re = Regex::new(r"key as (?<type>.*)\.(?<visibility>.*);").unwrap();
+                                match mapping_io_re.captures(lines[1]){
+                                    Some(caps2) => {
+                                        let full_type = format!("{}{}{}",&caps2["type"],".",&caps2["visibility"]);
+                                        /*
+                                        ===========================
+                                            IF MAPPING CODE HERE
+                                        ===========================
+                                        */
+                    
+                                        /*
+                                        ===========================
+                                            MAPPING COMPRESSED
+                                        ===========================
+                                        */
+                    
+                                        let function_wrapper = document.create_element("div").expect("Error creating function wrapper");
+                                        function_wrapper.set_class_name("function-wrapper");
+                                        let _ = function_wrapper.set_attribute("program_name", &program.0);
+                                        let _ = function_wrapper.set_attribute("name",&mapping_name);
+                                        let _ = function_wrapper.set_attribute("function_type","mapping");
+                    
+                                        let input_field = document.create_element("div").expect("Error creating input field");
+                                        input_field.set_class_name("input-field");
+                    
+                                        let output_input_wrapper = document.create_element("div").expect("Error creating output input wrapper");
+                                        output_input_wrapper.set_class_name("output-input-wrapper");
+                    
+                                        let program_mapping_button = document.create_element("div").expect("Error creating program_function_button");
+                                        program_mapping_button.set_class_name("program-mapping-button");
+                                        let text = document.create_text_node(&mapping_name);
+                                        let _ = program_mapping_button.append_child(&text);
+                                        let _ = program_mapping_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
+    
+    
+                                        let compressed_input = document.create_element("input").expect("Error creating compressed function input element");
+                                        let _ = compressed_input.set_attribute("spellcheck", "false");
+                                        let _ = compressed_input.set_attribute("autocomplete", "off");
+                                        let _ = compressed_input.set_attribute("autocapitalize", "off");
+                                        let _ = compressed_input.set_attribute("placeholder",&full_type);
+                                        let _ = compressed_input.set_attribute("style","border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px");
+                                        
+                                        let function_img_expand = document.create_element("img").expect("Error creating function_img_expand element").dyn_into::<HtmlImageElement>().unwrap();
+                                        let _ = function_img_expand.set_src("public/chevron-down.svg");
+                                        function_img_expand.set_class_name("inactive");
+                                        let _ = function_img_expand.set_attribute("style","cursor: pointer; order:1; z-index: 2;");
+                                        let _ = function_img_expand.add_event_listener_with_callback("click", function_expand.as_ref().unchecked_ref());
+                    
+                    
+                                        let _ = output_input_wrapper.append_child(&program_mapping_button);
+                                        let _ = output_input_wrapper.append_child(&compressed_input);
+                                        let _ = output_input_wrapper.append_child(&function_img_expand);
+                                        let _ = input_field.append_child(&output_input_wrapper);
+                    
+                    
+                                        /*
+                                        ===========================
+                                            MAPPING EXPANDED
+                                        ===========================
+                                        */
+                    
+                                        let function_expanded = document.create_element("div").expect("Error creating function_expanded");
+                                        function_expanded.set_class_name("function-expanded");
+                                        let _ = function_expanded.set_attribute("style","display:none");
+                    
+                                        let function_expanded_header = document.create_element("div").expect("Error creating function_expanded_header");
+                                        function_expanded_header.set_class_name("function-expanded-header");
+                    
+                                        let function_expanded_title = document.create_element("div").expect("Error creating function_expanded_title");
+                                        function_expanded_title.set_class_name("function-expanded-title");
+                                        let text = document.create_text_node(&mapping_name);
+                                        let _ = function_expanded_title.append_child(&text);
+                                        let function_img_compress = document.create_element("img").expect("Error creating function_img_compress element").dyn_into::<HtmlImageElement>().unwrap();
+                                        let _ = function_img_compress.set_src("public/chevron-up.svg");
+                                        function_img_compress.set_class_name("inactive");
+                                        let _ = function_img_compress.set_attribute("style","cursor: pointer; order:2; z-index: 2; padding-bottom:4px;");
+                                        let _ = function_img_compress.add_event_listener_with_callback("click", function_compress.as_ref().unchecked_ref());
+                    
+                    
+                                        let _ = function_expanded_header.append_child(&function_expanded_title);
+                                        let _ = function_expanded_header.append_child(&function_img_compress);
+                    
+                                        let function_expanded_fields_wrapper = document.create_element("div").expect("Error creating function_expanded_fields_wrapper");
+                                        function_expanded_fields_wrapper.set_class_name("function-expanded-fields-wrapper");
+                    
+                                        /*
+                                        ===========================
+                                            MAPPING KEY
+                                        ===========================
+                                        */
+                    
                                         let function_expanded_field_wrapper = document.create_element("div").expect("Error creating function_expanded_field_wrapper");
                                         function_expanded_field_wrapper.set_class_name("function-expanded-field-wrapper");
-                
+                    
                                         let function_expanded_field_label = document.create_element("div").expect("Error creating function_expanded_field_label");
                                         function_expanded_field_label.set_class_name("function-expanded-field-label");
-                                        let text = document.create_text_node(&format!("{}{}", input_number, ": "));
+                                        let _ = function_expanded_field_label.set_attribute("style","padding-top:7px;");
+                    
+                                        let text = document.create_text_node("key: ");
                                         let _ = function_expanded_field_label.append_child(&text);
                                         let function_expanded_field = document.create_element("input").expect("Error creating compressed function_expanded_field");
                                         let _ = function_expanded_field.set_attribute("spellcheck", "false");
                                         let _ = function_expanded_field.set_attribute("autocomplete", "off");
                                         let _ = function_expanded_field.set_attribute("autocapitalize", "off");
-                                        let _ = function_expanded_field.set_attribute("placeholder",&input_type);
+                                        let _ = function_expanded_field.set_attribute("placeholder",&full_type);
                                         let _ = function_expanded_field.set_attribute("style","border-radius: 6px;");
-                
+                    
                                         let _ = function_expanded_field_wrapper.append_child(&function_expanded_field_label);
                                         let _ = function_expanded_field_wrapper.append_child(&function_expanded_field);
                                         let _ = function_expanded_fields_wrapper.append_child(&function_expanded_field_wrapper);
-                
+                    
+                    
+                                        /*
+                                        ===========================
+                                            FINALLY
+                                        ===========================
+                                        */
+                    
+                                        let function_expanded_submit_button_wrapper = document.create_element("div").expect("Error creating function_expanded_submit_button_wrapper");
+                                        function_expanded_submit_button_wrapper.set_class_name("function-expanded-submit-button-wrapper");
+                    
+                                        let buffer2 = document.create_element("div").expect("Error creating function_expanded_execute_button buffer");
+                                        let _ = buffer2.set_attribute("name","buffer");
+                                        let _ = buffer2.set_attribute("style","width:100%");
+                    
+                                        let function_expanded_query_button = document.create_element("div").expect("Error creating function_expanded_query_button");
+                                        function_expanded_query_button.set_class_name("function-expanded-query-button");
+                    
+                                        let text = document.create_text_node("Query");
+                                        let _ = function_expanded_query_button.append_child(&text);
+                                        let _ = function_expanded_query_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
+    
+                    
+                    
+                                        let _ = function_expanded_submit_button_wrapper.append_child(&buffer2);
+                                        let _ = function_expanded_submit_button_wrapper.append_child(&function_expanded_query_button);
+                    
+                                        let _ = function_expanded.append_child(&function_expanded_header);
+                                        let _ = function_expanded.append_child(&function_expanded_fields_wrapper);
+                                        let _ = function_expanded.append_child(&function_expanded_submit_button_wrapper);
+                    
+                    
+                    
+                                        /*
+                                        ===========================
+                                            END MAPPING EXPANDED
+                                        ===========================
+                                        */
+    
+    
+                                        let function_output = document.create_element("div").expect("Error creating function_output");
+                                        let _ = function_output.set_attribute("class","function-output-title");
+                                        let _ = function_output.set_attribute("style","display:none;");
+    
+                                        let function_error = document.create_element("div").expect("Error creating function_error");
+                                        let _ = function_error.set_attribute("class","function-error-title");
+                                        let _ = function_error.set_attribute("style","display:none;");
+    
+    
+    
+                    
+                                        let _ = function_wrapper.append_child(&input_field);
+                                        let _ = function_wrapper.append_child(&function_expanded);
+                                        let _ = function_wrapper.append_child(&function_output);
+                                        let _ = function_wrapper.append_child(&function_error);
+    
+                                    
+    
+                                        let _ = card_body.append_child(&function_wrapper);
+                    
+                                        /*
+                                        ===========================
+                                            END IF MAPPING CODE HERE
+                                        ===========================
+                                        */
+                    
                                     }
-                                    /*
-                                    ===========================
-                                        FINALLY
-                                    ===========================
-                                    */
-                
-                                    let function_expanded_submit_button_wrapper = document.create_element("div").expect("Error creating function_expanded_submit_button_wrapper");
-                                    function_expanded_submit_button_wrapper.set_class_name("function-expanded-submit-button-wrapper");
-                
-                                    let buffer2 = document.create_element("div").expect("Error creating function_expanded_execute_button buffer");
-                                    let _ = buffer2.set_attribute("name","buffer");
-                                    let _ = buffer2.set_attribute("style","width:100%");
-                
-                                    let function_expanded_execute_button = document.create_element("div").expect("Error creating function_expanded_execute_button");
-                                    function_expanded_execute_button.set_class_name("function-expanded-execute-button");
-                                    let text = document.create_text_node("Execute");
-                                    let _ = function_expanded_execute_button.append_child(&text);
-                                    let _ = function_expanded_execute_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
-
-                
-                
-                                    let _ = function_expanded_submit_button_wrapper.append_child(&buffer2);
-                                    let _ = function_expanded_submit_button_wrapper.append_child(&function_expanded_execute_button);
-                
-                                    let _ = function_expanded.append_child(&function_expanded_header);
-                                    let _ = function_expanded.append_child(&function_expanded_fields_wrapper);
-                                    let _ = function_expanded.append_child(&function_expanded_submit_button_wrapper);
-                
-                
-                                    /*
-                                    ===========================
-                                        END FUNCTION EXPANDED
-                                    ===========================
-                                    */
-                
-                                    let _ = function_wrapper.append_child(&input_field);
-                                    let _ = function_wrapper.append_child(&function_expanded);
-                                    let _ = card_body.append_child(&function_wrapper);
-                
-                                    /*
-                                    ===========================
-                                        END IF FUNCTION CODE HERE
-                                    ===========================
-                                    */
-                
-                
+                                    None => {}
                                 }
-                                None => {}
+
+                            } else if section_type == "function"{
+                                let function_name = &caps["section_name"];
+                                let input_re = Regex::new(r"input (?<input_number>r[0-9]*) as (?<type>.*)\.(?<visibility>.*);").unwrap(); 
+                                let mut inputs : IndexMap<String,String> = IndexMap::new();
+                                let mut one_line_types = String::new();
+                                for function_line in &lines[1..]{
+                                    match input_re.captures(function_line){
+                                        Some(caps2) => {
+                                            inputs.insert(caps2["input_number"].to_string(),format!("{}{}{}",&caps2["type"],".",&caps2["visibility"]));
+                                            one_line_types = format!("{}{}{}{}{}",one_line_types, &caps2["type"],".",&caps2["visibility"],", ");
+                                        }
+                                        None => {
+                                            break;
+                                        }
+                                    }
+                                }
+                                one_line_types.pop();
+                                one_line_types.pop();
+        
+            
+            
+                                /*
+                                ===========================
+                                    IF FUNCTION CODE HERE
+                                ===========================
+                                */
+
+                                let mut is_async = false;
+
+                                if section_index != sections.len()-1 {
+                                    let next_section = sections[section_index+ 1];
+                                    let lines = next_section.split("\n").collect::<Vec<&str>>();
+                                    let section_re = Regex::new(r"(?<section_type>finalize) (?<section_name>.*):").unwrap();
+                                
+                                    match section_re.captures(lines[0]){
+                                        Some(_) => {
+                                            is_async = true;
+                                            section_index += 1;
+                                        }
+                                        None => {}
+                                    }
+                                }
+            
+                                /*
+                                ===========================
+                                    FUNCTION COMPRESSED
+                                ===========================
+                                */
+            
+                                let function_wrapper = document.create_element("div").expect("Error creating function wrapper");
+                                function_wrapper.set_class_name("function-wrapper");
+                                let _ = function_wrapper.set_attribute("name",&function_name);
+                                let _ = function_wrapper.set_attribute("function_type",if is_async {"async-function"} else {"function"});
+                                let _ = function_wrapper.set_attribute("program_name", &program.0);
+            
+                                let input_field = document.create_element("div").expect("Error creating input field");
+                                input_field.set_class_name("input-field");
+            
+                                let output_input_wrapper = document.create_element("div").expect("Error creating output input wrapper");
+                                output_input_wrapper.set_class_name("output-input-wrapper");
+            
+                                let program_function_button = document.create_element("div").expect("Error creating program_function_button");
+
+                                program_function_button.set_class_name(if is_async {"program-async-function-button"} else {"program-function-button"});
+                                let text = document.create_text_node(&function_name);
+                                let _ = program_function_button.append_child(&text);
+                                let _ = program_function_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
+
+            
+                                let compressed_input = document.create_element("input").expect("Error creating compressed function input element");
+                                let _ = compressed_input.set_attribute("spellcheck", "false");
+                                let _ = compressed_input.set_attribute("autocomplete", "off");
+                                let _ = compressed_input.set_attribute("autocapitalize", "off");
+                                let _ = compressed_input.set_attribute("placeholder",&one_line_types);
+                                let _ = compressed_input.set_attribute("style","border-top-left-radius: 0px; border-bottom-left-radius: 0px; margin-right:5px");
+                                
+                                let function_img_expand = document.create_element("img").expect("Error creating function_img_expand element").dyn_into::<HtmlImageElement>().unwrap();
+                                let _ = function_img_expand.set_src("public/chevron-down.svg");
+                                function_img_expand.set_class_name("inactive");
+                                let _ = function_img_expand.set_attribute("style","cursor: pointer; order:1; z-index: 2;");
+                                let _ = function_img_expand.add_event_listener_with_callback("click", function_expand.as_ref().unchecked_ref());
+            
+            
+                                let _ = output_input_wrapper.append_child(&program_function_button);
+                                let _ = output_input_wrapper.append_child(&compressed_input);
+                                let _ = output_input_wrapper.append_child(&function_img_expand);
+                                let _ = input_field.append_child(&output_input_wrapper);
+            
+            
+                                /*
+                                ===========================
+                                    FUNCTION EXPANDED
+                                ===========================
+                                */
+            
+                                let function_expanded = document.create_element("div").expect("Error creating function_expanded");
+                                function_expanded.set_class_name("function-expanded");
+                                let _ = function_expanded.set_attribute("style","display:none");
+            
+                                let function_expanded_header = document.create_element("div").expect("Error creating function_expanded_header");
+                                function_expanded_header.set_class_name("function-expanded-header");
+            
+                                let function_expanded_title = document.create_element("div").expect("Error creating function_expanded_title");
+                                function_expanded_title.set_class_name("function-expanded-title");
+                                let text = document.create_text_node(&function_name);
+                                let _ = function_expanded_title.append_child(&text);
+                                let function_img_compress = document.create_element("img").expect("Error creating function_img_compress element").dyn_into::<HtmlImageElement>().unwrap();
+                                let _ = function_img_compress.set_src("public/chevron-up.svg");
+                                function_img_compress.set_class_name("inactive");
+                                let _ = function_img_compress.set_attribute("style", "cursor: pointer; order:2; z-index: 2; padding-bottom:4px;");
+                                let _ = function_img_compress.add_event_listener_with_callback("click", function_compress.as_ref().unchecked_ref());
+            
+            
+                                let _ = function_expanded_header.append_child(&function_expanded_title);
+                                let _ = function_expanded_header.append_child(&function_img_compress);
+            
+            
+            
+                                let function_expanded_fields_wrapper = document.create_element("div").expect("Error creating function_expanded_fields_wrapper");
+                                function_expanded_fields_wrapper.set_class_name("function-expanded-fields-wrapper");
+            
+                                /*
+                                ===========================
+                                    FOR EVERY FIELD IN FUNCTION EXPANDED
+                                ===========================
+                                */
+                                for (input_number, input_type) in inputs {
+                                    let function_expanded_field_wrapper = document.create_element("div").expect("Error creating function_expanded_field_wrapper");
+                                    function_expanded_field_wrapper.set_class_name("function-expanded-field-wrapper");
+            
+                                    let function_expanded_field_label = document.create_element("div").expect("Error creating function_expanded_field_label");
+                                    function_expanded_field_label.set_class_name("function-expanded-field-label");
+                                    let text = document.create_text_node(&format!("{}{}", input_number, ": "));
+                                    let _ = function_expanded_field_label.append_child(&text);
+                                    let function_expanded_field = document.create_element("input").expect("Error creating compressed function_expanded_field");
+                                    let _ = function_expanded_field.set_attribute("spellcheck", "false");
+                                    let _ = function_expanded_field.set_attribute("autocomplete", "off");
+                                    let _ = function_expanded_field.set_attribute("autocapitalize", "off");
+                                    let _ = function_expanded_field.set_attribute("placeholder",&input_type);
+                                    let _ = function_expanded_field.set_attribute("style","border-radius: 6px;");
+            
+                                    let _ = function_expanded_field_wrapper.append_child(&function_expanded_field_label);
+                                    let _ = function_expanded_field_wrapper.append_child(&function_expanded_field);
+                                    let _ = function_expanded_fields_wrapper.append_child(&function_expanded_field_wrapper);
+            
+                                }
+                                /*
+                                ===========================
+                                    FINALLY
+                                ===========================
+                                */
+            
+                                let function_expanded_submit_button_wrapper = document.create_element("div").expect("Error creating function_expanded_submit_button_wrapper");
+                                function_expanded_submit_button_wrapper.set_class_name("function-expanded-submit-button-wrapper");
+            
+                                let buffer2 = document.create_element("div").expect("Error creating function_expanded_execute_button buffer");
+                                let _ = buffer2.set_attribute("name","buffer");
+                                let _ = buffer2.set_attribute("style","width:100%");
+            
+                                let function_expanded_execute_button = document.create_element("div").expect("Error creating function_expanded_execute_button");
+                                function_expanded_execute_button.set_class_name(if is_async {"function-expanded-async-execute-button"} else {"function-expanded-execute-button"});
+                                let text = document.create_text_node("Execute");
+                                let _ = function_expanded_execute_button.append_child(&text);
+                                let _ = function_expanded_execute_button.add_event_listener_with_callback("click", function_call.as_ref().unchecked_ref());
+
+            
+            
+                                let _ = function_expanded_submit_button_wrapper.append_child(&buffer2);
+                                let _ = function_expanded_submit_button_wrapper.append_child(&function_expanded_execute_button);
+            
+                                let _ = function_expanded.append_child(&function_expanded_header);
+                                let _ = function_expanded.append_child(&function_expanded_fields_wrapper);
+                                let _ = function_expanded.append_child(&function_expanded_submit_button_wrapper);
+            
+            
+                                /*
+                                ===========================
+                                    END FUNCTION EXPANDED
+                                ===========================
+                                */
+                
+                                let function_output = document.create_element("div").expect("Error creating function_output");
+                                let _ = function_output.set_attribute("class","function-output-title");
+                                let _ = function_output.set_attribute("style","display:none;");
+
+                                let function_error = document.create_element("div").expect("Error creating function_error");
+                                let _ = function_error.set_attribute("class","function-error-title");
+                                let _ = function_error.set_attribute("style","display:none;");
+
+
+
+            
+                                let _ = function_wrapper.append_child(&input_field);
+                                let _ = function_wrapper.append_child(&function_expanded);
+                                let _ = function_wrapper.append_child(&function_output);
+                                let _ = function_wrapper.append_child(&function_error);
+                                let _ = card_body.append_child(&function_wrapper);
+            
+                                /*
+                                ===========================
+                                    END IF FUNCTION CODE HERE
+                                ===========================
+                                */
+                
                             }
                         }
+                        None => {}
                     }
+                    section_index += 1;
                 }
                 let _ = card_body_wrapper.append_child(&card_body);
                 let _ = program_card.append_child(&program_custom_head);
@@ -909,7 +1037,7 @@ pub fn SidebarDeployExecute (
                     <div class="card-divider"/>
 
                     <button id="deploy-button" class="card-button"
-                    on:click:target=move|_ev| {
+                    on:click:target=move|ev| {
                         let document = leptos::prelude::document();
                                                     
                         let current_project_input = document.query_selector("#deploy-input-project").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
@@ -960,7 +1088,13 @@ pub fn SidebarDeployExecute (
                             let _ = style3.set_property("border", "1px solid #494e64");  
                             let _ = style4.set_property("border", "1px solid #494e64");
 
-                            //Set deploy button to disabled/pending  
+
+                            let this = ev.target().dyn_into::<Element>().unwrap();
+                            let new_val = Array::new();
+                            new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                            let _ = this.class_list().add(&new_val); 
+
+
                             spawn_local(async move {
                                 let current_env = if current_environment_dropdown_text.get_untracked() == "Local Devnet" {"local".to_string()} else {current_environment_dropdown_text.get_untracked().to_string().to_lowercase()};
                                 let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
@@ -969,8 +1103,9 @@ pub fn SidebarDeployExecute (
                                 let account = accounts_map.get(&deploy_accounts_dropdown_item.get_untracked()).unwrap();
                                 let pk = account.0.clone();
                                 // TODO: CHECK FOR PRIVATE RECORD FIELD HERE
+                                let fee_in_microcredits : u64 = fee.parse::<u64>().expect("Failed to parse string to integer") * 1000000;
 
-                                let command = vec!["deploy".to_string(), "--yes".to_string(), "--path".to_string(),compiled_project.get_untracked().0.clone(), "--private-key".to_string(), pk,"--base-fee".to_string(),fee,"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()];
+                                let command = vec!["deploy".to_string(), "--path".to_string(),compiled_project.get_untracked().0.clone(), "--yes".to_string(), "--no-build".to_string(), "--private-key".to_string(), pk,"--base-fee".to_string(),fee_in_microcredits.to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()];
                                 let args = serde_wasm_bindgen::to_value(&Command { command : command}).unwrap();        
                                 let (error,_output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                                 if !error {
@@ -994,6 +1129,7 @@ pub fn SidebarDeployExecute (
                                         }
                                     }
                                 }
+                                let _ = this.class_list().remove(&new_val); 
                             })
                         }
         
@@ -1014,7 +1150,7 @@ pub fn SidebarDeployExecute (
                     </div>
                     <div class="card-divider"/>
                     <button id="load-program-button" class="card-button"
-                    on:click:target=move|_ev| {
+                    on:click:target=move|ev| {
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#load-program-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                         let value = current_input.value().clone();
@@ -1027,9 +1163,15 @@ pub fn SidebarDeployExecute (
                             let error = document.query_selector("#load-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = error.style().set_property("display", "none");
 
+                            
+                            let this = ev.target().dyn_into::<Element>().unwrap();
+                            let new_val = Array::new();
+                            new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                            let _ = this.class_list().add(&new_val); 
+
                             /*
                             Dependency Checking Order:
-                                1. Local
+                                1. TODO: Local
                                     a. Look in ROOT/program.json
                                     b. If exists, will be at path ROOT/program.json["path"]/build/main.aleo
                                 2. Query
@@ -1078,7 +1220,6 @@ pub fn SidebarDeployExecute (
 
                                     let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"program".to_string(), value.clone() ,"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()]}).unwrap();        
                                     let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
-                                    console_log(&vec!["query".to_string(), "program".to_string(), value.clone(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()].join(" "));
                                     if !error {
                                         let mut formatted_output = String::new();
                                         let split = output.split("\n\n").collect::<Vec<&str>>();
@@ -1098,9 +1239,8 @@ pub fn SidebarDeployExecute (
                                         let _ = error.style().set_property("display", "block");
                                     }
                                 }
+                                let _ = this.class_list().remove(&new_val); 
                             });
-
-
                         }
                     }
                     >

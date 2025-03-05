@@ -6,7 +6,7 @@
 
 Built with Tauri + Leptos
 
-# DEPLOYMENT:
+# RELEASE TODOS:
     1. Change state path to "./"
 
 # TODO:
@@ -15,6 +15,7 @@ Built with Tauri + Leptos
 
 ## General:
 - **Work on Custom Titlebar with buttons**
+- **Add way to show pending actions after buttons are clicked**
 - Need to figure out way to integrate LSP server for document-wide error checking
 - Testing framework?
 - Add way to open multiple windows/app instances
@@ -29,10 +30,10 @@ Built with Tauri + Leptos
         - Need to save state each time any of the items change
         - State should be:
             - Session/directory name
-                - **open_files**
-                - **selected_file**
-                - **cached_files**
-                - **saved_files**
+                - TODO: open_files
+                - TODO: selected_file
+                - TODO: cached_files
+                - TODO: saved_files
                 - accounts
                 - open_directory
 - File System:
@@ -41,7 +42,7 @@ Built with Tauri + Leptos
         - **Close all open files**
         - Reload window with new filesystem open?
     - Add hover filepaths for file buttons
-    - **Add way to create/delete files and directories**
+    - Creating files/directories
         - **Add check for conflicting file and directory names**
         - Add better auto sorting to FS when files/directories are created
     - **Add screen if file cannot be found**
@@ -60,28 +61,30 @@ Built with Tauri + Leptos
     - Add way to save records?
 - Compile
     - Add sub-icon on sidebar icon to indicator success,failure, or pending
-    - **Ctrl + S on IDE should automatically compile a Leo program**
+    - **Remove global compiled program when compilation error occurs**
 - Deploy and Execute:
-    - **Add Deploy Functionality**
+    - Deploy Program
         - **Add fee estimation functionality**
         - **Add support for private fee**
+        - **CHECK ALL CALLS TO .unwrap() FOR POTENTIAL ERROR SCENARIOS**
+        - **Need better way to check if transaction fails due to low balance or fee not being large enough**
+        - **Add error message**
     - Load Program
-        - **Check if program is already loaded for the selected network
+        - **Check if program is already loaded for the selected network**
     - Deployed/Loaded Program:
-        - **Add function/mapping interaction**
+        - **Add function output**
+        - **Disabled function button when call is pending**
         - **SEPARATE ASYNC FUNCTIONS FROM REGULAR FUNCTIONS?**
         - Figure out how compressed and expanded inputs are connected/separated and rest when function is switched between compressed and expanded
-        -
 
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
 - REST API:
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
-    - **Reset all output fields when environment is changed**
+    - Reset all output fields when environment is changed
     - Get Account Balance:
-        - Is there a better way to do this other than brute-force searching for record?
-        - **Add functionality and output**
+        - Private Balance: Is there a better way to do this other than brute-force searching for record?
 
-- Transaction History:
+- **Transaction History:**
     - **add this**
 
 ## Editor

@@ -4,6 +4,7 @@ use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use regex::Regex;
 
 use crate::app::CopyButton;
 
@@ -326,7 +327,7 @@ pub fn SidebarRestApi (
                     </div>
                 </div>
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-block-by-height-button" {"display: flex"} else {"display: none"}}>
-                    <div id="get-block-by-height-input-card-body" class="card-body">
+                    <div id="get-block-by-height-input-card-body" class="card-body" style="padding-bottom:0;">
                         <div class="input-field">
                             <div class="field-title">Block Height</div>
                             <input id="get-block-by-height-input" placeholder="Block Height" spellcheck="false" autocomplete="off" autocapitalize="off"/>
@@ -479,7 +480,7 @@ pub fn SidebarRestApi (
 
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-program-button" {"display: flex"} else {"display: none"}}>
-                    <div id="get-program-input-card-body" style="display:flex; flex-direction:column;" class="card-body">
+                    <div id="get-program-input-card-body" style="display:flex; flex-direction:column; padding-bottom:0;" class="card-body">
                         <div class="input-field" style="order:1;">
                             <div class="field-title">Program ID</div>
                             <input id="get-program-input" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
@@ -633,7 +634,7 @@ pub fn SidebarRestApi (
                 </div>
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-transaction-button" {"display: flex"} else {"display: none"}}>
-                    <div id="get-transaction-input-card-body" class="card-body">
+                    <div id="get-transaction-input-card-body" class="card-body" style="padding-bottom: 0;">
                         <div class="input-field">
                             <div class="field-title">Transaction ID</div>
                             <input id="get-transaction-input" placeholder="Transaction ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
@@ -682,6 +683,7 @@ pub fn SidebarRestApi (
                             let error = document.query_selector("#get-transaction-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = error.style().set_property("display", "none");
                         } else {
+                            
                             let _ = style.set_property("border", "1px solid #494e64");
                             let error = document.query_selector("#get-transaction-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = error.style().set_property("display", "none");
@@ -790,15 +792,30 @@ pub fn SidebarRestApi (
 
 
                 <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "get-account-balance-button" {"display: flex"} else {"display: none"}}>
-                    <div id="get-account-balance-body" class="card-body">
+                    <div id="get-account-balance-body" class="card-body" style="padding-bottom: 0;">
                         <div class="input-field">
                             <div class="field-title">Address</div>
                             <input id="get-account-balance-input" placeholder="Address" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            <div id="get-account-balance-input-error" class="error-title" style="display:none;"></div>
+                        </div>
+                        <div class="output-field" id="get-account-balance-output-field" style="display:none;">
+                            <div class="field-title">Balance</div>
+                            <div class="output-input-wrapper">
+                                <input id="get-account-balance-output" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                <div class="output-img-wrapper">
+                                    <CopyButton target_field="#get-account-balance-output".to_string() element_type="Input".to_string()/>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="card-divider"/>
                     <button id="get-button" class="card-button"
-                    on:click:target=move|_ev| {
+                    on:click:target=move|ev| {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        let _ = this.class_list().add(&new_val);
+
                         let document = leptos::prelude::document();
                         let current_input = document.query_selector("#get-account-balance-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
                         let value = current_input.value().clone();
@@ -807,7 +824,35 @@ pub fn SidebarRestApi (
                         if &value == "" {
                             let _ = style.set_property("border", "1px solid var(--grapefruit)");   
                         } else {
-                            let _ = style.set_property("border", "1px solid #494e64");   
+                            let _ = style.set_property("border", "1px solid #494e64");
+                            let error = document.query_selector("#get-account-balance-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = error.style().set_property("display", "none");
+                            let output_field = document.query_selector("#get-account-balance-output-field").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let _ = output_field.style().set_property("display","none");
+
+                            spawn_local(async move {
+                                let network_item = current_environment_dropdown_item.get_untracked();
+                                let network : String = if network_item == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()} ;                                
+                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(), "program".to_string(),"credits.aleo".to_string(),"--mapping-value".to_string(),"account".to_string(),value.clone() ,"--network".to_string(),network,"--endpoint".to_string(),current_endpoint.get_untracked(), "-q".to_string()]}).unwrap();
+        
+                                let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                if !error {
+                                    let output_element = document.query_selector("#get-account-balance-output").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                                    console_log(&output);
+                                    let output_in_credits : f64 = output[..output.len()-7].parse::<u64>().expect("Failed to parse string to integer") as f64 / 1000000f64;
+                                    let temp = output_in_credits.to_string();
+                                    output_element.set_value(if output == "null" {"0"} else {&temp});
+                                    let output_field = document.query_selector("#get-account-balance-output-field").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = output_field.style().set_property("display","block");
+                                    let _ = this.class_list().remove(&new_val);
+                                } else {
+                                    let error = document.query_selector("#get-account-balance-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    error.set_inner_html("Error: Invalid Input");
+                                    let _ = error.style().set_property("display", "block");
+                                    let _ = this.class_list().remove(&new_val);
+                                }
+                            });
+                   
                         }
                     }
                     >
