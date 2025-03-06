@@ -680,6 +680,16 @@
 
 }
 
+@keyframes border-angle-rotate {
+  from { --border-angle: 0deg; }
+  to { --border-angle: 360deg; }
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
 
 
 .card-button {
@@ -704,6 +714,7 @@
   margin-bottom:10px;
   min-width:75px;
   transition:all .3s ease;
+
 }
 
 .card-button:hover {
@@ -715,11 +726,29 @@
 
 .card-button.disabled {
   color:#494e64;
-  border: 2px solid #494e64;;
+  border: 2px solid #494e64;
   background-color: var(--coal);
   cursor: default;
   pointer-events: none;
 }
+
+.card-button.pending {
+  color:#494e64;
+  border: 2px solid transparent;
+  background-color: var(--coal);
+  cursor: default;
+  pointer-events: none;
+  --border-angle: 0deg;
+  animation: border-angle-rotate 1s infinite linear;
+  background: linear-gradient(var(--coal), var(--coal)) padding-box,
+  conic-gradient(
+      from var(--border-angle),
+      var(--coal) 50%,
+      var(--stone)
+    )
+    border-box;
+}
+
 
 
 .card-button-clear {

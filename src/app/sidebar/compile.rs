@@ -159,8 +159,12 @@ pub fn SidebarCompile (
 
                         let this = ev.target().dyn_into::<Element>().unwrap();
                         let new_val = Array::new();
-                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
                         let _ = this.class_list().add(&new_val);
+
+                        let new_val2 = Array::new();
+                        new_val2.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        let _ = this.class_list().remove(&new_val2);
 
                         spawn_local(async move{
                             let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
@@ -184,6 +188,8 @@ pub fn SidebarCompile (
                                 set_compiled_project.set(compile_project_root.get_untracked());
 
                             } else {
+                                set_compiled_project.set((String::new(),String::new()));
+
                                 let document = leptos::prelude::document();
                                 let target = document.query_selector("#compiler-output").unwrap().unwrap();
                                 let _ = target.set_class_name("compile-output-message failure");

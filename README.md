@@ -15,7 +15,6 @@ Built with Tauri + Leptos
 
 ## General:
 - **Work on Custom Titlebar with buttons**
-- **Add way to show pending actions after buttons are clicked**
 - Need to figure out way to integrate LSP server for document-wide error checking
 - Testing framework?
 - Add way to open multiple windows/app instances
@@ -37,6 +36,7 @@ Built with Tauri + Leptos
                 - accounts
                 - open_directory
 - File System:
+    - **Add way to delete files**
     - Changing directories
         - **Check for unsaved open files -> send warning if true**
         - **Close all open files**
@@ -60,21 +60,15 @@ Built with Tauri + Leptos
 - Records:
     - Add way to save records?
 - Compile
-    - Add sub-icon on sidebar icon to indicator success,failure, or pending
-    - **Remove global compiled program when compilation error occurs**
+    - Add sub-icon on sidebar icon to indicate success,failure, or pending
 - Deploy and Execute:
     - Deploy Program
         - **Add fee estimation functionality**
-        - **Add support for private fee**
-        - **CHECK ALL CALLS TO .unwrap() FOR POTENTIAL ERROR SCENARIOS**
         - **Need better way to check if transaction fails due to low balance or fee not being large enough**
-        - **Add error message**
-    - Load Program
-        - **Check if program is already loaded for the selected network**
     - Deployed/Loaded Program:
         - **Add function output**
-        - **Disabled function button when call is pending**
-        - **SEPARATE ASYNC FUNCTIONS FROM REGULAR FUNCTIONS?**
+        - **Disable function button when call is pending**
+        - **Separate Async Functions from Non-Async?**
         - Figure out how compressed and expanded inputs are connected/separated and rest when function is switched between compressed and expanded
 
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
@@ -93,6 +87,7 @@ Built with Tauri + Leptos
 - Highlight current line of text with gray?
 - **Add highlighting conditional on file type (.leo vs .aleo vs. everything else)**
 - **Maintain scroll level and cursor position when switching between file tabs and reopening files**
+- **Maintain indent level when entering newline character (VSCode-like)**
 
 ## Terminal:
 - **Start work on this**

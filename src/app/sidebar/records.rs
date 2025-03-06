@@ -131,7 +131,7 @@ pub fn SidebarRecords (
                     on:click:target=move|ev| {
                         let this = ev.target().dyn_into::<Element>().unwrap();
                         let new_val = Array::new();
-                        new_val.push(&serde_wasm_bindgen::to_value("disabled").unwrap());
+                        new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
                         let _ = this.class_list().add(&new_val);
 
                         let document = leptos::prelude::document();
