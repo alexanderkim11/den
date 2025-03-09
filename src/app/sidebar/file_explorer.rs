@@ -743,34 +743,100 @@ pub fn SidebarFileExplorer (
                     </div>
                 </button>
             </div>
-            <div class="open-folder-wrapper" style="display:flex;">
-                <button class="open-folder"
-                on:click:target=move|ev| {
-                    let this = ev.target().dyn_into::<Element>().unwrap();
-                    let new_val = Array::new();
-                    new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
-                    let _ = this.class_list().add(&new_val);
+                
+            <div class="sidebar-body-wrapper">
+                <div class="open-folder-wrapper" style="display:flex;">
+                    <button class="open-folder"
+                    on:click:target=move|ev| {
+                        let this = ev.target().dyn_into::<Element>().unwrap();
+                        let new_val = Array::new();
+                        new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
+                        let _ = this.class_list().add(&new_val);
 
 
+                        spawn_local(async move {
+                            let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { code : "null"}).unwrap();
+
+                            let return_val = invoke("open_explorer", args).await.as_string().unwrap();
+                            if return_val != ""{
+                                let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
+
+                                set_root.set(deserialized_return_val[0].path.clone());
+                                let args = serde_wasm_bindgen::to_value(&UpdateStateRootDirArgs { directory : deserialized_return_val[0].path.clone()}).unwrap();
+                                invoke("update_state_root_dir", args).await;
+
+                                
+                                let fs_html = generate_file_explorer_html(deserialized_return_val);
+
+                                let document = leptos::prelude::document();
+                                let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = element.style().set_property("display", "none");
+                                set_fs_html.set(fs_html);
+
+                                let element2 = document.query_selector("#refresh-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = element2.style().set_property("display", "flex");
+
+                                let element3 = document.query_selector("#change-dir-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = element3.style().set_property("display", "flex");
+
+                                let element4 = document.query_selector("#create-file-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = element4.style().set_property("display", "flex");
+
+                                let element5 = document.query_selector("#create-dir-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = element5.style().set_property("display", "flex");
+                            }
+                            let _ = this.class_list().remove(&new_val);
+                        });
+                    }
+                    > Open Folder </button>
+                </div>
+
+
+                <div class="fs" inner_html={ move || fs_html.get() }></div>
+                {Effect::new(move |_| {
+                    let _signal = fs_html.get();
+                    let document = leptos::prelude::document();
+                    let result_element = document.query_selector(".fs").unwrap().unwrap();
+
+                    //Recursively add event listeners to file explorer items
+                    let wrapper = RecursiveClosureWrapper {
+                        placeholder: result_element.clone(),
+                        closure : &|element, closure|{
+                            let children = element.children();
+                            for i in 0..children.length(){
+                                let child = children.get_with_index(i).unwrap();
+                                if child.class_name() == "dir" {
+                                    let title_element = child.children().named_item("title").unwrap();
+                                    let _ = title_element.add_event_listener_with_callback("click", switch_chevron_closure.as_ref().unchecked_ref());
+                                    (closure.closure)(child.children().named_item("children").unwrap(), closure);
+                                } else if child.class_name() == "file" {
+                                    let title_element = child.children().named_item("title").unwrap().dyn_into::<HtmlElement>().unwrap();
+                                    let _ = title_element.add_event_listener_with_callback("dblclick", open_file_closure.as_ref().unchecked_ref());
+                                    let _ = title_element.add_event_listener_with_callback("click", fs_select_file_closure.as_ref().unchecked_ref());
+                                }
+                            }
+                        }
+                    };
+                    (wrapper.closure)(result_element,&wrapper);
+                });}
+
+                {
                     spawn_local(async move {
-                        let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { code : "null"}).unwrap();
-
-                        let return_val = invoke("open_explorer", args).await.as_string().unwrap();
-                        if return_val != ""{
+                        let args = serde_wasm_bindgen::to_value(&GetStateRootDirArgs { placeholder: "null".to_string()}).unwrap();
+                        let saved_root_dir =invoke("get_state_root_dir", args).await.as_string().unwrap();
+                        if saved_root_dir != String::new() {
+                            set_root.set(saved_root_dir.clone());
+                            let args = serde_wasm_bindgen::to_value(&GetDirArgs { directory : saved_root_dir}).unwrap();
+                            let return_val = invoke("get_directory", args).await.as_string().unwrap();
                             let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
-
-                            set_root.set(deserialized_return_val[0].path.clone());
-                            let args = serde_wasm_bindgen::to_value(&UpdateStateRootDirArgs { directory : deserialized_return_val[0].path.clone()}).unwrap();
-                            invoke("update_state_root_dir", args).await;
-
                             
-                            let fs_html = generate_file_explorer_html(deserialized_return_val);
-
+                            
+                            let html_fs = generate_file_explorer_html(deserialized_return_val);
                             let document = leptos::prelude::document();
                             let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = element.style().set_property("display", "none");
-                            set_fs_html.set(fs_html);
-
+                            set_fs_html.set(html_fs);
+        
                             let element2 = document.query_selector("#refresh-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = element2.style().set_property("display", "flex");
 
@@ -783,72 +849,9 @@ pub fn SidebarFileExplorer (
                             let element5 = document.query_selector("#create-dir-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
                             let _ = element5.style().set_property("display", "flex");
                         }
-                        let _ = this.class_list().remove(&new_val);
                     });
                 }
-                > Open Folder </button>
             </div>
-
-
-            <div class="fs" inner_html={ move || fs_html.get() }></div>
-            {Effect::new(move |_| {
-                let _signal = fs_html.get();
-                let document = leptos::prelude::document();
-                let result_element = document.query_selector(".fs").unwrap().unwrap();
-
-                //Recursively add event listeners to file explorer items
-                let wrapper = RecursiveClosureWrapper {
-                    placeholder: result_element.clone(),
-                    closure : &|element, closure|{
-                        let children = element.children();
-                        for i in 0..children.length(){
-                            let child = children.get_with_index(i).unwrap();
-                            if child.class_name() == "dir" {
-                                let title_element = child.children().named_item("title").unwrap();
-                                let _ = title_element.add_event_listener_with_callback("click", switch_chevron_closure.as_ref().unchecked_ref());
-                                (closure.closure)(child.children().named_item("children").unwrap(), closure);
-                            } else if child.class_name() == "file" {
-                                let title_element = child.children().named_item("title").unwrap().dyn_into::<HtmlElement>().unwrap();
-                                let _ = title_element.add_event_listener_with_callback("dblclick", open_file_closure.as_ref().unchecked_ref());
-                                let _ = title_element.add_event_listener_with_callback("click", fs_select_file_closure.as_ref().unchecked_ref());
-                            }
-                        }
-                    }
-                };
-                (wrapper.closure)(result_element,&wrapper);
-            });}
-
-            {
-                spawn_local(async move {
-                    let args = serde_wasm_bindgen::to_value(&GetStateRootDirArgs { placeholder: "null".to_string()}).unwrap();
-                    let saved_root_dir =invoke("get_state_root_dir", args).await.as_string().unwrap();
-                    if saved_root_dir != String::new() {
-                        set_root.set(saved_root_dir.clone());
-                        let args = serde_wasm_bindgen::to_value(&GetDirArgs { directory : saved_root_dir}).unwrap();
-                        let return_val = invoke("get_directory", args).await.as_string().unwrap();
-                        let deserialized_return_val : Vec<CustomDirEntry> = serde_json::from_str(&return_val).expect("Error with decoding dir_entry");
-                        
-                        
-                        let html_fs = generate_file_explorer_html(deserialized_return_val);
-                        let document = leptos::prelude::document();
-                        let element = document.query_selector(".open-folder-wrapper").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let _ = element.style().set_property("display", "none");
-                        set_fs_html.set(html_fs);
-    
-                        let element2 = document.query_selector("#refresh-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let _ = element2.style().set_property("display", "flex");
-
-                        let element3 = document.query_selector("#change-dir-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let _ = element3.style().set_property("display", "flex");
-
-                        let element4 = document.query_selector("#create-file-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let _ = element4.style().set_property("display", "flex");
-
-                        let element5 = document.query_selector("#create-dir-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let _ = element5.style().set_property("display", "flex");
-                    }
-                });
-            }
         </div>
     }
 }

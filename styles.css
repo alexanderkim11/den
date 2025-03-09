@@ -169,6 +169,7 @@
 .wrapper {
   height: 100%; 
   flex-direction:column;
+  overflow:hidden;
 }
 
 .open-folder-wrapper {
@@ -238,6 +239,9 @@
   user-select: none;
 }
 
+.sidebar-body-wrapper {
+  overflow:auto;
+}
 
 .card {
   margin:10px;
@@ -1081,6 +1085,60 @@
   transition:all .3s ease;
 }
 
+.program-mapping-button.pending {
+  color:#494e64;
+  border: 2px solid transparent;
+  background-color: var(--coal);
+  cursor: default;
+  pointer-events: none;
+  --border-angle: 0deg;
+  animation: border-angle-rotate 1s infinite linear;
+  background: linear-gradient(var(--coal), var(--coal)) padding-box,
+  conic-gradient(
+      from var(--border-angle),
+      var(--coal) 50%,
+      var(--stone)
+    )
+    border-box;
+}
+
+
+.program-function-button.pending {
+  color:#494e64;
+  border: 2px solid transparent;
+  background-color: var(--coal);
+  cursor: default;
+  pointer-events: none;
+  --border-angle: 0deg;
+  animation: border-angle-rotate 1s infinite linear;
+  background: linear-gradient(var(--coal), var(--coal)) padding-box,
+  conic-gradient(
+      from var(--border-angle),
+      var(--coal) 50%,
+      var(--lime)
+    )
+    border-box;
+}
+
+
+.program-async-function-button.pending {
+  color:#494e64;
+  border: 2px solid transparent;
+  background-color: var(--coal);
+  cursor: default;
+  pointer-events: none;
+  --border-angle: 0deg;
+  animation: border-angle-rotate 1s infinite linear;
+  background: linear-gradient(var(--coal), var(--coal)) padding-box,
+  conic-gradient(
+      from var(--border-angle),
+      var(--coal) 50%,
+      var(--tangerine)
+    )
+    border-box;
+}
+
+
 .program-expand {
   cursor:pointer;
 }
@@ -1224,6 +1282,23 @@
 }
 
 
+.function-expanded-execute-button.pending {
+  color:#494e64;
+  border: 2px solid transparent;
+  background-color: var(--coal);
+  cursor: default;
+  pointer-events: none;
+  --border-angle: 0deg;
+  animation: border-angle-rotate 1s infinite linear;
+  background: linear-gradient(var(--coal), var(--coal)) padding-box,
+  conic-gradient(
+      from var(--border-angle),
+      var(--coal) 50%,
+      var(--lime)
+    )
+    border-box;
+}
+
 .function-expanded-async-execute-button {
   width: fit-content; 
   text-align: center;
@@ -1259,6 +1334,24 @@
   transition:all .3s ease;
 }
 
+.function-expanded-async-execute-button.pending {
+  color:#494e64;
+  border: 2px solid transparent;
+  background-color: var(--coal);
+  cursor: default;
+  pointer-events: none;
+  --border-angle: 0deg;
+  animation: border-angle-rotate 1s infinite linear;
+  background: linear-gradient(var(--coal), var(--coal)) padding-box,
+  conic-gradient(
+      from var(--border-angle),
+      var(--coal) 50%,
+      var(--tangerine)
+    )
+    border-box;
+}
+
+
 
 .function-expanded-query-button {
   width: fit-content; 
@@ -1292,6 +1385,23 @@
   border: 2px solid var(--stone);  
   cursor: pointer;
   transition:all .3s ease;
+}
+
+.function-expanded-query-button.pending {
+  color:#494e64;
+  border: 2px solid transparent;
+  background-color: var(--coal);
+  cursor: default;
+  pointer-events: none;
+  --border-angle: 0deg;
+  animation: border-angle-rotate 1s infinite linear;
+  background: linear-gradient(var(--coal), var(--coal)) padding-box,
+  conic-gradient(
+      from var(--border-angle),
+      var(--coal) 50%,
+      var(--stone)
+    )
+    border-box;
 }
 
 

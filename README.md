@@ -20,6 +20,7 @@ Built with Tauri + Leptos
 - Add way to open multiple windows/app instances
 - Figure out way to add warning message when exiting app
 - Integrate Git
+- **Fix scrolling issue in sidebar card**
 
 ## Sidebar:
 - General:
@@ -62,14 +63,13 @@ Built with Tauri + Leptos
 - Compile
     - Add sub-icon on sidebar icon to indicate success,failure, or pending
 - Deploy and Execute:
+    - **Reset Fee and private fee Fields when deploy or function is called (prevents users from accidently spending something they don't want to)**
     - Deploy Program
         - **Add fee estimation functionality**
+        - **Check if program has already been deployed on this network**
         - **Need better way to check if transaction fails due to low balance or fee not being large enough**
     - Deployed/Loaded Program:
-        - **Add function output**
-        - **Disable function button when call is pending**
-        - **Separate Async Functions from Non-Async?**
-        - Figure out how compressed and expanded inputs are connected/separated and rest when function is switched between compressed and expanded
+        - Figure out how compressed and expanded inputs are connected/separated and rest when function is switched between compressed and expanded?
 
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
 - REST API:

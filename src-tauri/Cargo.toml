@@ -41,37 +41,12 @@ tauri-plugin-opener = "2"
 tauri-plugin-os = "2"
 tauri-plugin-store = "2"
 rfd = {version = "0.15.2", default-features = false, features= ["gtk3"] }
+aleo-std = "0.1.24"
 
-
-[dependencies.snarkvm-circuit-network]
+[dependencies.snarkvm]
 version = "1.3.0"
+features = [ "circuit", "console" ]
 
-[dependencies.snarkvm-console]
-version = "1.3.0"
-features = [ "wasm" ]
-
-[dependencies.snarkvm-ledger-block]
-version = "1.3.0"
-features = [ "wasm" ]
-
-[dependencies.snarkvm-ledger-query]
-version = "1.3.0"
-features = [ "async", "wasm" ]
-
-[dependencies.snarkvm-ledger-store]
-version = "1.3.0"
-
-[dependencies.snarkvm-parameters]
-version = "1.3.0"
-features = [ "wasm" ]
-
-[dependencies.snarkvm-synthesizer]
-version = "1.3.0"
-features = [ "async", "wasm" ]
-
-[dependencies.snarkvm-wasm]
-version = "1.3.0"
-features = [ "console", "fields", "utilities" ]
 
 [dependencies.anyhow]
 version = "1.0"

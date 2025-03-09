@@ -25,19 +25,30 @@ STRUCTS
 */
 
 #[derive(Serialize, Deserialize)]
-pub struct Command<> {
+pub struct Command {
     pub command : Vec<String>
 }
 
 #[derive(Serialize, Deserialize)]
-struct ReadProgramJsonArgs<> {
+struct ReadProgramJsonArgs {
     filepath : String,
     field: String,
 }
 
 #[derive(Serialize, Deserialize)]
-struct ReadFileArgs<> {
+struct ReadFileArgs {
     filepath: String
+}
+
+
+#[derive(Serialize, Deserialize)]
+struct RemoteExecuteArgs {
+    program : String,
+    function : String,
+    network: String,
+    endpoint : String,
+    pk : String,
+    inputs : Vec<String>,
 }
 
 
@@ -104,12 +115,12 @@ pub fn SidebarDeployExecute (
         let card = this.parent_element().unwrap().parent_element().unwrap().parent_element().unwrap();  
         let img = this.dyn_into::<HtmlImageElement>().unwrap();
         let content = card.children().item(1).unwrap().dyn_into::<HtmlElement>().unwrap();
-        if img.class_name() == "inactive"{
+        if img.class_name() == "inactive"{ //Expand
             img.set_src("public/chevron-down.svg");
             img.set_class_name("active");
             card.set_class_name("program-card active");
             let _ = content.set_attribute("style","display: flex; border:0;");
-        } else {
+        } else { //Compress
             img.set_src("public/chevron-right.svg");
             img.set_class_name("inactive");
             card.set_class_name("program-card");   
@@ -200,6 +211,26 @@ pub fn SidebarDeployExecute (
                 let mut inputs : Vec<(String,String)> = Vec::new();
 
                 let children = function_wrapper.children();
+
+                let new_val = Array::new();
+                new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
+
+                let compressed_button = children.get_with_index(0).unwrap().children().get_with_index(0).unwrap().children().get_with_index(0).unwrap().dyn_into::<Element>().unwrap();
+                let expanded_button = children.get_with_index(1).unwrap().children().get_with_index(2).unwrap().children().get_with_index(1).unwrap().dyn_into::<Element>().unwrap();
+
+                let _ = compressed_button.class_list().add(&new_val);
+                let _ = expanded_button.class_list().add(&new_val);  
+
+                let function_output = children.get_with_index(2).unwrap().dyn_into::<Element>().unwrap();
+                let function_error = children.get_with_index(3).unwrap().dyn_into::<Element>().unwrap();
+
+                let _ = function_output.set_attribute("style","display:none");
+                let _ = function_error.set_attribute("style","display:none");
+                function_output.set_inner_html("");
+                function_error.set_inner_html("");
+
+
+
                 let function_compressed = children.get_with_index(0).unwrap().dyn_into::<HtmlElement>().unwrap();
                 let compressed_style_display = function_compressed.style().get_property_value("display").expect("Error getting display property");
                 if compressed_style_display == String::new(){
@@ -235,7 +266,6 @@ pub fn SidebarDeployExecute (
     
                     }
                 }
-
 
 
                 spawn_local(async move {
@@ -287,6 +317,19 @@ pub fn SidebarDeployExecute (
                         formatted_inputs.push(raw_input);
                     }
     
+                    let test = serde_wasm_bindgen::to_value(
+                        &RemoteExecuteArgs {
+                            program : program_name.clone(),
+                            function : function_name.clone(),
+                            network: network.clone(),
+                            endpoint : current_endpoint.get_untracked(),
+                            pk : pk.clone(),
+                            inputs : formatted_inputs.clone()
+                        }
+                    ).unwrap();
+
+                    let (error,outputs): (bool, Vec<String>) = serde_wasm_bindgen::from_value(invoke("execute_remote_wrapper", test).await).unwrap();
+
                     let mut command = vec!["execute".to_string(), function_name];
                     command.append(&mut formatted_inputs);
                     command.append(&mut vec!["--program".to_string(),program_name,"--broadcast".to_string(),"--yes".to_string(),"--private-key".to_string(), pk,"--base-fee".to_string(),fee_in_microcredits.to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()]);
@@ -296,16 +339,26 @@ pub fn SidebarDeployExecute (
                     }
                     
                     let args = serde_wasm_bindgen::to_value(&Command { command : command}).unwrap();        
-                    let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                    let (_,_): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+
                     if !error {
                         let function_output = children.get_with_index(2).unwrap().dyn_into::<Element>().unwrap();
-                        function_output.set_inner_html(&format!("{}{}", "Output: ", output));
+                        if outputs.len() == 0{
+                            function_output.set_inner_html("No outputs");
+                        } else if outputs.len() == 1 {
+                            function_output.set_inner_html(&format!("{}{}", "Output: ", outputs[0]));
+                        } else {
+                            function_output.set_inner_html(&format!("{}{}", "Outputs: ", outputs.join(", ")));
+                        }
                         let _ = function_output.set_attribute("style","");
                     } else {
                         let function_error = children.get_with_index(3).unwrap().dyn_into::<Element>().unwrap();
-                        function_error.set_inner_html("Error: Value not found");
+                        function_error.set_inner_html("Error: Function call failed");
                         let _ = function_error.set_attribute("style","");
                     }
+
+                    let _ = compressed_button.class_list().remove(&new_val);
+                    let _ = expanded_button.class_list().remove(&new_val);  
                 });
 
             }
@@ -314,48 +367,64 @@ pub fn SidebarDeployExecute (
         }  else if function_type == "mapping" {
             let document = leptos::prelude::document();
 
-            let current_fee_input = document.query_selector("#deploy-input-fee").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-            let fee = current_fee_input.value().clone();
-            let fee_record = document.query_selector("#private-fee-input").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap().value().clone();
+            // let current_fee_input = document.query_selector("#deploy-input-fee").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+            // let fee = current_fee_input.value().clone();
+            // let fee_record = document.query_selector("#private-fee-input").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap().value().clone();
             
 
-            let target1 = current_fee_input.dyn_into::<HtmlElement>().unwrap();
-            let target2 = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-            let target3 = document.query_selector("#private-fee-input").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-            let private_fee_active = target3.get_attribute("active").unwrap();
+            // let target1 = current_fee_input.dyn_into::<HtmlElement>().unwrap();
+            // let target2 = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+            // let target3 = document.query_selector("#private-fee-input").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+            // let private_fee_active = target3.get_attribute("active").unwrap();
 
-            let style1 = target1.style();
-            let style2 = target2.style();
-            let style3 = target3.style();
+            // let style1 = target1.style();
+            // let style2 = target2.style();
+            // let style3 = target3.style();
 
-            if &fee == "" {
-                let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
-            } else {
-                let _ = style1.set_property("border", "1px solid #494e64");   
-            }
+            // if &fee == "" {
+            //     let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
+            // } else {
+            //     let _ = style1.set_property("border", "1px solid #494e64");   
+            // }
 
-            if deploy_accounts_dropdown_item.get_untracked() == String::new(){
-                let _ = style2.set_property("border", "1px solid var(--grapefruit)");   
-            } else {
-                let _ = style2.set_property("border", "1px solid #494e64");   
-            }
+            // if deploy_accounts_dropdown_item.get_untracked() == String::new(){
+            //     let _ = style2.set_property("border", "1px solid var(--grapefruit)");   
+            // } else {
+            //     let _ = style2.set_property("border", "1px solid #494e64");   
+            // }
 
-            if private_fee_active == "true" && &fee_record == ""{
-                let _ = style3.set_property("border", "1px solid var(--grapefruit)");   
-            } else {
-                let _ = style3.set_property("border", "1px solid #494e64");   
-            }
+            // if private_fee_active == "true" && &fee_record == ""{
+            //     let _ = style3.set_property("border", "1px solid var(--grapefruit)");   
+            // } else {
+            //     let _ = style3.set_property("border", "1px solid #494e64");   
+            // }
  
             // TODO: CHECK IF THERE ARE ANY INPUTS
 
-            // leo execute FUNCTION_NAME [INPUTS] --broadcast --endpoint ENDPOINT --network NETWORK --no-build --private-key PRIVATE_KEY [--fee FEE] [--record RECORD]
-                
+            if true { //&fee != "" && deploy_accounts_dropdown_item.get_untracked() != String::new() && !(private_fee_active == "true" && &fee_record == ""){                
+                // let _ = style1.set_property("border", "1px solid #494e64");  
+                // let _ = style2.set_property("border", "1px solid #494e64");  
+                // let _ = style3.set_property("border", "1px solid #494e64");  
 
+                let children = function_wrapper.children();
 
-            if &fee != "" && deploy_accounts_dropdown_item.get_untracked() != String::new() && !(private_fee_active == "true" && &fee_record == ""){                
-                let _ = style1.set_property("border", "1px solid #494e64");  
-                let _ = style2.set_property("border", "1px solid #494e64");  
-                let _ = style3.set_property("border", "1px solid #494e64");  
+                let new_val = Array::new();
+                new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
+
+                let compressed_button = children.get_with_index(0).unwrap().children().get_with_index(0).unwrap().children().get_with_index(0).unwrap().dyn_into::<Element>().unwrap();
+                let expanded_button = children.get_with_index(1).unwrap().children().get_with_index(2).unwrap().children().get_with_index(1).unwrap().dyn_into::<Element>().unwrap();
+
+                let _ = compressed_button.class_list().add(&new_val);
+                let _ = expanded_button.class_list().add(&new_val);  
+
+                let function_output = children.get_with_index(2).unwrap().dyn_into::<Element>().unwrap();
+                let function_error = children.get_with_index(3).unwrap().dyn_into::<Element>().unwrap();
+
+                let _ = function_output.set_attribute("style","display:none");
+                let _ = function_error.set_attribute("style","display:none");
+                function_output.set_inner_html("");
+                function_error.set_inner_html("");
+
 
                 let input : String;
                 let input_type : String;
@@ -425,6 +494,9 @@ pub fn SidebarDeployExecute (
                         function_error.set_inner_html("Error: Value not found");
                         let _ = function_error.set_attribute("style","");
                     }
+
+                    let _ = compressed_button.class_list().remove(&new_val);
+                    let _ = expanded_button.class_list().remove(&new_val);  
                 });
             }   
         }
@@ -937,461 +1009,463 @@ pub fn SidebarDeployExecute (
                 Deploy and Execute
             </div>
 
-            <div id="funding-card" style="color:#e3e3e3;" class="card">
-                <div id="funding-card-head" class="card-head" >
-                    <div class="title" style="-webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;">
-                        Funding
+            <div class="sidebar-body-wrapper">
+                <div id="funding-card" style="color:#e3e3e3;" class="card">
+                    <div id="funding-card-head" class="card-head" >
+                        <div class="title" style="-webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;">
+                            Funding
+                        </div>
+                    </div>
+                    <div class="card-body-wrapper">
+                        <div id="funding-card-body" class="card-body">
+                            <div class="input-field"  style="color:#e3e3e3;">
+                                <div class="field-title">{move || format!("{}{}","Network: ",current_environment_dropdown_text.get())}</div>
+                                <div class="field-title">Account</div>
+                                <div id="deploy-accounts-dropdown-custom" class="dropdown-custom">
+                                    <div id="deploy-accounts-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                                    {
+                                        let this = ev.target().dyn_into::<Element>().unwrap();
+                                        let new_val = Array::new();
+                                        new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                        if this.class_list().contains("show"){
+                                            let _ = this.class_list().remove(&new_val);
+                                            set_deploy_accounts_dropdown_active.set(false);
+                                        } else {
+                                            let _ = this.class_list().add(&new_val);
+                                            set_deploy_accounts_dropdown_active.set(true);
+                                        }
+                                    }> 
+                                        <div class="buffer" inner_html={move || deploy_accounts_dropdown_text.get()}></div>
+                                        <img src="public/chevron-down.svg"/>
+                                    </div>
+                                    <div id="deploy-accounts-dropdown-content" class="dropdown-content" style={move || if deploy_accounts_dropdown_active.get() {"display: block"} else {"display: none"}}>
+                                        <div id="placeholder-button" class="dropdown-item-placeholder" style={move || if network_accounts.get().len() == 0 {"display: block; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {"display: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"}}
+                                        >
+                                            Please load an account first!
+                                        </div>
+                                        <For each=move || network_accounts.get() key=|(key,_)| key.to_string() children=move |(name,_)| {
+                                            view! {
+                                                <div id=name class={ let name_clone = name.clone(); move || { let id = deploy_accounts_dropdown_item.get(); if id == name_clone  {"dropdown-item selected"} else {"dropdown-item"}}} style={ let name_clone = name.clone(); move || { let accounts_map = network_accounts.get(); if accounts_map.len() != 0 {let final_item = &accounts_map.get_index(accounts_map.len()-1).unwrap(); if final_item.0.to_string() == name_clone {"border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {""}} else {""}}}
+                                                on:click:target = move|ev| {
+                                                    let current_item = deploy_accounts_dropdown_item.get();
+                                                    if current_item != ev.target().id(){
+                                                        set_deploy_accounts_dropdown_item.set(ev.target().id());
+                                                        set_deploy_accounts_dropdown_text.set(ev.target().inner_html());
+                        
+                                                        let document = leptos::prelude::document();
+                                                        let target = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap();
+                                                        let new_val = Array::new();
+                                                        new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                                        let _ = target.class_list().remove(&new_val);
+                                                        set_deploy_accounts_dropdown_active.set(false);
+                                                    }
+                                                }
+
+                                                >
+                                                    {name.clone()}
+                                                </div>                                     
+                                            }
+                                        }/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="input-field">
+                                <div class="field-title">Fee</div>
+                                <div class="output-input-wrapper">
+                                    <input id="deploy-input-fee" style=" border-top-right-radius: 0px; border-bottom-right-radius: 0px;" placeholder="Fee" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                    <div class="card-button-estimate-fee">Estimate Fee</div>
+                                </div>
+                            </div>
+
+                            <div class="switch-wrapper">
+                                <div class="field-title" style="order:0; padding:0; margin-right:15px; padding-top:2.5px; padding-bottom:2.5px;">Private Fee</div>
+                                <label class="switch" style="order:1;">
+                                    <input type="checkbox"
+                                    on:change:target = move|ev|{
+                                        let document = leptos::prelude::document();
+                                                        
+                                        let value = ev.target().checked();
+                                        let private_fee_input_field = document.query_selector("#private-fee-input-field").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        if value {
+                                            let _ = private_fee_input_field.style().set_property("display", "block");
+                                        } else  {
+                                            let _ = private_fee_input_field.style().set_property("display", "none");
+                                        }
+
+                                        let private_fee_input = document.query_selector("#private-fee-input").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        if value {
+                                            let _ = private_fee_input.set_attribute("active", "true");
+                                        } else  {
+                                            let _ = private_fee_input.set_attribute("active", "false");
+                                        }           
+                                    }
+                                    />
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+
+
+                            <div class="input-field" id="private-fee-input-field" style="padding-top:10px; display: none;">
+                                <div style="order:0" class="field-title">Fee Record</div>
+
+                                <div class="output-textarea-wrapper" style="height:70px;">
+                                    <textarea style="order:0; white-space: pre-wrap; background-color:transparent;" id="private-fee-input" placeholder="Fee Record" spellcheck="false" autocomplete="off" autocapitalize="off" active="false"/>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body-wrapper">
-                    <div id="funding-card-body" class="card-body">
-                        <div class="input-field"  style="color:#e3e3e3;">
-                            <div class="field-title">{move || format!("{}{}","Network: ",current_environment_dropdown_text.get())}</div>
-                            <div class="field-title">Account</div>
-                            <div id="deploy-accounts-dropdown-custom" class="dropdown-custom">
-                                <div id="deploy-accounts-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
-                                {
-                                    let this = ev.target().dyn_into::<Element>().unwrap();
+
+
+
+                
+                <div id="deploy-and-execute-card" class="card">
+                    <div id="deploy-and-execute-dropdown-custom" class="dropdown-custom-head">
+                        <div id="deploy-and-execute-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
+                        {
+                            let this = ev.target().dyn_into::<Element>().unwrap();
+                            let new_val = Array::new();
+                            new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                            if this.class_list().contains("show"){
+                                let _ = this.class_list().remove(&new_val);
+                                set_dropdown_active.set(false);
+                            } else {
+                                let _ = this.class_list().add(&new_val);
+                                set_dropdown_active.set(true);
+                            }
+                        }> 
+                            <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
+                            <img src="public/chevron-down-dark.svg"/>
+                        </div>
+                        <div id="deploy-and-execute-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
+                            <div id="deploy-new-program-button" class={move || if current_dropdown_item.get() == "deploy-new-program-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
+
+                                    let document = leptos::prelude::document();
+                                    let target = document.query_selector("#deploy-and-execute-dropdown-button").unwrap().unwrap();
                                     let new_val = Array::new();
                                     new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                    if this.class_list().contains("show"){
-                                        let _ = this.class_list().remove(&new_val);
-                                        set_deploy_accounts_dropdown_active.set(false);
-                                    } else {
-                                        let _ = this.class_list().add(&new_val);
-                                        set_deploy_accounts_dropdown_active.set(true);
-                                    }
-                                }> 
-                                    <div class="buffer" inner_html={move || deploy_accounts_dropdown_text.get()}></div>
-                                    <img src="public/chevron-down.svg"/>
-                                </div>
-                                <div id="deploy-accounts-dropdown-content" class="dropdown-content" style={move || if deploy_accounts_dropdown_active.get() {"display: block"} else {"display: none"}}>
-                                    <div id="placeholder-button" class="dropdown-item-placeholder" style={move || if network_accounts.get().len() == 0 {"display: block; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {"display: none; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"}}
-                                    >
-                                        Please load an account first!
-                                    </div>
-                                    <For each=move || network_accounts.get() key=|(key,_)| key.to_string() children=move |(name,_)| {
-                                        view! {
-                                            <div id=name class={ let name_clone = name.clone(); move || { let id = deploy_accounts_dropdown_item.get(); if id == name_clone  {"dropdown-item selected"} else {"dropdown-item"}}} style={ let name_clone = name.clone(); move || { let accounts_map = network_accounts.get(); if accounts_map.len() != 0 {let final_item = &accounts_map.get_index(accounts_map.len()-1).unwrap(); if final_item.0.to_string() == name_clone {"border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;"} else {""}} else {""}}}
-                                            on:click:target = move|ev| {
-                                                let current_item = deploy_accounts_dropdown_item.get();
-                                                if current_item != ev.target().id(){
-                                                    set_deploy_accounts_dropdown_item.set(ev.target().id());
-                                                    set_deploy_accounts_dropdown_text.set(ev.target().inner_html());
-                    
-                                                    let document = leptos::prelude::document();
-                                                    let target = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap();
-                                                    let new_val = Array::new();
-                                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                                    let _ = target.class_list().remove(&new_val);
-                                                    set_deploy_accounts_dropdown_active.set(false);
-                                                }
-                                            }
-
-                                            >
-                                                {name.clone()}
-                                            </div>                                     
-                                        }
-                                    }/>
-                                </div>
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
+                                }
+                            }
+                            >
+                                Deploy a New Program
                             </div>
-                        </div>
+                            <div id="load-program-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if current_dropdown_item.get() == "load-program-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                            on:click:target = move|ev| {
+                                if current_dropdown_item.get() != ev.target().id(){
+                                    set_current_dropdown_item.set(ev.target().id());
+                                    set_current_dropdown_text.set(ev.target().inner_html());
 
-                        <div class="input-field">
-                            <div class="field-title">Fee</div>
-                            <div class="output-input-wrapper">
-                                <input id="deploy-input-fee" style=" border-top-right-radius: 0px; border-bottom-right-radius: 0px;" placeholder="Fee" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                                <div class="card-button-estimate-fee">Estimate Fee</div>
-                            </div>
-                        </div>
-
-                        <div class="switch-wrapper">
-                            <div class="field-title" style="order:0; padding:0; margin-right:15px; padding-top:2.5px; padding-bottom:2.5px;">Private Fee</div>
-                            <label class="switch" style="order:1;">
-                                <input type="checkbox"
-                                on:change:target = move|ev|{
                                     let document = leptos::prelude::document();
-                                                    
-                                    let value = ev.target().checked();
-                                    let private_fee_input_field = document.query_selector("#private-fee-input-field").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                    if value {
-                                        let _ = private_fee_input_field.style().set_property("display", "block");
-                                    } else  {
-                                        let _ = private_fee_input_field.style().set_property("display", "none");
-                                    }
-
-                                    let private_fee_input = document.query_selector("#private-fee-input").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                    if value {
-                                        let _ = private_fee_input.set_attribute("active", "true");
-                                    } else  {
-                                        let _ = private_fee_input.set_attribute("active", "false");
-                                    }           
+                                    let target = document.query_selector("#deploy-and-execute-dropdown-button").unwrap().unwrap();
+                                    let new_val = Array::new();
+                                    new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
+                                    let _ = target.class_list().remove(&new_val);
+                                    set_dropdown_active.set(false);
                                 }
-                                />
-                                <span class="slider round"></span>
-                            </label>
-                        </div>
-
-
-                        <div class="input-field" id="private-fee-input-field" style="padding-top:10px; display: none;">
-                            <div style="order:0" class="field-title">Fee Record</div>
-
-                            <div class="output-textarea-wrapper" style="height:70px;">
-                                <textarea style="order:0; white-space: pre-wrap; background-color:transparent;" id="private-fee-input" placeholder="Fee Record" spellcheck="false" autocomplete="off" autocapitalize="off" active="false"/>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-
-            
-            <div id="deploy-and-execute-card" class="card">
-                <div id="deploy-and-execute-dropdown-custom" class="dropdown-custom-head">
-                    <div id="deploy-and-execute-dropdown-button" class="dropdown-button" on:click:target=move|ev| 
-                    {
-                        let this = ev.target().dyn_into::<Element>().unwrap();
-                        let new_val = Array::new();
-                        new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                        if this.class_list().contains("show"){
-                            let _ = this.class_list().remove(&new_val);
-                            set_dropdown_active.set(false);
-                        } else {
-                            let _ = this.class_list().add(&new_val);
-                            set_dropdown_active.set(true);
-                        }
-                    }> 
-                        <div class="buffer" inner_html={move || current_dropdown_text.get()}></div>
-                        <img src="public/chevron-down-dark.svg"/>
-                    </div>
-                    <div id="deploy-and-execute-dropdown-content" class="dropdown-content" style={move || if dropdown_active.get() {"display: block"} else {"display: none"}}>
-                        <div id="deploy-new-program-button" class={move || if current_dropdown_item.get() == "deploy-new-program-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                        on:click:target = move|ev| {
-                            if current_dropdown_item.get() != ev.target().id(){
-                                set_current_dropdown_item.set(ev.target().id());
-                                set_current_dropdown_text.set(ev.target().inner_html());
-
-                                let document = leptos::prelude::document();
-                                let target = document.query_selector("#deploy-and-execute-dropdown-button").unwrap().unwrap();
-                                let new_val = Array::new();
-                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                let _ = target.class_list().remove(&new_val);
-                                set_dropdown_active.set(false);
                             }
-                        }
-                        >
-                            Deploy a New Program
-                        </div>
-                        <div id="load-program-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if current_dropdown_item.get() == "load-program-button" {"dropdown-item selected"} else {"dropdown-item"}}
-                        on:click:target = move|ev| {
-                            if current_dropdown_item.get() != ev.target().id(){
-                                set_current_dropdown_item.set(ev.target().id());
-                                set_current_dropdown_text.set(ev.target().inner_html());
-
-                                let document = leptos::prelude::document();
-                                let target = document.query_selector("#deploy-and-execute-dropdown-button").unwrap().unwrap();
-                                let new_val = Array::new();
-                                new_val.push(&serde_wasm_bindgen::to_value("show").unwrap());
-                                let _ = target.class_list().remove(&new_val);
-                                set_dropdown_active.set(false);
-                            }
-                        }
-                        >
-                            Load Existing Program
-                        </div>
-                    </div>
-                </div>
-
-
-
-
-
-                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "deploy-new-program-button" {"display: flex"} else {"display: none"}}>
-                    <div id="deploy-program-card-body" class="card-body">
-                        <div class="field-title">{move || format!("{}{}","Network: ",current_environment_dropdown_text.get())}</div>
-                        
-                        // <div class="input-field">
-                        //     <div class="field-title">Program ID</div>
-                        //     <input id="deploy-input-program-id" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                        // </div>
-
-
-                        <div class="input-field">
-                            <div class="field-title">Project</div>
-                            <div class="output-input-wrapper">
-                                <input id="deploy-input-project" value={move || compiled_project.get().1} placeholder="Compile a project first!" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                            >
+                                Load Existing Program
                             </div>
                         </div>
-                        <div class="input-field">
-                            <div class="field-title">Program ID</div>
-                            <div class="output-input-wrapper">
-                                <input id="deploy-input-program-id" value={move || compiled_program_id.get()} placeholder="Compile a project first!" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
-                            </div>
-                        </div>
-                        <div id="deploy-program-error" class="error-title" style="display:none; padding-top:0px; padding-left:2px;"></div>
-
                     </div>
-                    <div class="card-divider"/>
-
-                    <button id="deploy-button" class="card-button"
-                    on:click:target=move|ev| {
-                        let document = leptos::prelude::document();
-                                                    
-                        let current_project_input = document.query_selector("#deploy-input-project").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        let current_program_id_input = document.query_selector("#deploy-input-program-id").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        let current_fee_input = document.query_selector("#deploy-input-fee").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        let current_fee_record_input = document.query_selector("#private-fee-input").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
-
-                        let project = current_project_input.value().clone();
-                        let program_id = current_program_id_input.value().clone();
-                        let fee = current_fee_input.value().clone();
-                        let fee_record = current_fee_record_input.value().clone();
-                        
-            
-
-                        let target1 = current_project_input.dyn_into::<HtmlElement>().unwrap();
-                        let target2 = current_program_id_input.dyn_into::<HtmlElement>().unwrap();
-                        let target3 = current_fee_input.dyn_into::<HtmlElement>().unwrap();
-                        let target4 = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                        let target5 = current_fee_record_input.dyn_into::<HtmlElement>().unwrap();
-                        let private_fee_active = target5.get_attribute("active").unwrap();
-
-                        let style1 = target1.style();
-                        let style2 = target2.style();
-                        let style3 = target3.style();
-                        let style4 = target4.style();
-                        let style5 = target5.style();
-
-                        if &project == "" {
-                            let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
-                        } else {
-                            let _ = style1.set_property("border", "1px solid #494e64");   
-                        }
-
-                        if &program_id == "" {
-                            let _ = style2.set_property("border", "1px solid var(--grapefruit)");   
-                        } else {
-                            let _ = style2.set_property("border", "1px solid #494e64");   
-                        }
-
-                        if &fee == "" {
-                            let _ = style3.set_property("border", "1px solid var(--grapefruit)");   
-                        } else {
-                            let _ = style3.set_property("border", "1px solid #494e64");   
-                        }
-
-                        if deploy_accounts_dropdown_item.get_untracked() == String::new(){
-                            let _ = style4.set_property("border", "1px solid var(--grapefruit)");   
-                        } else {
-                            let _ = style4.set_property("border", "1px solid #494e64");   
-                        }
-            
-                        if private_fee_active == "true" && &fee_record == ""{
-                            let _ = style5.set_property("border", "1px solid var(--grapefruit)");   
-                        } else {
-                            let _ = style5.set_property("border", "1px solid #494e64");   
-                        }
-
-                        if &project != "" && &program_id != "" && &fee != "" && deploy_accounts_dropdown_item.get_untracked() != String::new() && !(private_fee_active == "true" && &fee_record == ""){
-                            let _ = style1.set_property("border", "1px solid #494e64");  
-                            let _ = style2.set_property("border", "1px solid #494e64");  
-                            let _ = style3.set_property("border", "1px solid #494e64");  
-                            let _ = style4.set_property("border", "1px solid #494e64");
-                            let _ = style5.set_property("border", "1px solid #494e64");
-                            let error = document.query_selector("#deploy-program-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                            let _ = error.style().set_property("display", "none"); 
-
-                            let this = ev.target().dyn_into::<Element>().unwrap();
-                            let new_val = Array::new();
-                            new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
-                            let _ = this.class_list().add(&new_val); 
 
 
-                            spawn_local(async move {
-                                let current_env = if current_environment_dropdown_text.get_untracked() == "Local Devnet" {"local".to_string()} else {current_environment_dropdown_text.get_untracked().to_string().to_lowercase()};
-                                let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
-                                
-                                let accounts_map = network_accounts.get_untracked();
-                                let account = accounts_map.get(&deploy_accounts_dropdown_item.get_untracked()).unwrap();
-                                let pk = account.0.clone();
-                                let fee_in_microcredits : u64; //* 1000000;
-                                match fee.parse::<u64>() {
-                                    Ok(val) => {fee_in_microcredits = val *1000000},
-                                    Err(_) => {fee_in_microcredits = 0},
-                                }
 
-                                let mut command = vec!["deploy".to_string(), "--path".to_string(),compiled_project.get_untracked().0.clone(), "--yes".to_string(), "--no-build".to_string(), "--private-key".to_string(), pk,"--base-fee".to_string(),fee_in_microcredits.to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()];
-                                if private_fee_active == "true" {
-                                    command.push("--record".to_string());
-                                    command.push(fee_record);
-                                }
-                                
-                                
-                                let args = serde_wasm_bindgen::to_value(&Command { command : command}).unwrap();        
-                                let (error,_output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
-                                if !error {
-                                    let compiled_file = format!("{}{}",compiled_project.get_untracked().0.clone(),"/build/main.aleo");
-                                    let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: compiled_file}).unwrap();
-                                    match invoke("read_file", args).await.as_string(){
-                                        Some(contents) => {
-                                            let mut formatted_output = String::new();
-                                            let split = contents.split("\n").collect::<Vec<&str>>();
-                                            for item in &(split)[2..split.len()]{
-                                                if *item == "" {
-                                                    formatted_output = format!("{}{}", formatted_output, "\n");
-                                                } else {
-                                                    formatted_output = format!("{}{}{}", formatted_output, item, "\n");
-                                                }
-                                            }
-                                            set_new_loaded_program.set((program_id, current_env.clone(), formatted_output));
-                                        },
-                                        None => {
-                                            console_log("Error: File does not exist");
-                                        }
-                                    }
-                                } else {
-                                    let error = document.query_selector("#deploy-program-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                    error.set_inner_html("Error: Deployment Failed");
-                                    let _ = error.style().set_property("display", "block");
 
-                                }
-                                let _ = this.class_list().remove(&new_val); 
-                            })
-                        }
-        
-                    }
-                    >
-                        Deploy
-                    </button>
-                </div>
 
-                <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "load-program-button" {"display: flex"} else {"display: none"}}>
-                    <div id="load-program-card-body" class="card-body">
-                        <div class="field-title">{move || format!("{}{}","Network: ",current_environment_dropdown_text.get())}</div>
-                        <div class="input-field">
-                            <div class="field-title">Program ID</div>
-                            <input id="load-program-input" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                            <div id="load-program-input-error" class="error-title" style="display:none;"></div>
-                        </div>
-                    </div>
-                    <div class="card-divider"/>
-                    <button id="load-program-button" class="card-button"
-                    on:click:target=move|ev| {
-                        let document = leptos::prelude::document();
-                        let current_input = document.query_selector("#load-program-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
-                        let value = current_input.value().clone();
-                        let current_env = if current_environment_dropdown_text.get_untracked() == "Local Devnet" {"local".to_string()} else {current_environment_dropdown_text.get_untracked().to_string().to_lowercase()};
-
-                        let target = current_input.dyn_into::<HtmlElement>().unwrap();
-                        let style = target.style();
-                        if &value == "" {
-                            let _ = style.set_property("border", "1px solid var(--grapefruit)");   
-                        } else {
-                            let _ = style.set_property("border", "1px solid #494e64");
-                            let error = document.query_selector("#load-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                            let _ = error.style().set_property("display", "none");
-
+                    <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "deploy-new-program-button" {"display: flex"} else {"display: none"}}>
+                        <div id="deploy-program-card-body" class="card-body">
+                            <div class="field-title">{move || format!("{}{}","Network: ",current_environment_dropdown_text.get())}</div>
                             
-                            let this = ev.target().dyn_into::<Element>().unwrap();
-                            let new_val = Array::new();
-                            new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
-                            let _ = this.class_list().add(&new_val); 
+                            // <div class="input-field">
+                            //     <div class="field-title">Program ID</div>
+                            //     <input id="deploy-input-program-id" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                            // </div>
 
-                            let formatted_id = format!("{}{}{}{}",value," (",current_env,")");
-                            let element_option = document.get_element_by_id(&formatted_id);
-                            match element_option {
-                                Some(_) =>{
-                                    let error = document.query_selector("#load-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                    error.set_inner_html("Error: This program has already been loaded for the selected network.");
-                                    let _ = error.style().set_property("display", "block");
-                                    let _ = this.class_list().remove(&new_val); 
-                                },
-                                None => {
-                                    /*
-                                    Dependency Checking Order:
-                                        1. TODO: Local
-                                            a. Look in ROOT/program.json
-                                            b. If exists, will be at path ROOT/program.json["path"]/build/main.aleo
-                                        2. Query
-                                            a. Will look in .aleo/NETWORK if already cached
-                                            b. Else, will query from network
-                                    */
 
-                                    let mut not_local = true;
-                                    spawn_local(async move {
-                                        // if compiled_project.get_untracked().0 != String::new() {
-                                        // if false {
-                                        //     let args = serde_wasm_bindgen::to_value(&ReadProgramJsonArgs { filepath : format!("{}{}", compiled_project.get_untracked().0, "/program.json"), field: "dependencies".to_string()}).unwrap();
-                                        //     let dependencies = invoke("read_program_json", args).await.as_string().unwrap();
+                            <div class="input-field">
+                                <div class="field-title">Project</div>
+                                <div class="output-input-wrapper">
+                                    <input id="deploy-input-project" value={move || compiled_project.get().1} placeholder="Compile a project first!" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                </div>
+                            </div>
+                            <div class="input-field">
+                                <div class="field-title">Program ID</div>
+                                <div class="output-input-wrapper">
+                                    <input id="deploy-input-program-id" value={move || compiled_program_id.get()} placeholder="Compile a project first!" spellcheck="false" autocomplete="off" autocapitalize="off" readonly/>
+                                </div>
+                            </div>
+                            <div id="deploy-program-error" class="error-title" style="display:none; padding-top:0px; padding-left:2px;"></div>
 
-                                        //     if dependencies != String::new(){
-                                        //         let deserialized_return_val : Vec<HashMap<String,Option<String>>> = serde_json::from_str(&dependencies).expect("Error with decoding dir_entry");
-                                        //         for json in deserialized_return_val {
-                                        //             let name = json.get("name").unwrap().clone().unwrap();
-                                        //             if name == value{
-                                        //                 let location = json.get("location").unwrap().clone().unwrap();
-                                        //                 if location == "local" {
-                                        //                     let path = json.get("path").unwrap().clone().unwrap();
-                                        //                     let full_path = format!("{}{}{}{}", compiled_project.get_untracked().0, "/", path,"/build/main.aleo");
-                                        //                     let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: full_path}).unwrap();
-                                        //                     match invoke("read_file", args).await.as_string(){
-                                        //                         Some(contents) => {
-                                        //                             console_log(&contents);
-                                        //                         },
-                                        //                         None => {
-                                        //                             console_log("Error: File does not exist");
-                                        //                         }
-                                        //                     }
-                                                            
-                                                            
-                                        //                     not_local = false;
-                                        //                     break;
-                                        //                 }
-                                        //             }
-                                        //         }
-                                        //     }
-                                        // }
-                                        if not_local {
-                                            let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
+                        </div>
+                        <div class="card-divider"/>
 
-                                            let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"program".to_string(), value.clone() ,"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()]}).unwrap();        
-                                            let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
-                                            if !error {
+                        <button id="deploy-button" class="card-button"
+                        on:click:target=move|ev| {
+                            let document = leptos::prelude::document();
+                                                        
+                            let current_project_input = document.query_selector("#deploy-input-project").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let current_program_id_input = document.query_selector("#deploy-input-program-id").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let current_fee_input = document.query_selector("#deploy-input-fee").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let current_fee_record_input = document.query_selector("#private-fee-input").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+
+                            let project = current_project_input.value().clone();
+                            let program_id = current_program_id_input.value().clone();
+                            let fee = current_fee_input.value().clone();
+                            let fee_record = current_fee_record_input.value().clone();
+                            
+                
+
+                            let target1 = current_project_input.dyn_into::<HtmlElement>().unwrap();
+                            let target2 = current_program_id_input.dyn_into::<HtmlElement>().unwrap();
+                            let target3 = current_fee_input.dyn_into::<HtmlElement>().unwrap();
+                            let target4 = document.query_selector("#deploy-accounts-dropdown-button").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                            let target5 = current_fee_record_input.dyn_into::<HtmlElement>().unwrap();
+                            let private_fee_active = target5.get_attribute("active").unwrap();
+
+                            let style1 = target1.style();
+                            let style2 = target2.style();
+                            let style3 = target3.style();
+                            let style4 = target4.style();
+                            let style5 = target5.style();
+
+                            if &project == "" {
+                                let _ = style1.set_property("border", "1px solid var(--grapefruit)");   
+                            } else {
+                                let _ = style1.set_property("border", "1px solid #494e64");   
+                            }
+
+                            if &program_id == "" {
+                                let _ = style2.set_property("border", "1px solid var(--grapefruit)");   
+                            } else {
+                                let _ = style2.set_property("border", "1px solid #494e64");   
+                            }
+
+                            if &fee == "" {
+                                let _ = style3.set_property("border", "1px solid var(--grapefruit)");   
+                            } else {
+                                let _ = style3.set_property("border", "1px solid #494e64");   
+                            }
+
+                            if deploy_accounts_dropdown_item.get_untracked() == String::new(){
+                                let _ = style4.set_property("border", "1px solid var(--grapefruit)");   
+                            } else {
+                                let _ = style4.set_property("border", "1px solid #494e64");   
+                            }
+                
+                            if private_fee_active == "true" && &fee_record == ""{
+                                let _ = style5.set_property("border", "1px solid var(--grapefruit)");   
+                            } else {
+                                let _ = style5.set_property("border", "1px solid #494e64");   
+                            }
+
+                            if &project != "" && &program_id != "" && &fee != "" && deploy_accounts_dropdown_item.get_untracked() != String::new() && !(private_fee_active == "true" && &fee_record == ""){
+                                let _ = style1.set_property("border", "1px solid #494e64");  
+                                let _ = style2.set_property("border", "1px solid #494e64");  
+                                let _ = style3.set_property("border", "1px solid #494e64");  
+                                let _ = style4.set_property("border", "1px solid #494e64");
+                                let _ = style5.set_property("border", "1px solid #494e64");
+                                let error = document.query_selector("#deploy-program-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = error.style().set_property("display", "none"); 
+
+                                let this = ev.target().dyn_into::<Element>().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
+                                let _ = this.class_list().add(&new_val); 
+
+
+                                spawn_local(async move {
+                                    let current_env = if current_environment_dropdown_text.get_untracked() == "Local Devnet" {"local".to_string()} else {current_environment_dropdown_text.get_untracked().to_string().to_lowercase()};
+                                    let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
+                                    
+                                    let accounts_map = network_accounts.get_untracked();
+                                    let account = accounts_map.get(&deploy_accounts_dropdown_item.get_untracked()).unwrap();
+                                    let pk = account.0.clone();
+                                    let fee_in_microcredits : u64; //* 1000000;
+                                    match fee.parse::<u64>() {
+                                        Ok(val) => {fee_in_microcredits = val *1000000},
+                                        Err(_) => {fee_in_microcredits = 0},
+                                    }
+
+                                    let mut command = vec!["deploy".to_string(), "--path".to_string(),compiled_project.get_untracked().0.clone(), "--yes".to_string(), "--no-build".to_string(), "--private-key".to_string(), pk,"--base-fee".to_string(),fee_in_microcredits.to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()];
+                                    if private_fee_active == "true" {
+                                        command.push("--record".to_string());
+                                        command.push(fee_record);
+                                    }
+                                    
+                                    
+                                    let args = serde_wasm_bindgen::to_value(&Command { command : command}).unwrap();        
+                                    let (error,_output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                    if !error {
+                                        let compiled_file = format!("{}{}",compiled_project.get_untracked().0.clone(),"/build/main.aleo");
+                                        let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: compiled_file}).unwrap();
+                                        match invoke("read_file", args).await.as_string(){
+                                            Some(contents) => {
                                                 let mut formatted_output = String::new();
-                                                let split = output.split("\n\n").collect::<Vec<&str>>();
-                                                for item in &(split)[2..split.len()-3]{
+                                                let split = contents.split("\n").collect::<Vec<&str>>();
+                                                for item in &(split)[2..split.len()]{
                                                     if *item == "" {
                                                         formatted_output = format!("{}{}", formatted_output, "\n");
                                                     } else {
                                                         formatted_output = format!("{}{}{}", formatted_output, item, "\n");
                                                     }
                                                 }
-
-                                                set_new_loaded_program.set((value.clone(), current_env.clone(), formatted_output));
-                                                
-                                            } else {
-                                                let error = document.query_selector("#load-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                                error.set_inner_html("Error: The program with this ID does not exist.");
-                                                let _ = error.style().set_property("display", "block");
+                                                set_new_loaded_program.set((program_id, current_env.clone(), formatted_output));
+                                            },
+                                            None => {
+                                                console_log("Error: File does not exist");
                                             }
                                         }
+                                    } else {
+                                        let error = document.query_selector("#deploy-program-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        error.set_inner_html("Error: Deployment Failed");
+                                        let _ = error.style().set_property("display", "block");
+
+                                    }
+                                    let _ = this.class_list().remove(&new_val); 
+                                })
+                            }
+            
+                        }
+                        >
+                            Deploy
+                        </button>
+                    </div>
+
+                    <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "load-program-button" {"display: flex"} else {"display: none"}}>
+                        <div id="load-program-card-body" class="card-body">
+                            <div class="field-title">{move || format!("{}{}","Network: ",current_environment_dropdown_text.get())}</div>
+                            <div class="input-field">
+                                <div class="field-title">Program ID</div>
+                                <input id="load-program-input" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
+                                <div id="load-program-input-error" class="error-title" style="display:none;"></div>
+                            </div>
+                        </div>
+                        <div class="card-divider"/>
+                        <button id="load-program-button" class="card-button"
+                        on:click:target=move|ev| {
+                            let document = leptos::prelude::document();
+                            let current_input = document.query_selector("#load-program-input").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
+                            let value = current_input.value().clone();
+                            let current_env = if current_environment_dropdown_text.get_untracked() == "Local Devnet" {"local".to_string()} else {current_environment_dropdown_text.get_untracked().to_string().to_lowercase()};
+
+                            let target = current_input.dyn_into::<HtmlElement>().unwrap();
+                            let style = target.style();
+                            if &value == "" {
+                                let _ = style.set_property("border", "1px solid var(--grapefruit)");   
+                            } else {
+                                let _ = style.set_property("border", "1px solid #494e64");
+                                let error = document.query_selector("#load-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                let _ = error.style().set_property("display", "none");
+
+                                
+                                let this = ev.target().dyn_into::<Element>().unwrap();
+                                let new_val = Array::new();
+                                new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
+                                let _ = this.class_list().add(&new_val); 
+
+                                let formatted_id = format!("{}{}{}{}",value," (",current_env,")");
+                                let element_option = document.get_element_by_id(&formatted_id);
+                                match element_option {
+                                    Some(_) =>{
+                                        let error = document.query_selector("#load-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        error.set_inner_html("Error: This program has already been loaded for the selected network.");
+                                        let _ = error.style().set_property("display", "block");
                                         let _ = this.class_list().remove(&new_val); 
-                                    });
+                                    },
+                                    None => {
+                                        /*
+                                        Dependency Checking Order:
+                                            1. TODO: Local
+                                                a. Look in ROOT/program.json
+                                                b. If exists, will be at path ROOT/program.json["path"]/build/main.aleo
+                                            2. Query
+                                                a. Will look in .aleo/NETWORK if already cached
+                                                b. Else, will query from network
+                                        */
+
+                                        let mut not_local = true;
+                                        spawn_local(async move {
+                                            // if compiled_project.get_untracked().0 != String::new() {
+                                            // if false {
+                                            //     let args = serde_wasm_bindgen::to_value(&ReadProgramJsonArgs { filepath : format!("{}{}", compiled_project.get_untracked().0, "/program.json"), field: "dependencies".to_string()}).unwrap();
+                                            //     let dependencies = invoke("read_program_json", args).await.as_string().unwrap();
+
+                                            //     if dependencies != String::new(){
+                                            //         let deserialized_return_val : Vec<HashMap<String,Option<String>>> = serde_json::from_str(&dependencies).expect("Error with decoding dir_entry");
+                                            //         for json in deserialized_return_val {
+                                            //             let name = json.get("name").unwrap().clone().unwrap();
+                                            //             if name == value{
+                                            //                 let location = json.get("location").unwrap().clone().unwrap();
+                                            //                 if location == "local" {
+                                            //                     let path = json.get("path").unwrap().clone().unwrap();
+                                            //                     let full_path = format!("{}{}{}{}", compiled_project.get_untracked().0, "/", path,"/build/main.aleo");
+                                            //                     let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: full_path}).unwrap();
+                                            //                     match invoke("read_file", args).await.as_string(){
+                                            //                         Some(contents) => {
+                                            //                             console_log(&contents);
+                                            //                         },
+                                            //                         None => {
+                                            //                             console_log("Error: File does not exist");
+                                            //                         }
+                                            //                     }
+                                                                
+                                                                
+                                            //                     not_local = false;
+                                            //                     break;
+                                            //                 }
+                                            //             }
+                                            //         }
+                                            //     }
+                                            // }
+                                            if not_local {
+                                                let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
+
+                                                let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"program".to_string(), value.clone() ,"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()]}).unwrap();        
+                                                let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                                if !error {
+                                                    let mut formatted_output = String::new();
+                                                    let split = output.split("\n\n").collect::<Vec<&str>>();
+                                                    for item in &(split)[2..split.len()-3]{
+                                                        if *item == "" {
+                                                            formatted_output = format!("{}{}", formatted_output, "\n");
+                                                        } else {
+                                                            formatted_output = format!("{}{}{}", formatted_output, item, "\n");
+                                                        }
+                                                    }
+
+                                                    set_new_loaded_program.set((value.clone(), current_env.clone(), formatted_output));
+                                                    
+                                                } else {
+                                                    let error = document.query_selector("#load-program-input-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                                    error.set_inner_html("Error: The program with this ID does not exist.");
+                                                    let _ = error.style().set_property("display", "block");
+                                                }
+                                            }
+                                            let _ = this.class_list().remove(&new_val); 
+                                        });
+                                    }
                                 }
                             }
                         }
-                    }
-                    >
-                        Load
-                    </button>
+                        >
+                            Load
+                        </button>
+                    </div>
                 </div>
+
+
+                <div class="panel-divider" style="margin-bottom:0"/>
+
+                <div class="programs-wrapper"></div>
             </div>
-
-
-            <div class="panel-divider" style="margin-bottom:0"/>
-
-            <div class="programs-wrapper"></div>
         </div>
     }
 }

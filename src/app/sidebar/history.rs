@@ -33,6 +33,8 @@ pub fn SidebarHistory (
         <div class="wrapper" style={move || if selected_activity_icon.get() == "#history-tab-button" {"display: flex;"} else {"display: none;"}}>
             <div class="sidebar-title">History</div>
 
+            <div class="sidebar-body-wrapper">
+            </div>
         </div>
     }
 }

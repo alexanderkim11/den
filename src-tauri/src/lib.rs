@@ -88,6 +88,7 @@ pub fn run() {
             snarkvm::sign,
             snarkvm::verify,
             snarkvm::decrypt_record,
+            snarkvm::execute_remote_wrapper,
             state::get_state_accounts,
             state::get_state_root_dir,
             state::update_state_accounts,
