@@ -239,15 +239,16 @@
   user-select: none;
 }
 
-/* .sidebar-body-wrapper {
-  overflow:auto;
-} */
+.sidebar-body-wrapper {
+  height:100%;
+}
 
 .card {
   display:flex;
   flex-direction:column;
   overflow:visible;
   padding:10px;
+  box-sizing: border-box;
 }
 
 .card-head{
