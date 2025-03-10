@@ -239,14 +239,15 @@
   user-select: none;
 }
 
-.sidebar-body-wrapper {
+/* .sidebar-body-wrapper {
   overflow:auto;
-}
+} */
 
 .card {
   margin:10px;
   display:flex;
   flex-direction:column;
+  overflow:visible;
 }
 
 .card-head{

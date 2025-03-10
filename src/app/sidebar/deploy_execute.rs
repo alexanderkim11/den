@@ -1009,7 +1009,7 @@ pub fn SidebarDeployExecute (
                 Deploy and Execute
             </div>
 
-            <div class="sidebar-body-wrapper">
+            <div class="sidebar-body-wrapper" style="overflow:auto;">
                 <div id="funding-card" style="color:#e3e3e3;" class="card">
                     <div id="funding-card-head" class="card-head" >
                         <div class="title" style="-webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none;">
