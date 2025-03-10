@@ -744,7 +744,7 @@ pub fn SidebarFileExplorer (
                 </button>
             </div>
                 
-            <div class="sidebar-body-wrapper">
+            <div class="sidebar-body-wrapper" style="overflow:auto;">
                 <div class="open-folder-wrapper" style="display:flex;">
                     <button class="open-folder"
                     on:click:target=move|ev| {

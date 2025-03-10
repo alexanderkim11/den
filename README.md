@@ -20,7 +20,6 @@ Built with Tauri + Leptos
 - Add way to open multiple windows/app instances
 - Figure out way to add warning message when exiting app
 - Integrate Git
-- **Fix scrolling issue in sidebar card**
 
 ## Sidebar:
 - General:
