@@ -64,9 +64,7 @@ COMPONENTS
 pub fn SidebarDeployExecute (
     selected_activity_icon: ReadSignal<String>,
     accounts : ReadSignal<(IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>)>,
-    set_accounts : WriteSignal<(IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>)>,
     compiled_project : ReadSignal<(String,String)>,
-    set_compiled_project : WriteSignal<(String,String)>,
 
     current_environment_dropdown_text : ReadSignal<String>,
     current_environment_dropdown_item : ReadSignal<String>,
@@ -365,7 +363,7 @@ pub fn SidebarDeployExecute (
 
 
         }  else if function_type == "mapping" {
-            let document = leptos::prelude::document();
+            //let document = leptos::prelude::document();
 
             // let current_fee_input = document.query_selector("#deploy-input-fee").unwrap().unwrap().dyn_into::<HtmlInputElement>().unwrap();
             // let fee = current_fee_input.value().clone();
@@ -1391,7 +1389,7 @@ pub fn SidebarDeployExecute (
                                                 b. Else, will query from network
                                         */
 
-                                        let mut not_local = true;
+                                        //let mut not_local = true;
                                         spawn_local(async move {
                                             // if compiled_project.get_untracked().0 != String::new() {
                                             // if false {
@@ -1425,7 +1423,7 @@ pub fn SidebarDeployExecute (
                                             //         }
                                             //     }
                                             // }
-                                            if not_local {
+                                            if true {//not_local {
                                                 let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
 
                                                 let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"program".to_string(), value.clone() ,"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()]}).unwrap();        

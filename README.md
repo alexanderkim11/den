@@ -8,6 +8,7 @@ Built with Tauri + Leptos
 
 # RELEASE TODOS:
     1. Change state path to "./"
+    2. Replace all Rust `.unwrap()` calls with `.expect(ERROR_MESSAGE)`
 
 # TODO:
 
@@ -36,17 +37,21 @@ Built with Tauri + Leptos
                 - accounts
                 - open_directory
 - File System:
-    - **Add way to delete files**
+    - **Right Click Pop-up Menu**
+        - **Delete**
+        - **Copy**
+        - **Rename**
+        - Open File
+        - Open Folder
+        - Copy Path
     - Changing directories
-        - **Check for unsaved open files -> send warning if true**
-        - **Close all open files**
+        - Check for unsaved open files and only send warning if true
         - Reload window with new filesystem open?
     - Add hover filepaths for file buttons
     - Creating files/directories
-        - **Add check for conflicting file and directory names**
+        - Add better file/dir name parsing to check for invalid names
+            - Add better error messages for invalid names
         - Add better auto sorting to FS when files/directories are created
-    - **Add screen if file cannot be found**
-        - **Handle in FileTabs as Well**
 
 - Environment:
     - Add more features?
@@ -55,7 +60,7 @@ Built with Tauri + Leptos
     - Add authentication/authorization for accounts when either loading from persistant state or creating transactions?
     - Add background async function to periodically scan and update saved account balances, also should run whenever transactions are sent out
     - Saved Accounts
-        - Add field showing account balance
+        - **Add field showing account balance**
         - Hide PK and VK by default (password protected?)
 - Records:
     - Add way to save records?

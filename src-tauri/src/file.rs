@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::fs::exists;
 use std::fs::create_dir;
 use std::io::prelude::*;
 
@@ -51,5 +52,13 @@ pub fn read_program_json(_handle: tauri::AppHandle, filepath: String, field: Str
     match query {
         Some(val) => return val.to_string(),
         None => return String::new()
+    }
+}
+
+#[tauri::command]
+pub fn path_exists(_handle: tauri::AppHandle, path: String) -> bool {
+    match exists(path) {
+        Ok(_) => true,
+        Err(_) => false,
     }
 }

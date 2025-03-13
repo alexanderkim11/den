@@ -37,6 +37,27 @@ pub fn exit_warning(_handle: tauri::AppHandle, _placeholder: String) -> bool {
         }
         _ => return false
     }
+}
 
+#[tauri::command]
+pub fn change_dir_warning(_handle: tauri::AppHandle, _placeholder: String) -> bool {
+    let warning = MessageDialog::new()
+        .set_title("Warning")
+        .set_level(rfd::MessageLevel::Warning)
+        .set_description("Warning: Any unsaved changes will be lost!")
+        .set_buttons(MessageButtons::OkCancelCustom("Continue".to_string(), "Cancel".to_string()))
+        .show();
+    
+    match warning {
+        rfd::MessageDialogResult::Custom(val) => {
+            //println!("{}",val);
+            if val == "Continue".to_string() {
+                return true
+            } else {
+                return false
+            }
+        }
+        _ => return false
+    }
 }
 

@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use js_sys::Array;
 use regex::Regex;
+use web_sys::css::escape;
 
 use crate::app::{generate_file_explorer_html, CustomDirEntry};
 
@@ -161,6 +162,10 @@ pub fn IDE(
     view! {
 
         <div class= "ide">
+            <div class="ide-error" style="display:none; width:100%; height:100%">
+                <img src="public/error.svg"/> 
+                <div class="ide-error-text">Error: File not found</div>
+            </div>
             <div class="line-numbers" inner_html={ move || lines_html.get() }></div>
             {Effect::new(move |_| {
                 let _signal = lines_html.get();
@@ -371,6 +376,8 @@ pub fn IDE(
 
 
                 {Effect::new(move |_| {
+                    let document = leptos::prelude::document();
+
                     let selected = selected_file.get();
                     if selected != String::new(){
                         let mut saved_contents = saved_file_contents.get_untracked();
@@ -389,18 +396,41 @@ pub fn IDE(
                                             saved_contents.insert(selected.clone(), contents.clone());
                                             set_saved_file_contents.set(saved_contents);
 
-                                            let document = leptos::prelude::document();
                                             let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
                                             result_element.set_value(&cached_content);
 
                                             let lines_html = get_lines(cached_content);
                                             set_lines_html.set(lines_html);
 
-                                            let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                            let _ = result_element.style().remove_property("display");
+                                            let result_element1 = document.query_selector(".ide-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element1.style().set_property("display","none");
+
+                                            let result_element2 = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element2.style().remove_property("display");
+
+                                            let result_element3 = document.query_selector(".editor").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element3.style().remove_property("display");
+                                            
+                                            let result_element4 = document.query_selector(".line-numbers").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element4.style().remove_property("display");
                                         },
                                         None => {
-                                            console_log("Error: File does not exist");
+                                            let result_element1 = document.query_selector(".ide-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element1.style().remove_property("display");
+
+                                            let tab_id = format!("{}{}", "#", escape(&selected.clone()));
+                                            let tab_element = document.query_selector(&tab_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = tab_element.set_attribute("valid", "false");
+
+                                            let result_element2 = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element2.style().remove_property("display");
+
+                                            let result_element3 = document.query_selector(".editor").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element3.style().set_property("display", "none");
+                                            
+                                            let result_element4 = document.query_selector(".line-numbers").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element4.style().set_property("display", "none");
+
                                         }
                                     }
 
@@ -410,6 +440,7 @@ pub fn IDE(
                             spawn_local(
                                 async move {
                                     let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: selected.clone()}).unwrap();
+
                                     match invoke("read_file", args).await.as_string(){
                                         Some(contents) => {
                                             let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
@@ -421,18 +452,42 @@ pub fn IDE(
                                             set_saved_file_contents.set(saved_contents);
                                             set_cached_file_contents.set(cached_contents);
 
-                                            let document = leptos::prelude::document();
                                             let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
                                             result_element.set_value(&contents);
 
                                             let lines_html = get_lines(contents);
                                             set_lines_html.set(lines_html);
 
-                                            let result_element = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
-                                            let _ = result_element.style().remove_property("display");
+                                            let result_element1 = document.query_selector(".ide-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element1.style().set_property("display","none");
+
+                                            let result_element2 = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element2.style().remove_property("display");
+
+                                            let result_element3 = document.query_selector(".editor").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element3.style().remove_property("display");
+                                            
+                                            let result_element4 = document.query_selector(".line-numbers").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element4.style().remove_property("display");
                                         },
                                         None => {
-                                            console_log("Error: File does not exist");
+                                            let result_element1 = document.query_selector(".ide-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element1.style().remove_property("display");
+
+
+                                            let tab_id = format!("{}{}", "#", escape(&selected.clone()));
+                                            let tab_element = document.query_selector(&tab_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = tab_element.set_attribute("valid", "false");
+
+                                            let result_element2 = document.query_selector(".ide").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element2.style().remove_property("display");
+
+                                            let result_element3 = document.query_selector(".editor").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element3.style().set_property("display", "none");
+                                            
+                                            let result_element4 = document.query_selector(".line-numbers").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                            let _ = result_element4.style().set_property("display", "none");
+
                                         }
                                     }
                                 }

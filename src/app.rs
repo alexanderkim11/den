@@ -108,55 +108,15 @@ fn FileTab(
 
                     let inner_filepath_clone = outer_filepath_clone.clone();
                     let inner_filename_clone = outer_filename_clone.clone();
-                    spawn_local(async move {
 
-                        let mut saved_content = saved_file_contents.get_untracked();
-                        let cached_content = cached_file_contents.get_untracked();
-                        let mut warning_result = String::new();
+                    let document = leptos::prelude::document();
+                    let tab_id = format!("{}{}", "#", escape(&outer_filepath_clone));
+                    let tab_element = document.query_selector(&tab_id).unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                    let valid = tab_element.get_attribute("valid");
 
-                        let selected = selected_file.get_untracked();
-                        if selected == inner_filepath_clone {
-                            let document = leptos::prelude::document();
-                            let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
-                            let saved = saved_content.get(&inner_filepath_clone).unwrap().to_string();
-                            if saved != result_element.value() {
-
-                                let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { placeholder : String::new()}).unwrap();
-                                warning_result = invoke("warning", args).await.as_string().unwrap();
-        
-                                if warning_result == "Save".to_string() {
-                                    let document = leptos::prelude::document();
-                                    let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
-                                    let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: result_element.value()}).unwrap();
-                                    let (_error, _message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();      
-                                }
-                            }
-
-
-                        } else {
-                            let cached = cached_content.get(&inner_filepath_clone).unwrap().to_string();
-                            let saved = saved_content.get(&inner_filepath_clone).unwrap().to_string();
-                            if saved != cached {
-
-                                let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { placeholder : String::new()}).unwrap();
-                                warning_result = invoke("warning", args).await.as_string().unwrap();
-        
-                                if warning_result == "Save".to_string() {
-                                    let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: cached.clone()}).unwrap();
-                                    let (error, message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();
-                                    if !error {
-                                        saved_content.remove(&inner_filepath_clone);
-                                        saved_content.insert(inner_filepath_clone.clone(), cached);
-                                        set_saved_file_contents.set(saved_content);
-                      
-                                    } else {
-                                        console_log(&message);
-                                    }   
-                                }
-                            }
-                        }
-
-                        if warning_result != "Cancel".to_string(){
+                    match valid {
+                        //If valid == false
+                        Some(_) => {
                             for index in 0..open_files.get_untracked().len(){
                                 let mut vec = open_files.get_untracked();
                                 if vec[index] == ((&inner_filepath_clone).to_string(),(&inner_filename_clone).to_string()){
@@ -183,8 +143,85 @@ fn FileTab(
                                 }
                             }
                         }
-                    });
-                    
+                        None => {
+                            spawn_local(async move {
+                                let mut saved_content = saved_file_contents.get_untracked();
+                                let cached_content = cached_file_contents.get_untracked();
+                                let mut warning_result = String::new();
+        
+                                let selected = selected_file.get_untracked();
+                                if selected == inner_filepath_clone {
+                                    let document = leptos::prelude::document();
+                                    let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                    let saved = saved_content.get(&inner_filepath_clone).unwrap().to_string();
+                                    if saved != result_element.value() {
+        
+                                        let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { placeholder : String::new()}).unwrap();
+                                        warning_result = invoke("warning", args).await.as_string().unwrap();
+                
+                                        if warning_result == "Save".to_string() {
+                                            let document = leptos::prelude::document();
+                                            let result_element = document.query_selector(".editing").unwrap().unwrap().dyn_into::<HtmlTextAreaElement>().unwrap();
+                                            let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: result_element.value()}).unwrap();
+                                            let (_error, _message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();      
+                                        }
+                                    }
+        
+        
+                                } else {
+                                    let cached = cached_content.get(&inner_filepath_clone).unwrap().to_string();
+                                    let saved = saved_content.get(&inner_filepath_clone).unwrap().to_string();
+                                    if saved != cached {
+        
+                                        let args = serde_wasm_bindgen::to_value(&PlaceholderArgs { placeholder : String::new()}).unwrap();
+                                        warning_result = invoke("warning", args).await.as_string().unwrap();
+                
+                                        if warning_result == "Save".to_string() {
+                                            let args = serde_wasm_bindgen::to_value(&WriteFileArgs { filepath: inner_filepath_clone.clone(), contents: cached.clone()}).unwrap();
+                                            let (error, message) : (bool, String) = serde_wasm_bindgen::from_value(invoke("write_file", args).await).unwrap();
+                                            if !error {
+                                                saved_content.remove(&inner_filepath_clone);
+                                                saved_content.insert(inner_filepath_clone.clone(), cached);
+                                                set_saved_file_contents.set(saved_content);
+                              
+                                            } else {
+                                                console_log(&message);
+                                            }   
+                                        }
+                                    }
+                                }
+        
+                                if warning_result != "Cancel".to_string(){
+                                    for index in 0..open_files.get_untracked().len(){
+                                        let mut vec = open_files.get_untracked();
+                                        if vec[index] == ((&inner_filepath_clone).to_string(),(&inner_filename_clone).to_string()){
+                                            let mut saved_content = saved_file_contents.get_untracked();
+                                            let mut cached_content = cached_file_contents.get_untracked();
+                                            saved_content.remove(&inner_filepath_clone);
+                                            cached_content.remove(&inner_filepath_clone);
+                
+                                            set_saved_file_contents.set(saved_content);
+                                            set_cached_file_contents.set(cached_content);
+                
+                                            vec.remove(index);
+                                            if vec.len() > 0 {
+                                                if index == vec.len(){
+                                                    set_selected_file.set(vec[index-1].0.clone());
+                                                } else if index < vec.len() {
+                                                    set_selected_file.set(vec[index].0.clone());
+                                                }
+                                            } else if vec.len() == 0 {
+                                                set_selected_file.set(String::new());
+                                            }
+                                            set_open_files.set(vec);
+                                            break;
+                                        }
+                                    }
+                                }
+                            });
+
+                        }
+                    }
                 }
             }
             >
@@ -434,12 +471,12 @@ pub fn App() -> impl IntoView {
 
             <div class="sidebar-details" style="display: flex; flex-basis: 300px;">
                 <SidebarEnvironment selected_activity_icon=selected_activity_icon environment_dropdown_active=environment_dropdown_active set_environment_dropdown_active=set_environment_dropdown_active current_environment_dropdown_item=current_environment_dropdown_item set_current_environment_dropdown_item=set_current_environment_dropdown_item current_environment_dropdown_text=current_environment_dropdown_text set_current_environment_dropdown_text=set_current_environment_dropdown_text current_endpoint=current_endpoint set_current_endpoint=set_current_endpoint/>
-                <SidebarFileExplorer selected_activity_icon=selected_activity_icon fs_html=fs_html set_fs_html=set_fs_html selected_file=selected_file set_selected_file=set_selected_file set_open_files=set_open_files cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents root=root set_root=set_root/>
+                <SidebarFileExplorer selected_activity_icon=selected_activity_icon fs_html=fs_html set_fs_html=set_fs_html selected_file=selected_file set_selected_file=set_selected_file set_open_files=set_open_files cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents root=root set_root=set_root set_highlighted_msg=set_highlighted_msg set_saved_file_contents=set_saved_file_contents/>
                 <SidebarAccount selected_activity_icon=selected_activity_icon accounts=accounts set_accounts=set_accounts current_environment_dropdown_item=current_environment_dropdown_item/>
                 <SidebarRecords selected_activity_icon=selected_activity_icon/>
                 <SidebarRestApi selected_activity_icon=selected_activity_icon current_environment_dropdown_item=current_environment_dropdown_item current_endpoint=current_endpoint/>
                 <SidebarCompile selected_activity_icon=selected_activity_icon selected_file=selected_file set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item root=root set_fs_html=set_fs_html/>
-                <SidebarDeployExecute selected_activity_icon=selected_activity_icon current_environment_dropdown_text=current_environment_dropdown_text current_endpoint=current_endpoint accounts=accounts set_accounts=set_accounts compiled_project=compiled_project set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item/>
+                <SidebarDeployExecute selected_activity_icon=selected_activity_icon current_environment_dropdown_text=current_environment_dropdown_text current_endpoint=current_endpoint accounts=accounts  compiled_project=compiled_project  current_environment_dropdown_item=current_environment_dropdown_item/>
                 <SidebarHistory selected_activity_icon=selected_activity_icon/>
             
             </div>

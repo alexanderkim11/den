@@ -1,6 +1,6 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod clipboard;
-mod dialog;
+mod warning;
 mod file;
 mod highlight;
 mod leo;
@@ -71,12 +71,14 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             clipboard::copy,
-            dialog::warning,
-            dialog::exit_warning,
+            warning::warning,
+            warning::exit_warning,
+            warning::change_dir_warning,
             file::read_file,
             file::write_file,
             file::mkdir,
             file::read_program_json,
+            file::path_exists,
             highlight::highlight,
             leo::execute,
             load_theme_syntax::load,

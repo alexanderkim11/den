@@ -47,7 +47,7 @@ pub fn recurse_walk_dir(folder_path: &Path) -> Vec<CustomDirEntry> {
 }
 
 #[tauri::command]
-pub async fn open_explorer(_handle: tauri::AppHandle, _code: String) -> String {
+pub async fn open_explorer(_handle: tauri::AppHandle, _placeholder: String) -> String {
     let folder_path_option = FileDialog::new().pick_folder();
 
     let mut return_val: String = String::new();
