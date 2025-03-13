@@ -279,6 +279,20 @@ pub fn SidebarDeployExecute (
                         Ok(val) => {fee_in_microcredits = val *1000000},
                         Err(_) => {fee_in_microcredits = 0},
                     }
+
+                    //Reset Fee
+                    let current_fee_input = document.query_selector("#deploy-input-fee").expect("Error: no fee input").expect("Error: no fee input").dyn_into::<HtmlInputElement>().expect("Error: no fee input");
+                    current_fee_input.set_value("");
+
+                    //Reset Private Fee and set to inactive
+                    let private_fee_input = document.query_selector("#private-fee-input").expect("Error: no private fee input").expect("Error: no private fee input").dyn_into::<HtmlTextAreaElement>().expect("Error: no private fee input");
+                    private_fee_input.set_value("");
+                    let _ = private_fee_input.set_attribute("active", "false");
+                    let private_fee_checkbox =  document.query_selector("#private-fee-checkbox").expect("Error: no private fee checkbox").expect("Error: no private fee checkbox").dyn_into::<HtmlInputElement>().expect("Error: no private fee checkbox");
+                    let _ = private_fee_checkbox.set_checked(false);
+                    let _ = document.query_selector("#private-fee-input-field").expect("Error: no private fee input field").expect("Error: no private fee input field").dyn_into::<HtmlElement>().expect("Error: failed to cast private fee input field").style().set_property("display", "none");
+
+
                     let mut formatted_inputs : Vec<String> = Vec::new();
     
                     let input_type_re = Regex::new(r"(?<raw_type>.*)\.(public|private)").unwrap();
@@ -1079,7 +1093,7 @@ pub fn SidebarDeployExecute (
                             <div class="switch-wrapper">
                                 <div class="field-title" style="order:0; padding:0; margin-right:15px; padding-top:2.5px; padding-bottom:2.5px;">Private Fee</div>
                                 <label class="switch" style="order:1;">
-                                    <input type="checkbox"
+                                    <input id="private-fee-checkbox" type="checkbox"
                                     on:change:target = move|ev|{
                                         let document = leptos::prelude::document();
                                                         
@@ -1278,7 +1292,6 @@ pub fn SidebarDeployExecute (
                                 new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
                                 let _ = this.class_list().add(&new_val); 
 
-
                                 spawn_local(async move {
                                     let current_env = if current_environment_dropdown_text.get_untracked() == "Local Devnet" {"local".to_string()} else {current_environment_dropdown_text.get_untracked().to_string().to_lowercase()};
                                     let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
@@ -1298,6 +1311,20 @@ pub fn SidebarDeployExecute (
                                         command.push(fee_record);
                                     }
                                     
+
+                                    //Reset Fee
+                                    let current_fee_input = document.query_selector("#deploy-input-fee").expect("Error: no fee input").expect("Error: no fee input").dyn_into::<HtmlInputElement>().expect("Error: no fee input");
+                                    current_fee_input.set_value("");
+
+                                    //Reset Private Fee and set to inactive
+                                    let private_fee_input = document.query_selector("#private-fee-input").expect("Error: no private fee input").expect("Error: no private fee input").dyn_into::<HtmlTextAreaElement>().expect("Error: no private fee input");
+                                    private_fee_input.set_value("");
+                                    let _ = private_fee_input.set_attribute("active", "false");
+                                    let private_fee_checkbox =  document.query_selector("#private-fee-checkbox").expect("Error: no private fee checkbox").expect("Error: no private fee checkbox").dyn_into::<HtmlInputElement>().expect("Error: no private fee checkbox");
+                                    let _ = private_fee_checkbox.set_checked(false);
+                                    let _ = document.query_selector("#private-fee-input-field").expect("Error: no private fee input field").expect("Error: no private fee input field").dyn_into::<HtmlElement>().expect("Error: failed to cast private fee input field").style().set_property("display", "none");
+
+
                                     
                                     let args = serde_wasm_bindgen::to_value(&Command { command : command}).unwrap();        
                                     let (error,_output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();

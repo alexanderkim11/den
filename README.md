@@ -68,6 +68,7 @@ Built with Tauri + Leptos
     - Add sub-icon on sidebar icon to indicate success,failure, or pending
 - Deploy and Execute:
     - **Reset Fee and private fee Fields when deploy or function is called (prevents users from accidently spending something they don't want to)**
+    - **Add message if broadcasting fails**
     - Deploy Program
         - **Add fee estimation functionality**
         - **Check if program has already been deployed on this network**
