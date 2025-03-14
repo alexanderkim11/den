@@ -16,7 +16,7 @@ Built with Tauri + Leptos
 
 ## General:
 - **Work on Custom Titlebar with buttons**
-- Need to figure out way to integrate LSP server for document-wide error checking
+- **Need to figure out way to use LSP server rather than hand-rolled nonsense**
 - Testing framework?
 - Add way to open multiple windows/app instances
 - Figure out way to add warning message when exiting app

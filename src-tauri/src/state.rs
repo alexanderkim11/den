@@ -13,10 +13,12 @@ use crate::AppState;
 use std::sync::Mutex;
 
 
+const STATE_PATH : &str = "C:\\Users\\r0ami\\Home\\state.json";
+// const STATE_PATH : &str = "./";
+
 #[tauri::command]
 pub fn get_state_accounts(handle: tauri::AppHandle, _placeholder : String) -> (IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>) {
-    let state = handle.store("C:\\Users\\r0ami\\Home\\state.json").expect("Error loading state!");
-    //let state = handle.store("./").expect("Error loading state!");
+    let state = handle.store(STATE_PATH).expect("Error loading state!");
 
     let option = state.get("accounts");
     match option {
@@ -69,8 +71,7 @@ pub fn get_state_accounts(handle: tauri::AppHandle, _placeholder : String) -> (I
 
 #[tauri::command]
 pub fn get_state_root_dir(handle: tauri::AppHandle, _placeholder : String) -> Value {
-    let state = handle.store("C:\\Users\\r0ami\\Home\\state.json").expect("Error loading state!");
-    //let state = handle.store("./").expect("Error loading state!");
+    let state = handle.store(STATE_PATH).expect("Error loading state!");
 
     let option = state.get("root_dir");
     match option {
@@ -83,8 +84,7 @@ pub fn get_state_root_dir(handle: tauri::AppHandle, _placeholder : String) -> Va
 
 #[tauri::command]
 pub fn update_state_accounts(handle: tauri::AppHandle, updatedAccounts : (IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>)) {
-    let state = handle.store("C:\\Users\\r0ami\\Home\\state.json").expect("Error loading state!");
-    //let state = handle.store("./").expect("Error loading state!");
+    let state = handle.store(STATE_PATH).expect("Error loading state!");
 
     // let mut dev_accounts : IndexMap<String,(String,String,String)> = IndexMap::new();
     // dev_accounts.insert("Account 0".to_string(),("APrivateKey1zkp8CZNn3yeCseEtxuVPbDCwSyhGW6yZKUYKfgXmcpoGPWH".to_string(),"AViewKey1mSnpFFC8Mj4fXbK5YiWgZ3mjiV8CxA79bYNa8ymUpTrw".to_string(),"aleo1rhgdu77hgyqd3xjj8ucu3jj9r2krwz6mnzyd80gncr5fxcwlh5rsvzp9px".to_string()));
@@ -110,8 +110,7 @@ pub fn update_state_accounts(handle: tauri::AppHandle, updatedAccounts : (IndexM
 
 #[tauri::command]
 pub fn update_state_root_dir(handle: tauri::AppHandle, directory : String) {
-    let state = handle.store("C:\\Users\\r0ami\\Home\\state.json").expect("Error loading state!");
-    //let state = handle.store("./").expect("Error loading state!");
+    let state = handle.store(STATE_PATH).expect("Error loading state!");
 
     state.set("root_dir", json!(directory));
 
