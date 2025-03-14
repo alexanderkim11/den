@@ -333,8 +333,11 @@ pub fn App() -> impl IntoView {
     // let (test, set_test) = signal(String::new());
     let (highlighted_msg, set_highlighted_msg) = signal(String::new());
 
-    let (syntax_set, set_syntax_set) = signal(SyntaxSet::load_defaults_nonewlines());
-    let (theme, set_theme) = signal(Theme::default());
+    let (leo_syntax_set, set_leo_syntax_set) = signal(SyntaxSet::load_defaults_nonewlines());
+    let (aleo_syntax_set, set_aleo_syntax_set) = signal(SyntaxSet::load_defaults_nonewlines());
+
+    let (leo_theme, set_leo_theme) = signal(Theme::default());
+    let (aleo_theme, set_aleo_theme) = signal(Theme::default());
 
     let (sl, set_sl) = signal(0i32);
     let (st, set_st) = signal(0i32);
@@ -354,9 +357,6 @@ pub fn App() -> impl IntoView {
     let (cached_file_contents, set_cached_file_contents) : (ReadSignal<HashMap<String,String>>,WriteSignal<HashMap<String,String>>) = signal(HashMap::new());
 
     let (environment_dropdown_active, set_environment_dropdown_active) = signal(false);
-    // let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("testnet-button".to_string());
-    // let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Testnet".to_string());
-    // let (current_endpoint, set_current_endpoint) = signal("https://api.explorer.provable.com/v1".to_string());
     let (current_environment_dropdown_item, set_current_environment_dropdown_item) = signal("devnet-button".to_string());
     let (current_environment_dropdown_text, set_current_environment_dropdown_text) = signal("Local Devnet".to_string());
     let (current_endpoint, set_current_endpoint) = signal("http://localhost:3030".to_string());
@@ -377,9 +377,15 @@ pub fn App() -> impl IntoView {
     // Load Syntax and Color Scheme from file
     spawn_local(async move {
         let args = serde_wasm_bindgen::to_value(&LoadThemeArgs { code : "null"}).unwrap();
-        let return_tuple: (SyntaxSet, Theme) = serde_wasm_bindgen::from_value(invoke("load", args).await).unwrap();
-        set_syntax_set.set(return_tuple.0);
-        set_theme.set(return_tuple.1);
+        let return_tuple: (SyntaxSet, Theme) = serde_wasm_bindgen::from_value(invoke("load_leo_syntax", args).await).unwrap();
+        set_leo_syntax_set.set(return_tuple.0);
+        set_leo_theme.set(return_tuple.1);
+
+        let args = serde_wasm_bindgen::to_value(&LoadThemeArgs { code : "null"}).unwrap();
+        let return_tuple: (SyntaxSet, Theme) = serde_wasm_bindgen::from_value(invoke("load_aleo_syntax", args).await).unwrap();
+        set_aleo_syntax_set.set(return_tuple.0);
+        set_aleo_theme.set(return_tuple.1);
+
     });
 
     spawn_local(async move {
@@ -512,7 +518,7 @@ pub fn App() -> impl IntoView {
                             }
                         }/>
                     </div>
-                    <IDE lines_html=lines_html set_lines_html=set_lines_html sl=sl set_sl=set_sl st=st set_st=set_st highlighted_msg=highlighted_msg set_highlighted_msg=set_highlighted_msg syntax_set=syntax_set theme=theme selected_file=selected_file saved_file_contents=saved_file_contents set_saved_file_contents=set_saved_file_contents cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item set_fs_html=set_fs_html root=root/>
+                    <IDE lines_html=lines_html set_lines_html=set_lines_html sl=sl set_sl=set_sl st=st set_st=set_st highlighted_msg=highlighted_msg set_highlighted_msg=set_highlighted_msg leo_syntax_set=leo_syntax_set leo_theme=leo_theme aleo_syntax_set=aleo_syntax_set aleo_theme=aleo_theme selected_file=selected_file saved_file_contents=saved_file_contents set_saved_file_contents=set_saved_file_contents cached_file_contents=cached_file_contents set_cached_file_contents=set_cached_file_contents set_compiled_project=set_compiled_project current_environment_dropdown_item=current_environment_dropdown_item set_fs_html=set_fs_html root=root/>
                 </div>
                 <div class = "terminal">
                     //TODO: Start this

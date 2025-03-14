@@ -47,7 +47,7 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| match event {
-            tauri::WindowEvent::CloseRequested{api,..} => {
+            tauri::WindowEvent::CloseRequested{..} => {
                 let app_handle = window.app_handle();
                 let state = app_handle.state::<Mutex<AppState>>();
                 let mut state = state.lock().unwrap();
@@ -81,7 +81,8 @@ pub fn run() {
             file::path_exists,
             highlight::highlight,
             leo::execute,
-            load_theme_syntax::load,
+            load_theme_syntax::load_leo_syntax,
+            load_theme_syntax::load_aleo_syntax,
             open_explorer::open_explorer,
             open_explorer::get_directory,
             snarkvm::new_account,
@@ -96,7 +97,6 @@ pub fn run() {
             state::update_state_accounts,
             state::update_state_root_dir,
             state:: start_dev_node,
-            test::test,
             url::open_url,
         ])
         .run(tauri::generate_context!())

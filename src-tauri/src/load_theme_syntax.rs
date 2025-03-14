@@ -135,8 +135,8 @@ fn get_theme_set(color_path: PathBuf) -> Result<ThemeSet, ParseError> {
     let mut set = ThemeSet::load_defaults();
     let path_literal: String = color_path.to_str().expect("Color path error 2").to_string();
     let contents = fs::read_to_string(path_literal).expect("Error with parsing color file");
-    let leo = ColorScheme::from_str(&contents)?;
-    set.themes.insert("leo".to_string(), leo.try_into()?);
+    let color_scheme = ColorScheme::from_str(&contents)?;
+    set.themes.insert("aleo".to_string(), color_scheme.try_into()?);
     Ok(set)
 }
 
@@ -144,7 +144,7 @@ fn get_theme_set(color_path: PathBuf) -> Result<ThemeSet, ParseError> {
 // Tauri: When using a Rust frontend to call invoke() without arguments, you will need to adapt your frontend code as below. The reason is that Rust doesn’t support optional arguments.
 // See the Basic Example - WASM section of https://tauri.app/develop/calling-rust/
 #[tauri::command]
-pub fn load(handle: tauri::AppHandle, _code: String) -> (SyntaxSet, Theme) {
+pub fn load_leo_syntax(handle: tauri::AppHandle, _code: String) -> (SyntaxSet, Theme) {
     let color_path = handle
         .path()
         .resolve(
@@ -153,13 +153,40 @@ pub fn load(handle: tauri::AppHandle, _code: String) -> (SyntaxSet, Theme) {
         )
         .expect("Color path error");
     let theme_set = get_theme_set(color_path).unwrap();
-    let theme = theme_set.themes.get("leo").expect("Error with Theme");
+    let theme = theme_set.themes.get("aleo").expect("Error with Theme");
 
     let mut builder = SyntaxSetBuilder::new();
 
     let syntax_path = handle
         .path()
         .resolve("resources/leo.sublime-syntax", BaseDirectory::Resource)
+        .expect("Error with syntax path");
+    builder.add_from_folder(syntax_path, true).unwrap();
+    let ss = builder.build();
+
+    return (ss.clone(), theme.clone());
+}
+
+// Function parameter `code` is provided because Rust doesn't allow function calls with no arguments, it isn't meant to be used
+// Tauri: When using a Rust frontend to call invoke() without arguments, you will need to adapt your frontend code as below. The reason is that Rust doesn’t support optional arguments.
+// See the Basic Example - WASM section of https://tauri.app/develop/calling-rust/
+#[tauri::command]
+pub fn load_aleo_syntax(handle: tauri::AppHandle, _code: String) -> (SyntaxSet, Theme) {
+    let color_path = handle
+        .path()
+        .resolve(
+            "resources/aleo.sublime-color-scheme",
+            BaseDirectory::Resource,
+        )
+        .expect("Color path error");
+    let theme_set = get_theme_set(color_path).unwrap();
+    let theme = theme_set.themes.get("aleo").expect("Error with Theme");
+
+    let mut builder = SyntaxSetBuilder::new();
+
+    let syntax_path = handle
+        .path()
+        .resolve("resources/aleo.sublime-syntax", BaseDirectory::Resource)
         .expect("Error with syntax path");
     builder.add_from_folder(syntax_path, true).unwrap();
     let ss = builder.build();

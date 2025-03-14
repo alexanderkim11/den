@@ -1292,10 +1292,22 @@ pub fn SidebarDeployExecute (
                                 new_val.push(&serde_wasm_bindgen::to_value("pending").unwrap());
                                 let _ = this.class_list().add(&new_val); 
 
+                                
+
                                 spawn_local(async move {
                                     let current_env = if current_environment_dropdown_text.get_untracked() == "Local Devnet" {"local".to_string()} else {current_environment_dropdown_text.get_untracked().to_string().to_lowercase()};
                                     let network : String = if current_environment_dropdown_item.get_untracked() == "mainnet-button" {"mainnet".to_string()} else {"testnet".to_string()};
                                     
+                                    let args = serde_wasm_bindgen::to_value(&Command { command : vec!["query".to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked(),"program".to_string(), program_id.clone()]}).unwrap();        
+                                    let (error,_): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                    if !error {
+                                        let error = document.query_selector("#deploy-program-error").unwrap().unwrap().dyn_into::<HtmlElement>().unwrap();
+                                        error.set_inner_html("Error: Program with this ID has already been deployed.");
+                                        let _ = error.style().set_property("display", "block");
+                                        let _ = this.class_list().remove(&new_val); 
+                                        return;
+                                    }
+
                                     let accounts_map = network_accounts.get_untracked();
                                     let account = accounts_map.get(&deploy_accounts_dropdown_item.get_untracked()).unwrap();
                                     let pk = account.0.clone();

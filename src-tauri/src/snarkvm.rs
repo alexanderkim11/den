@@ -3,11 +3,28 @@ pub use snarkvm::console::{
     account::{Address, PrivateKey, Signature, ViewKey},
     program::{Ciphertext, Record},
 };
+use aleo_std::StorageMode;
+use snarkvm::{
+    circuit::{AleoV0, Aleo, AleoTestnetV0},
+    prelude::{
+        Process,
+        ProgramID,
+        VM,
+        store::{
+            ConsensusStore,
+            helpers::memory::ConsensusMemory,
+        },
+        Network,
+        Program as SnarkVMProgram,
+    }
+};
+use leo_retriever::{fetch_from_network, verify_valid_program};
+use leo_package::package::Package;
 
 
 
 use rand::{rngs::StdRng, SeedableRng};
-use std::{error::Error, str::FromStr};
+use std::str::FromStr;
 
 #[tauri::command]
 pub fn new_account(_handle: tauri::AppHandle, network: String) -> (bool, (String, String, String)) {
@@ -647,33 +664,6 @@ pub fn decrypt_record(
         return (true, "Error: undefined behavior".to_string());
     }
 }
-
-
-use std::env::current_dir;
-use std::path::PathBuf;
-
-use aleo_std::{aleo_dir, StorageMode};
-use snarkvm::{
-    circuit::{AleoCanaryV0, AleoV0, Aleo, AleoTestnetV0},
-    prelude::{
-        Process,
-        ProgramID,
-        VM,
-        store::{
-            ConsensusStore,
-            helpers::memory::{ConsensusMemory},
-        },
-        Network,
-        Program as SnarkVMProgram,
-    }
-};
-use leo_retriever::{NetworkName, fetch_from_network, verify_valid_program};
-use leo_lang::cli::{
-    context::*,
-    query::{LeoQuery, QueryCommands, LeoProgram},
-    LeoExecute
-};
-use leo_package::package::Package;
 
 
 

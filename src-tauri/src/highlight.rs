@@ -43,23 +43,30 @@ fn generate_html(hl_vec: Vec<(Style, &str)>) -> String {
     return html;
 }
 
-#[tauri::command]
-pub fn highlight(code: String, ss: SyntaxSet, theme: Theme) -> String {
-    let syntax = ss.find_syntax_by_name("leo").expect("error with syntax");
-    let mut h = HighlightLines::new(syntax, &theme);
 
-    let mut code2 = code;
-    let last_index = cmp::max(0, (code2.len() as isize) - 1) as usize;
-    let last_char = &code2[last_index..code2.len()];
-    if last_char == "\n" {
-        code2 = format!("{}{}", code2, "\u{00A0}");
-    }
-
-    let highlighted = h.highlight_line(&code2, &ss).unwrap();
-    // println!("{:?}", highlighted);
-    let html = generate_html(highlighted);
-    //println!("{:?}", html);
-    return html.into();
+fn generate_html_default(code : String) -> String {
+    let formatted_text = unicode_replace(&code);
+    return "<span style=\"color: #EEEEEE;\">".to_owned() + &formatted_text + "</span>";
 }
 
-//println!("{:?}", set.themes)
+#[tauri::command]
+pub fn highlight(code: String, ss: SyntaxSet, theme: Theme, filetype : String) -> String {
+    if &filetype == "default"{
+        let html = generate_html_default(code);
+        return html.into(); 
+    } else {
+        let syntax = ss.find_syntax_by_name(&filetype).expect("error with syntax");
+        let mut h = HighlightLines::new(syntax, &theme);
+    
+        let mut code2 = code;
+        let last_index = cmp::max(0, (code2.len() as isize) - 1) as usize;
+        let last_char = &code2[last_index..code2.len()];
+        if last_char == "\n" {
+            code2 = format!("{}{}", code2, "\u{00A0}");
+        }
+    
+        let highlighted = h.highlight_line(&code2, &ss).unwrap();
+        let html = generate_html(highlighted);
+        return html.into(); 
+    }
+}

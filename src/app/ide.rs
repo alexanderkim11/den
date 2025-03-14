@@ -32,6 +32,7 @@ struct HighlightArgs<'a> {
     code: &'a str,
     ss : SyntaxSet,
     theme : Theme,
+    filetype : String,
 }
 
 
@@ -105,7 +106,6 @@ pub fn get_lines(code2: String) -> String{
     return lines_html;
 }
 
-
 /*
 ==============================================================================
 COMPONENTS
@@ -122,8 +122,10 @@ pub fn IDE(
     set_st : WriteSignal<i32>,
     highlighted_msg : ReadSignal<String>,
     set_highlighted_msg : WriteSignal<String>,
-    syntax_set: ReadSignal<SyntaxSet>,
-    theme: ReadSignal<Theme>,
+    leo_syntax_set: ReadSignal<SyntaxSet>,
+    leo_theme: ReadSignal<Theme>,
+    aleo_syntax_set: ReadSignal<SyntaxSet>,
+    aleo_theme: ReadSignal<Theme>,     
     selected_file : ReadSignal<String>,
     saved_file_contents: ReadSignal<HashMap<String,String>>, 
     set_saved_file_contents: WriteSignal<HashMap<String,String>>,
@@ -160,7 +162,6 @@ pub fn IDE(
     let (key_pressed, set_key_pressed) : (ReadSignal<HashMap<String,bool>>,WriteSignal<HashMap<String,bool>>) = signal(HashMap::new());
 
     view! {
-
         <div class= "ide">
             <div class="ide-error" style="display:none; width:100%; height:100%">
                 <img src="public/error.svg"/> 
@@ -202,26 +203,59 @@ pub fn IDE(
 
                     spawn_local(
                         async move {
-                            let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
-                            let highlighted = invoke("highlight", args).await.as_string().unwrap();
-                            
-
-                            set_highlighted_msg.set(highlighted);
-                            set_sl.set(ev.target().scroll_left());
-                            set_st.set(ev.target().scroll_top());
-                            
+                            let selected_filepath = selected_file.get_untracked().replace("\\", "/");
+                            let path = Path::new(&selected_filepath);
+                            let extension = path.extension();
+    
+                            match extension {
+                                Some(ext) => {
+                                    if ext.to_str().expect("Error parsing extension to string") == "leo" {
+                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : ext.to_str().unwrap().to_string()}).unwrap();
+                                        let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                        
+            
+                                        set_highlighted_msg.set(highlighted);
+                                        set_sl.set(ev.target().scroll_left());
+                                        set_st.set(ev.target().scroll_top());
+                                    } else if ext.to_str().expect("Error parsing extension to string") == "aleo" {
+                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : aleo_syntax_set.get_untracked(), theme : aleo_theme.get_untracked(), filetype : ext.to_str().unwrap().to_string()}).unwrap();
+                                        let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                        
+            
+                                        set_highlighted_msg.set(highlighted);
+                                        set_sl.set(ev.target().scroll_left());
+                                        set_st.set(ev.target().scroll_top());
+          
+                                    } else {
+                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : "default".to_string() }).unwrap();
+                                        let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                        
+            
+                                        set_highlighted_msg.set(highlighted);
+                                        set_sl.set(ev.target().scroll_left());
+                                        set_st.set(ev.target().scroll_top());
+                                    }
+                                }
+                                None => {
+                                    let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : "default".to_string() }).unwrap();
+                                    let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                    
+        
+                                    set_highlighted_msg.set(highlighted);
+                                    set_sl.set(ev.target().scroll_left());
+                                    set_st.set(ev.target().scroll_top());
+                                }
+                            }
                         }
                     );
                     
                 }
                 on:keydown:target= move |ev| {
-                    // This function is used for the special case of Tabs, as HtmlTextArea does not natively support tab.
                     let key = ev.key();
                     let code = ev.target().value();
 
                     let mut key_pressed_map = key_pressed.get();
                     key_pressed_map.insert(key.clone(),true);
-
 
                     if (&key_pressed_map).contains_key("Control") && &key == "s" {
                         let current_filepath = selected_file.get_untracked();
@@ -326,43 +360,141 @@ pub fn IDE(
                             },
                             None => {}
                         }
-                    }
-                    set_key_pressed.set(key_pressed_map);
-
-                    if &key == "Tab" {
+                    } else if &key == "Tab" {
+                        // This function is used for the special case of Tabs, as HtmlTextArea does not natively support tab.
                         /* Tab key pressed */
                         ev.prevent_default(); // stop normal
 
                         let selection_start = ev.target().selection_start().unwrap().unwrap() as usize;
                         let selection_end = ev.target().selection_end().unwrap().unwrap() as usize;
-                        let before_tab = &code[0..selection_start];
-                        let after_tab = &code[selection_end..code.len()];
-                        let width_check = get_width(before_tab);
-                        let new_code = format!("{}{}{}", before_tab, "\u{0009}", after_tab);                                                
-                        ev.target().set_value(&new_code);
+                        if selection_start == selection_end {
+                            let before_tab = &code[0..selection_start];
+                            let after_tab = &code[selection_end..code.len()];
+                            let width_check = get_width(before_tab);
+                            let new_code = format!("{}{}{}", before_tab, "\u{0009}", after_tab);                                                
+                            ev.target().set_value(&new_code);
+    
+                            let cursor_pos = (selection_end + 1) as u32;
+                            let _ = ev.target().set_selection_start(Some(cursor_pos));
+                            let _ = ev.target().set_selection_end(Some(cursor_pos));
+    
+    
+                            spawn_local(
+                                async move {
+                                    let selected_filepath = selected_file.get_untracked().replace("\\", "/");
+                                    let path = Path::new(&selected_filepath);
+                                    let extension = path.extension();
+            
+                                    match extension {
+                                        Some(ext) => {
+                                            if ext.to_str().expect("Error parsing extension to string") == "leo" {
+                                                let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : ext.to_str().unwrap().to_string()}).unwrap();
+                                                let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                set_highlighted_msg.set(highlighted);
+                                            } else if ext.to_str().expect("Error parsing extension to string") == "aleo" {
+                                                let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : aleo_syntax_set.get_untracked(), theme : aleo_theme.get_untracked(), filetype : ext.to_str().unwrap().to_string()}).unwrap();
+                                                let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                set_highlighted_msg.set(highlighted);
+                                            } else {
+                                                let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : "default".to_string() }).unwrap();
+                                                let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                set_highlighted_msg.set(highlighted);
+                                            }
+                                        }
+                                        None => {
+                                            let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &ev.target().value(), ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : "default".to_string() }).unwrap();
+                                            let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                            set_highlighted_msg.set(highlighted);
+                                        }
+                                    }
+    
+                                    let scroll_left = ev.target().scroll_left();
+                                    let client_width =  ev.target().client_width();
+                                    if client_width + scroll_left <  width_check {
+                                        let new_scroll_distance = scroll_left + (width_check - (client_width + scroll_left));
+                                        ev.target().set_scroll_left(new_scroll_distance);
+                                        set_sl.set(new_scroll_distance);    
+                                    }  
+            
+                                }
+                            );
+                        }
+                    } else if &key == "Enter" {
+                        ev.prevent_default();
 
-                        let cursor_pos = (selection_end + 1) as u32;
-                        let _ = ev.target().set_selection_start(Some(cursor_pos));
-                        let _ = ev.target().set_selection_end(Some(cursor_pos));
+                        let selection_start = ev.target().selection_start().unwrap().unwrap() as usize;
+                        let selection_end = ev.target().selection_end().unwrap().unwrap() as usize;
+                        if selection_start == selection_end {
+                            let before_this = &code[0..selection_start];
+                            let after_this = &code[selection_end..code.len()];
 
+                            let before_this_lines = before_this.split("\n").collect::<Vec<&str>>();
+                            let this_line = before_this_lines[before_this_lines.len()-1];
 
-                        spawn_local(
-                            async move {
-                                let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &new_code, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
-                                let highlighted = invoke("highlight", args).await.as_string().unwrap();
-                                set_highlighted_msg.set(highlighted);
-
-                                let scroll_left = ev.target().scroll_left();
-                                let client_width =  ev.target().client_width();
-                                if client_width + scroll_left <  width_check {
-                                    let new_scroll_distance = scroll_left + (width_check - (client_width + scroll_left));
-                                    ev.target().set_scroll_left(new_scroll_distance);
-                                    set_sl.set(new_scroll_distance);    
-                                }  
-        
+                            let mut num_tabs = 0;
+                            for charc in this_line.chars(){
+                                if charc == '\u{0009}' {
+                                    num_tabs += 1;
+                                }
                             }
-                        );
+                            let tabs = "\u{0009}".repeat(num_tabs);
+                            let width_check = get_width(before_this);
+                            let new_code = format!("{}{}{}{}", before_this,"\n",tabs, after_this);                                                
+                            ev.target().set_value(&new_code);
+    
+                            let cursor_pos = (selection_end + num_tabs + 1) as u32;
+                            let _ = ev.target().set_selection_start(Some(cursor_pos));
+                            let _ = ev.target().set_selection_end(Some(cursor_pos));
+    
+                            let lines_html = get_lines(new_code.clone());
+                            set_lines_html.set(lines_html);
+
+                            spawn_local(
+                                async move {
+                                    let selected_filepath = selected_file.get_untracked().replace("\\", "/");
+                                    let path = Path::new(&selected_filepath);
+                                    let extension = path.extension();
+            
+                                    match extension {
+                                        Some(ext) => {
+                                            if ext.to_str().expect("Error parsing extension to string") == "leo" {
+                                                let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &new_code, ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : ext.to_str().unwrap().to_string()}).unwrap();
+                                                let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                set_highlighted_msg.set(highlighted);
+                                            } else if ext.to_str().expect("Error parsing extension to string") == "aleo" {
+                                                let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &new_code, ss : aleo_syntax_set.get_untracked(), theme : aleo_theme.get_untracked(), filetype : ext.to_str().unwrap().to_string()}).unwrap();
+                                                let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                set_highlighted_msg.set(highlighted);
+                                            } else {
+                                                let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &new_code, ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : "default".to_string() }).unwrap();
+                                                let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                set_highlighted_msg.set(highlighted);
+                                            }
+                                        }
+                                        None => {
+                                            let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &new_code, ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : "default".to_string() }).unwrap();
+                                            let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                            set_highlighted_msg.set(highlighted);
+                                        }
+                                    }
+
+    
+                                    let scroll_left = ev.target().scroll_left();
+                                    let client_width =  ev.target().client_width();
+                                    if client_width + scroll_left <  width_check {
+                                        let new_scroll_distance = scroll_left + (width_check - (client_width + scroll_left));
+                                        ev.target().set_scroll_left(new_scroll_distance);
+                                        set_sl.set(new_scroll_distance);    
+                                    }  
+            
+                                }
+                            );
+                        }
+
                     }
+
+
+                    set_key_pressed.set(key_pressed_map);
                 }
                 on:keyup:target= move |ev| {
                     let key = ev.key();
@@ -389,9 +521,33 @@ pub fn IDE(
                                     match invoke("read_file", args).await.as_string(){
                                         Some(contents) => {
                                             let cached_content = cached_contents.get(&selected).unwrap().to_string();
-                                            let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &cached_content, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
-                                            let highlighted = invoke("highlight", args).await.as_string().unwrap();
-                                            set_highlighted_msg.set(highlighted);
+
+                                            let selected_filepath = selected_file.get_untracked().replace("\\", "/");
+                                            let path = Path::new(&selected_filepath);
+                                            let extension = path.extension();
+                    
+                                            match extension {
+                                                Some(ext) => {
+                                                    if ext.to_str().expect("Error parsing extension to string") == "leo" {
+                                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &cached_content, ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : ext.to_str().unwrap().to_string()}).unwrap();
+                                                        let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                        set_highlighted_msg.set(highlighted);
+                                                    } else if ext.to_str().expect("Error parsing extension to string") == "aleo" {
+                                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &cached_content, ss : aleo_syntax_set.get_untracked(), theme : aleo_theme.get_untracked(), filetype : ext.to_str().unwrap().to_string()}).unwrap();
+                                                        let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                        set_highlighted_msg.set(highlighted);
+                                                    } else {
+                                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &cached_content, ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : "default".to_string() }).unwrap();
+                                                        let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                        set_highlighted_msg.set(highlighted);
+                                                    }
+                                                }
+                                                None => {
+                                                    let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &cached_content, ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : "default".to_string() }).unwrap();
+                                                    let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                    set_highlighted_msg.set(highlighted);
+                                                }
+                                            }
 
                                             saved_contents.insert(selected.clone(), contents.clone());
                                             set_saved_file_contents.set(saved_contents);
@@ -443,9 +599,32 @@ pub fn IDE(
 
                                     match invoke("read_file", args).await.as_string(){
                                         Some(contents) => {
-                                            let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : syntax_set.get_untracked(), theme : theme.get_untracked()}).unwrap();
-                                            let highlighted = invoke("highlight", args).await.as_string().unwrap();
-                                            set_highlighted_msg.set(highlighted);
+                                            let selected_filepath = selected_file.get_untracked().replace("\\", "/");
+                                            let path = Path::new(&selected_filepath);
+                                            let extension = path.extension();
+                    
+                                            match extension {
+                                                Some(ext) => {
+                                                    if ext.to_str().expect("Error parsing extension to string") == "leo" {
+                                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : ext.to_str().unwrap().to_string()}).unwrap();
+                                                        let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                        set_highlighted_msg.set(highlighted);
+                                                    } else if ext.to_str().expect("Error parsing extension to string") == "aleo" {
+                                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : aleo_syntax_set.get_untracked(), theme : aleo_theme.get_untracked(), filetype : ext.to_str().unwrap().to_string()}).unwrap();
+                                                        let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                        set_highlighted_msg.set(highlighted);
+                                                    } else {
+                                                        let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : "default".to_string() }).unwrap();
+                                                        let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                        set_highlighted_msg.set(highlighted);
+                                                    }
+                                                }
+                                                None => {
+                                                    let args = serde_wasm_bindgen::to_value(&HighlightArgs { code: &contents, ss : leo_syntax_set.get_untracked(), theme : leo_theme.get_untracked(), filetype : "default".to_string() }).unwrap();
+                                                    let highlighted = invoke("highlight", args).await.as_string().unwrap();
+                                                    set_highlighted_msg.set(highlighted);
+                                                }
+                                            }
 
                                             saved_contents.insert(selected.clone(), contents.clone());
                                             cached_contents.insert(selected, contents.clone());

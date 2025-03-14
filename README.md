@@ -67,15 +67,12 @@ Built with Tauri + Leptos
 - Compile
     - Add sub-icon on sidebar icon to indicate success,failure, or pending
 - Deploy and Execute:
-    - **Reset Fee and private fee Fields when deploy or function is called (prevents users from accidently spending something they don't want to)**
     - **Add message if broadcasting fails**
     - Deploy Program
         - **Add fee estimation functionality**
-        - **Check if program has already been deployed on this network**
         - **Need better way to check if transaction fails due to low balance or fee not being large enough**
     - Deployed/Loaded Program:
         - Figure out how compressed and expanded inputs are connected/separated and rest when function is switched between compressed and expanded?
-
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
 - REST API:
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?
@@ -90,9 +87,7 @@ Built with Tauri + Leptos
 - Dynamic error checking (red squiggle with error description) (See LSP task above)
 - Better file state tracking (Ctrl + Z Undo doesn't work once you switch to another file)
 - Highlight current line of text with gray?
-- **Add highlighting conditional on file type (.leo vs .aleo vs. everything else)**
 - **Maintain scroll level and cursor position when switching between file tabs and reopening files**
-- **Maintain indent level when entering newline character (VSCode-like)**
 
 ## Terminal:
 - **Start work on this**
