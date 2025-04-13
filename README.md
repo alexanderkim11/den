@@ -70,7 +70,7 @@ Built with Tauri + Leptos
     - **Add message if broadcasting fails**
     - Deploy Program
         - **Add fee estimation functionality**
-        - **Need better way to check if transaction fails due to low balance or fee not being large enough**
+        - **Need better way to check if transaction fails due to low balance or fee not being large enough or conflicting program name**
     - Deployed/Loaded Program:
         - Figure out how compressed and expanded inputs are connected/separated and rest when function is switched between compressed and expanded?
     - Figure out how to migrate leo.exe stuff to underlying snarkVM code for platform agnostic support?

@@ -13,8 +13,8 @@ use crate::AppState;
 use std::sync::Mutex;
 
 
-// const STATE_PATH : &str = "C:\\Users\\r0ami\\Home\\state.json";
-const STATE_PATH : &str = "./";
+const STATE_PATH : &str = "C:\\Users\\r0ami\\Home\\state.json";
+// const STATE_PATH : &str = "./";
 
 #[tauri::command]
 pub fn get_state_accounts(handle: tauri::AppHandle, _placeholder : String) -> (IndexMap<String,(String,String,String)>,IndexMap<String,(String,String,String)>) {

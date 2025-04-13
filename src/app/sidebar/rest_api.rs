@@ -4,7 +4,6 @@ use leptos::{leptos_dom::logging::console_log, task::spawn_local};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use regex::Regex;
 
 use crate::app::CopyButton;
 
