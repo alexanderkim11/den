@@ -53,8 +53,8 @@ pub fn SidebarCompile (
     ==============================================================================
     */
     let (compiler_dropdown_active, set_compiler_dropdown_active) = signal(false);
-    let (compiler_dropdown_item, set_compiler_dropdown_item) = signal("v241-button".to_string());
-    let (compiler_dropdown_text, set_compiler_dropdown_text) = signal("2.4.1".to_string());
+    let (compiler_dropdown_item, set_compiler_dropdown_item) = signal("v250-button".to_string());
+    let (compiler_dropdown_text, set_compiler_dropdown_text) = signal("2.5.0".to_string());
 
     let (compile_project_root, set_compile_project_root) = signal((String::new(),String::new()));
 
@@ -99,7 +99,7 @@ pub fn SidebarCompile (
                                         <img src="public/chevron-down.svg"/>
                                     </div>
                                     <div id="compiler-dropdown-content" class="dropdown-content" style={move || if compiler_dropdown_active.get() {"display: block"} else {"display: none"}}>
-                                        <div id="v241-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if compiler_dropdown_item.get() == "v241-button" {"dropdown-item selected"} else {"dropdown-item"}}
+                                        <div id="v250-button" style="border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;" class={move || if compiler_dropdown_item.get() == "v241-button" {"dropdown-item selected"} else {"dropdown-item"}}
                                         on:click:target = move|ev| {
                                             if compiler_dropdown_item.get() != ev.target().id(){
                                                 set_compiler_dropdown_item.set(ev.target().id());
@@ -114,7 +114,7 @@ pub fn SidebarCompile (
                                             }
                                         }
                                         >
-                                            2.4.1
+                                            2.5.0
                                         </div>
                                         // <For each=move || accounts.get() key=|(key,_)| key.to_string() children=move |(name,_)| {
                                         //     view! {

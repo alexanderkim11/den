@@ -1503,6 +1503,110 @@ input:checked + .slider:before {
 }
 
 
+.transaction-card {
+  margin:10px;
+  display:flex;
+  flex-direction:column;
+  border-radius:6px;
+  border: 2px solid #494e64;
+  padding-left: 5px;
+  padding-right:5px;
+}
+
+.transaction-card.active {
+  background-color: #343746;
+}
+
+
+.transaction-custom-head{
+  position:relative;
+  width: 100%;
+}
+
+.transaction-custom-head .dropdown-button {
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 6px;
+
+  padding:7.5px;
+  padding-left: 0;
+  padding-right:0;
+  min-height:40px;
+
+  font-family:'Inter'; 
+  font-size: 14px;
+  font-weight: 400;
+  order: 0;
+  display:flex;
+  
+  color:var(--stone);
+}
+
+
+
+.transaction-custom-head .dropdown-button img {
+  float:right;
+  order:1;
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+}
+
+.transaction-custom-head .dropdown-button img:hover {
+  cursor: pointer;
+}
+
+.transaction-custom-head .dropdown-button .buffer{
+  padding-top:3px;
+  margin-left: 5px;
+  height:max-content; 
+  width:calc(100% - 16px);
+  order:2;
+}
+
+
+.transaction-expand {
+  cursor:pointer;
+}
+
+
+
+
+
+
+
+
+.transaction-success {
+  filter: invert(90%) sepia(18%) saturate(584%) hue-rotate(61deg) brightness(104%) contrast(101%);
+}
+
+.transaction-pending {
+  filter: invert(72%) sepia(41%) saturate(689%) hue-rotate(324deg) brightness(102%) contrast(101%);
+}
+
+.transaction-failure {
+  /*Grapefruit*/
+  filter: invert(65%) sepia(37%) saturate(7119%) hue-rotate(324deg) brightness(95%) contrast(109%);
+}
+
+.transaction-details{
+  font-size: 12px;
+  font-weight: 400;
+  font-family:'Inter'; 
+  color: var(--stone);
+  -webkit-user-select: none; 
+  -khtml-user-select: none; 
+  -moz-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none;
+  white-space: nowrap;
+  overflow:hidden;
+  padding-bottom: 10px;
+}
+
+
 #empty-space-horizontal {
   width:100%;
   height:100%;

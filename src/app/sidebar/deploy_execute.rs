@@ -1195,13 +1195,6 @@ pub fn SidebarDeployExecute (
                     <div class="card-body-wrapper" style={move || if current_dropdown_item.get() == "deploy-new-program-button" {"display: flex"} else {"display: none"}}>
                         <div id="deploy-program-card-body" class="card-body">
                             <div class="field-title">{move || format!("{}{}","Network: ",current_environment_dropdown_text.get())}</div>
-                            
-                            // <div class="input-field">
-                            //     <div class="field-title">Program ID</div>
-                            //     <input id="deploy-input-program-id" placeholder="Program ID" spellcheck="false" autocomplete="off" autocapitalize="off"/>
-                            // </div>
-
-
                             <div class="input-field">
                                 <div class="field-title">Project</div>
                                 <div class="output-input-wrapper">
