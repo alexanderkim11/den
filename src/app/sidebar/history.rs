@@ -65,6 +65,8 @@ pub fn SidebarHistory (
     
     Effect::new({
         move || {
+            // let program = new_loaded_program.get();
+            // if program.2 != String::new() {}
             if true {
                 let document = leptos::prelude::document();
                 /*

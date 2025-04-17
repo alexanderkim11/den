@@ -1310,7 +1310,7 @@ pub fn SidebarDeployExecute (
                                         Err(_) => {fee_in_microcredits = 0},
                                     }
 
-                                    let mut command = vec!["deploy".to_string(), "--path".to_string(),compiled_project.get_untracked().0.clone(), "--yes".to_string(), "--no-build".to_string(), "--private-key".to_string(), pk,"--base-fee".to_string(),fee_in_microcredits.to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()];
+                                    let mut command = vec!["deploy".to_string(),"--path".to_string(),compiled_project.get_untracked().0.clone(), "--yes".to_string(), "--no-build".to_string(), "--private-key".to_string(), pk,"--base-fee".to_string(),fee_in_microcredits.to_string(),"--network".to_string(),network.clone(),"--endpoint".to_string(),current_endpoint.get_untracked()];
                                     if private_fee_active == "true" {
                                         command.push("--record".to_string());
                                         command.push(fee_record);
@@ -1332,7 +1332,7 @@ pub fn SidebarDeployExecute (
 
                                     
                                     let args = serde_wasm_bindgen::to_value(&Command { command : command}).unwrap();        
-                                    let (error,_output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
+                                    let (error,output): (bool, String) = serde_wasm_bindgen::from_value(invoke("execute", args).await).unwrap();
                                     if !error {
                                         let compiled_file = format!("{}{}",compiled_project.get_untracked().0.clone(),"/build/main.aleo");
                                         let args = serde_wasm_bindgen::to_value(&ReadFileArgs{filepath: compiled_file}).unwrap();
