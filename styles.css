@@ -1,23 +1,24 @@
-@font-face {
+/* @font-face {
   font-family: 'Aleofont Sans';
   src: url('src-tauri/resources/AleofontSans-Regular.otf') format('opentype');
-}
+} */
 
-@font-face {
+/* @font-face {
   font-family: 'Inter Thin';
   src: url('src-tauri/resources/Inter-VariableFont.otf') format('opentype');
-}
+} */
 
 @font-face {
-  font-family: 'Inter';
-  src: url('src-tauri/resources/Inter.woff2') format('woff2');
+  font-family: Inter;
+  src: url('resources/Inter.woff2?') format('woff2');
 }
-@font-face {
+
+/* @font-face {
   font-family: 'Menlo Regular';
   font-style: normal;
   font-weight: normal;
   src: url('src-tauri/resources/Menlo-Regular.woff') format('woff');
-  }
+} */
 
   @media (prefers-color-scheme: dark) {
     :root {
