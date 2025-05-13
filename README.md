@@ -10,6 +10,14 @@ Built with Tauri + Leptos
     1. Change state path to "./"
     2. Replace all Rust `.unwrap()` calls with `.expect(ERROR_MESSAGE)`
 
+
+# BUGS:
+
+    thread 'main' panicked at src-tauri/src/file.rs:12:45:
+    called `Result::unwrap()` on an `Err` value: Error { kind: InvalidData, message: "stream did not contain valid UTF-8" }
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+    fatal runtime error: failed to initiate panic, error 5
+
 # TODO:
 
 **BOLD** signifies priority tasking
@@ -39,7 +47,7 @@ Built with Tauri + Leptos
 - File System:
     - **Right Click Pop-up Menu**
         - **Delete**
-        - **Copy**
+        - **Copy/Paste**
         - **Rename**
         - Open File
         - Open Folder
